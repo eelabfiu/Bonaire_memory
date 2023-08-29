@@ -11,8 +11,24 @@
 
 ####Load Data####
 
+Prot<-read.csv("Data/Protein.csv", header=TRUE)
+Bio<-read.csv("Data/Biomass.csv", header=TRUE)
+
+Sym<-read.csv("Data/Symbionts.csv", header=TRUE)
+Chl<-read.csv("Data/Chlorophyll.csv", header=TRUE)
+PAM<-read.csv("Data/PAMData.csv", header=TRUE)
+PAM_Meta<-read.csv("Data/PAMMeta.csv", header=TRUE)
+
+BCA.Stand<-read.csv("Data/BCAStandards.csv", header=TRUE)
+Wax.Stand<-read.csv("Data/WaxStandards.csv", header=TRUE)
+
+SampData<-read.csv("Data/Samples.csv", header=TRUE)
+
 
 ####Sample Meta Data####
+str(SampData)
+
+
 
 ##Set factor variables
 
