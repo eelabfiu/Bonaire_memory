@@ -719,7 +719,150 @@ ThermData<-merge(Corals_Therm[,c(1:9, 13, 15)], Chl.a, all.x=TRUE, all.y=FALSE)
 
 ####Symbionts####
 
+str(Sym)
 
+####Calculate Dilution Factors
+
+#Scales for 1:10 Dilution Sent for Flow Cytometry
+Sym$Send_df<-Sym$SendInputVol_ul/Sym$SendTotalVol_ul
+
+##Scales for Resuspending Symbiont Pellet based on Volume of 0.01% SDS Used
+Sym$Resp_df<-Sym$InputVol_ul/Sym$RespVol_ul
+
+####Calculate Symbiont Density
+
+##Scale Flow Cy Count/ul to account for Dilution Factor applied at Flow Cy Center
+Sym$Count_ul_scaled_FC_df<-Sym$Count_ul/Sym$FC_df
+
+##Scale Flow Cy Count/ul to account for Sent Dilution Factor
+Sym$Count_ul_scaled_send_df<-Sym$Count_ul_scaled_FC_df/Sym$Send_df
+
+##Scale Flow Cy Count/ul to account for Resuspension Dilution Factor
+Sym$Count_ul_scaled_resp_df<-Sym$Count_ul_scaled_send_df/Sym$Resp_df
+
+##Merge with Sample Data to Calculate Symbionts per Surface Area
+#Merges by Random Number (RandN) column
+#Adds necessary Slurry Volume (Vol_ml) and Surface Area (SA_cm2) columns
+#Retains Sample Meta Data only for samples with Symbiont data (Thermal Assay samples only)
+Sym<-merge(Sym, SampData, all.x=TRUE, all.y=FALSE)
+
+##Calculate Total Symbiont Count (scaling to Slurry Total Volume in ul)
+Sym$Count_total<-Sym$Count_ul_scaled_resp_df*(Sym$Vol_ml*1000)
+
+##Calculate Symbionts per Surface Area
+Sym$Sym_cm2<-Sym$Count_total/Sym$SA_cm2
+
+##Scale to Symb * 10^6 / cm^2
+Sym$Sym10.6_cm2<-Sym$Sym_cm2/10^6
+
+##Initial Visual Check
+ggplot(Sym, aes(x=Set, y=Sym10.6_cm2)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  theme(axis.text.x = element_text(angle = 90))
+
+
+####Check for Outliers
+
+##Check for Outliers in Symbionts by Treatment and Timepoint
+
+##Control
+Sym.C<-subset(Sym, Treat=="C")
+Sym.C<-Sym.C[-c(which(is.na(Sym.C$Sym10.6_cm2))),]
+
+#Week 2
+ggplot(subset(Sym.C, TimeP=="W2"), aes(x=Set, y=Sym10.6_cm2)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,2)+
+  theme(axis.text.x = element_text(angle = 90))
+
+#Month 1
+ggplot(subset(Sym.C, TimeP=="M1"), aes(x=Set, y=Sym10.6_cm2)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,2)+
+  theme(axis.text.x = element_text(angle = 90))
+
+Sym.C$RandN[which(Sym.C$TimeP=="M1" & Sym.C$Sym10.6_cm2>1 & Sym.C$Site=="KL")] # "M1_14"
+
+#Month 4
+ggplot(subset(Sym.C, TimeP=="M4"), aes(x=Set, y=Sym10.6_cm2)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,2)+
+  theme(axis.text.x = element_text(angle = 90))
+
+Sym.C$RandN[which(Sym.C$TimeP=="M4" & Sym.C$Sym10.6_cm2>0.85)] # "M4_53" "M4_53" "M4_74" "M4_76"
+Sym.C$RandN[which(Sym.C$TimeP=="M4" & Sym.C$Sym10.6_cm2>0.45 & Sym.C$Site=="KL")] # "M4_29" "M4_29" "M4_83" "M4_83"
+
+#Month 8
+ggplot(subset(Sym.C, TimeP=="M8"), aes(x=Set, y=Sym10.6_cm2)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,2)+
+  theme(axis.text.x = element_text(angle = 90))
+
+Sym.C$RandN[which(Sym.C$TimeP=="M8" & Sym.C$Sym10.6_cm2>1.5)] #"M8_33" "M8_33" "M8_33"
+Sym.C$RandN[which(Sym.C$TimeP=="M8" & Sym.C$Sym10.6_cm2>1 & Sym.C$Site=="KL")] #"M8_48"
+
+#Month 12
+ggplot(subset(Sym.C, TimeP=="M12"), aes(x=Set, y=Sym10.6_cm2)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,2)+
+  theme(axis.text.x = element_text(angle = 90))
+
+
+##Heated
+Sym.H<-subset(Sym, Treat=="H")
+
+#Week 2
+ggplot(subset(Sym.H, TimeP=="W2"), aes(x=Set, y=Sym10.6_cm2)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,1)+
+  theme(axis.text.x = element_text(angle = 90))
+
+#Month 1
+ggplot(subset(Sym.H, TimeP=="M1"), aes(x=Set, y=Sym10.6_cm2)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,1)+
+  theme(axis.text.x = element_text(angle = 90))
+
+Sym.H$RandN[which(Sym.H$TimeP=="M1" & Sym.H$Sym10.6_cm2>0.75)] #"M1_73" "M1_73"
+Sym.H$RandN[which(Sym.H$TimeP=="M1" & Sym.H$Sym10.6_cm2>0.55 & Sym.H$Site=="KL")] #"M1_58" "M1_58"
+Sym.H$RandN[which(Sym.H$TimeP=="M1" & Sym.H$Sym10.6_cm2>0.4 & Sym.H$Site=="SS" & Sym.H$Genotype=="AC8")] # "M1_94" "M1_94" "M1_94"
+
+#Month 4
+ggplot(subset(Sym.H, TimeP=="M4"), aes(x=Set, y=Sym10.6_cm2)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,1.5)+
+  theme(axis.text.x = element_text(angle = 90))
+
+Sym.H$RandN[which(Sym.H$TimeP=="M4" & Sym.H$Sym10.6_cm2>0.6)] #"M4_44" "M4_49" "M4_61" "M4_61" "M4_61" "M4_85"
+Sym.H$RandN[which(Sym.H$TimeP=="M4" & Sym.H$Sym10.6_cm2>0.45 & Sym.H$Site=="KL")] #"M4_59" "M4_72" "M4_72" "M4_88" "M4_88" "M4_94"
+
+#Month 8
+ggplot(subset(Sym.H, TimeP=="M8"), aes(x=Set, y=Sym10.6_cm2)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,2.1)+
+  theme(axis.text.x = element_text(angle = 90))
+
+Sym.H$RandN[which(Sym.H$TimeP=="M8" & Sym.H$Sym10.6_cm2>1.5)] #"M8_42" "M8_42" "M8_42"
+Sym.H$RandN[which(Sym.H$TimeP=="M8" & Sym.H$Sym10.6_cm2>1.2 & Sym.H$Site=="KL")] #"M8_28" "M8_28" "M8_28"
+
+#Month 12
+ggplot(subset(Sym.H, TimeP=="M12"), aes(x=Set, y=Sym10.6_cm2)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,1)+
+  theme(axis.text.x = element_text(angle = 90))
+
+Sym.H$RandN[which(Sym.H$TimeP=="M12" & Sym.H$Sym10.6_cm2>0.5)] #"M12_48" "M12_48" "M12_48" "M12_63" "M12_63" "M12_63"
 
 ####Fv/Fm####
 
