@@ -152,6 +152,18 @@ Prot.C<-rename(Prot.C, c("TP_ug.cm2" = "TP_ug.cm2_C"))
 Prot.S<- subset(Prot.Un, Fraction=="S")
 Prot.S<-rename(Prot.S, c("TP_ug.cm2" = "TP_ug.cm2_S"))
 
+##Initial Visual Check
+ggplot(Prot.C, aes(x=Set, y=TP_ug.cm2_C)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  theme(axis.text.x = element_text(angle = 90))
+
+ggplot(Prot.S, aes(x=Set, y=TP_ug.cm2_S)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  theme(axis.text.x = element_text(angle = 90))
+
+
 ####Check for Outliers
 
 ##Check for Outliers in Protein of Coral Host by Timepoint
@@ -291,7 +303,7 @@ names(Prot.S.a)<-c("RandN", "ID", "TP_ug.cm2_S")
 ####Add Total Protein to Main Coral Data
 
 ##Merge Averaged Protein Data of Coral Host (C) and Symbiont (S) with Coral Main Data
-#Merges by Random Number (RandN) column
+#Merges by Random Number (RandN) and ID columns
 #Retains all Main samples
 #Retains RandN, ID, TimeP, Site, Genotype, Orig, Origin, Set, and SA_cm2 from Corals_Main
 names(Corals_Main)
@@ -330,6 +342,18 @@ Bio.C<-rename(Bio.C, c("AFDW_mg.cm2" = "AFDW_mg.cm2_C"))
 
 Bio.S<-subset(Bio, Fraction=="Z")
 Bio.S<-rename(Bio.S, c("AFDW_mg.cm2" = "AFDW_mg.cm2_S"))
+
+
+##Initial Visual Check
+ggplot(Bio.C, aes(x=Set, y=AFDW_mg.cm2_C)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  theme(axis.text.x = element_text(angle = 90))
+
+ggplot(Bio.S, aes(x=Set, y=AFDW_mg.cm2_S)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  theme(axis.text.x = element_text(angle = 90))
 
 
 ####Check for Outliers
@@ -450,7 +474,7 @@ ggplot(Bio.S.o, aes(x=Set, y=AFDW_mg.cm2_S)) +
 ####Add AFDW of Coral and Symbiont to Main Coral Data
 
 ##Merge Cleaned Biomass Data of Coral Host (C) and Symbiont (S) with Coral Main Data
-#Merges by ID column and adds and AFDW (mg/cm^2) (AFDW_mg.cm2_C or _S) columns from Biomass dataframes
+#Merges by ID column and adds AFDW (mg/cm^2) (AFDW_mg.cm2_C or _S) columns from Biomass dataframes
 #Retains all Main samples
 names(Bio.C.o)
 CoralData<-merge(CoralData, Bio.C.o[,c(1, 25)], all.x=TRUE)
@@ -461,10 +485,240 @@ CoralData<-merge(CoralData, Bio.S.o[,c(1, 25)], all.x=TRUE)
 CoralData$AFDW_mg.cm2_S.C<-CoralData$AFDW_mg.cm2_S/CoralData$AFDW_mg.cm2_C
 
 
+####Chlorophyll####
+str(Chl)
+
+####Calculate Chlorophyll Concentration
+
+##Equations for Dinos from Jeffrey and Humphrey 1975 in 100% acetone
+#chla = 11.43*A663 - 0.64*A630
+#chlc2 = 27.09*A630 - 3.63*A663
+
+##Subtract Background A750 from A630 and A663
+Chl$A630.c<-Chl$A630-Chl$A750
+Chl$A663.c<-Chl$A663-Chl$A750
+
+##Divide by Pathlength (0.5cm pathlength for 175ul sample in UVStar Plate) 
+Chl$A630.c<-c(Chl$A630.c/0.5)
+Chl$A663.c<-c(Chl$A663.c/0.5)
+
+##Calculate Chl-a and Chl-c2 in µg/ml
+Chl$Chl.a_ug.ml<-11.43*Chl$A663.c- 0.64*Chl$A630.c
+Chl$Chl.c2_ug.ml <- 27.09*Chl$A630.c - 3.63*Chl$A663.c
+
+##Merge with Sample Data to Calculate Chlorophyll per Surface Area
+#Merges by Random Number (RandN) column
+#Adds necessary Slurry Volume (Vol_ml) and Surface Area (SA_cm2) columns
+Chl<-merge(Chl, SampData,  all=TRUE)
+
+##Calculate Total Chlorophyll-a and c2 (ug) 
+Chl$Chl.a_ug<-Chl$Chl.a_ug.ml*Chl$Vol_ml
+Chl$Chl.c2_ug<-Chl$Chl.c2_ug.ml*Chl$Vol_ml
+
+##Calculate Chlorophyll-a and c2 per Surface Area (ug/cm^2)
+Chl$Chl.a_ug.cm2<-Chl$Chl.a_ug/Chl$SA_cm2
+Chl$Chl.c2_ug.cm2<-Chl$Chl.c2_ug/Chl$SA_cm2
+
+##Initial Visual Check
+ggplot(Chl, aes(x=Set, y=Chl.a_ug.cm2)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  theme(axis.text.x = element_text(angle = 90))
+
+ggplot(Chl, aes(x=Set, y=Chl.c2_ug.cm2)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  theme(axis.text.x = element_text(angle = 90))
+
+##Set Negative Values to Zero
+Chl$Chl.a_ug.cm2[(which(Chl$Chl.a_ug.cm2<0))]<-0
+Chl$Chl.c2_ug.cm2[(which(Chl$Chl.c2_ug.cm2<0))]<-0
+
+##Add Chlorophyll-a and c2 for Total Chlorophyll per Surface Area (ug/cm^2)
+Chl$Chl_ug.cm2<-Chl$Chl.a_ug.cm2+Chl$Chl.c2_ug.cm2
+  
+ggplot(Chl, aes(x=Set, y=Chl_ug.cm2)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  theme(axis.text.x = element_text(angle = 90))
+
+
+####Check for Outliers
+
+##Check for Outliers in Chlorphyll by Treatment and Timepoint
+
+##Main
+Chl.M<-subset(Chl, Treat=="M")
+
+#Week 2
+ggplot(subset(Chl.M, TimeP=="W2"), aes(x=Set, y=Chl_ug.cm2)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,2.5)+
+  theme(axis.text.x = element_text(angle = 90))
+
+#Month 1
+ggplot(subset(Chl.M, TimeP=="M1"), aes(x=Set, y=Chl_ug.cm2)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,3.5)+
+  theme(axis.text.x = element_text(angle = 90))
+
+Chl.M$RandN[which(Chl.M$TimeP=="M1" & Chl.M$Chl_ug.cm2<0.5)] #"20" "20" "20" #Also outlier for Protein and Biomass
+
+#Month 4
+ggplot(subset(Chl.M, TimeP=="M4"), aes(x=Set, y=Chl_ug.cm2)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,4.5)+
+  theme(axis.text.x = element_text(angle = 90))
+
+#Month 8
+ggplot(subset(Chl.M, TimeP=="M8"), aes(x=Set, y=Chl_ug.cm2)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,4.5)+
+  theme(axis.text.x = element_text(angle = 90))
+
+#Month 12
+ggplot(subset(Chl.M, TimeP=="M12"), aes(x=Set, y=Chl_ug.cm2)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,7.5)+
+  theme(axis.text.x = element_text(angle = 90))
+
+Chl.M$RandN[which(Chl.M$TimeP=="M12" & Chl.M$Chl_ug.cm2>6)] #"222" "222" "222" #Also outlier for Protein and Biomass
+
+
+##Control
+Chl.C<-subset(Chl, Treat=="C")
+
+#Week 2
+ggplot(subset(Chl.C, TimeP=="W2"), aes(x=Set, y=Chl_ug.cm2)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(-0.5,10)+
+  theme(axis.text.x = element_text(angle = 90))
+
+Chl.C$RandN[which(Chl.C$TimeP=="W2" & Chl.C$Chl_ug.cm2>2.5)] #"W2_24" "W2_8" 
+##Need to Check Week 2
+
+#Month 1
+ggplot(subset(Chl.C, TimeP=="M1"), aes(x=Set, y=Chl_ug.cm2)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,2.5)+
+  theme(axis.text.x = element_text(angle = 90))
+
+#Month 4
+ggplot(subset(Chl.C, TimeP=="M4"), aes(x=Set, y=Chl_ug.cm2)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,2.5)+
+  theme(axis.text.x = element_text(angle = 90))
+
+#Month 8
+ggplot(subset(Chl.C, TimeP=="M8"), aes(x=Set, y=Chl_ug.cm2)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,3.5)+
+  theme(axis.text.x = element_text(angle = 90))
+
+Chl.C$RandN[which(Chl.C$TimeP=="M8" & Chl.C$Chl_ug.cm2>2.5)] #"M8_33" "M8_33" "M8_33" 
+Chl.C$RandN[which(Chl.C$TimeP=="M8" & Chl.C$Chl_ug.cm2<0.5)] #"M8_12" "M8_12" "M8_12"
+
+#Month 12
+ggplot(subset(Chl.C, TimeP=="M12"), aes(x=Set, y=Chl_ug.cm2)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,4)+
+  theme(axis.text.x = element_text(angle = 90))
+
+
+##Heated
+Chl.H<-subset(Chl, Treat=="H")
+Chl.H<-Chl.H[-c(which(is.na(Chl.H$Chl_ug.cm2))),]
+
+#Week 2
+ggplot(subset(Chl.H, TimeP=="W2"), aes(x=Set, y=Chl_ug.cm2)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,1)+
+  theme(axis.text.x = element_text(angle = 90))
+
+Chl.H$RandN[which(Chl.H$TimeP=="W2" & Chl.H$Chl_ug.cm2>0.75)] #"W2_88" "W2_88" "W2_88"
+
+#Month 1
+ggplot(subset(Chl.H, TimeP=="M1"), aes(x=Set, y=Chl_ug.cm2)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,1)+
+  theme(axis.text.x = element_text(angle = 90))
+
+#Month 4
+ggplot(subset(Chl.H, TimeP=="M4"), aes(x=Set, y=Chl_ug.cm2)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,1)+
+  theme(axis.text.x = element_text(angle = 90))
+
+#Month 8
+ggplot(subset(Chl.H, TimeP=="M8"), aes(x=Set, y=Chl_ug.cm2)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,2)+
+  theme(axis.text.x = element_text(angle = 90))
+
+Chl.H$RandN[which(Chl.H$TimeP=="M8" & Chl.H$Chl_ug.cm2>1.5)] #"M8_11" "M8_11" "M8_42" "M8_42"
+
+#Month 12
+ggplot(subset(Chl.H, TimeP=="M12"), aes(x=Set, y=Chl_ug.cm2)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,1)+
+  theme(axis.text.x = element_text(angle = 90))
+
+Chl.H$RandN[which(Chl.H$TimeP=="M12" & Chl.H$Chl_ug.cm2>0.51)] #M12_63" "M12_63"
+
+
+##Remove Outliers 
+Chl.M.o<-Chl.M[-c(which((Chl.M$TimeP=="M1" & Chl.M$Chl_ug.cm2<0.5) | 
+                          (Chl.M$TimeP=="M12" & Chl.M$Chl_ug.cm2>6))),]
+
+Chl.C.o<-Chl.C[-c(which((Chl.C$TimeP=="W2" & Chl.C$Chl_ug.cm2>2.5)| 
+(Chl.C$TimeP=="M8" & Chl.C$Chl_ug.cm2>2.5) |
+(Chl.C$TimeP=="M8" & Chl.C$Chl_ug.cm2<0.5))),]
+
+Chl.H.o<-Chl.H[-c(which((Chl.H$TimeP=="W2" & Chl.H$Chl_ug.cm2>0.75) |
+(Chl.H$TimeP=="M8" & Chl.H$Chl_ug.cm2>1.5) | 
+(Chl.H$TimeP=="M12" & Chl.H$Chl_ug.cm2>0.51))),]
+
+##Recombine Cleaned Chlorophyll dataframes
+Chl.o<-rbind(Chl.M.o, Chl.C.o, Chl.H.o)
+
+####Average Across Replicate Readings ("Rep" column: A, B, C)
+names(Chl.o)
+Chl.a<-aggregate(Chl.o$Chl_ug.cm2, list(Chl.o$RandN, Chl.o$ID), mean)
+names(Chl.a)<-c("RandN", "ID", "Chl_ug.cm2")
+
+####Add Total Chlorophyll to Main Coral Data and Thermal Tolerance Data
+
+##Merge Averaged Chlorophyll Data with Coral Main Data
+#Merges by Random Number (RandN) and ID columns
+#Retains all Main samples
+names(Chl.a)
+CoralData<-merge(CoralData, Chl.a, all.x=TRUE, all.y=FALSE)
+
+##Merge Averaged Chlorophyll Data with Thermal Tolerance Data
+#Merges by Random Number (RandN) and ID columns
+#Retains all Thermal Tolerance Assay samples
+#Retains RandN, ID, TimeP, Site, Genotype, Treat, Treatment, Orig, Origin, Set, and SA_cm2 from Corals_Therm
+names(Corals_Therm)
+ThermData<-merge(Corals_Therm[,c(1:9, 13, 15)], Chl.a, all.x=TRUE, all.y=FALSE)
+
+
 ####Symbionts####
 
-
-####Chlorophyll####
 
 
 ####Fv/Fm####
