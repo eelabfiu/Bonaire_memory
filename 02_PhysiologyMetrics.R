@@ -135,6 +135,7 @@ Prot.Un$TP_ug.ml<-TP.mod(Prot.Un$A562)
 
 ##Merge with Sample Meta Data to Calculate Protein per Surface Area
 #Merges by Random Number (RandN) column
+#Adds necessary Slurry Volume (Vol_ml) and Surface Area (SA_cm2) columns
 #Retains Sample Meta Data only for samples with Protein data (Main samples only)
 Prot.Un<-merge(Prot.Un, SampData, all.x=TRUE, all.y=FALSE)
 
@@ -300,6 +301,164 @@ CoralData<-merge(CoralData, Prot.S.a, all.x=TRUE)
 
 
 ####Biomass####
+str(Bio)
+
+####Calculate Ash Free Dry Weight (AFDW)
+
+##Calculate Change in Weight after Burning (g)
+Bio$DeltaBurn_g<-Bio$Dried_g-Bio$Burned_g
+
+##Calculate Ash Free Dry Weight (AFDW) (g) per Volume Input of Tissue (ml) 
+Bio$AFDW_g.ml<-Bio$DeltaBurn_g/Bio$InVol_ml
+
+##Merge with Sample Meta Data to Calculate Biomass per Surface Area
+#Merges by Random Number (RandN) column
+#Adds necessary Slurry Volume (Vol_ml) and Surface Area (SA_cm2) columns
+#Retains Sample Meta Data only for samples with Biomass data (Main samples only)
+Bio<-merge(Bio, SampData, all.x=TRUE, all.y=FALSE)
+
+##Calculate Total AFDW (g) 
+Bio$AFDW_g<-Bio$AFDW_g.ml*Bio$Vol_ml
+
+##Calculate AFDW per Surface Area (mg/cm^2)
+Bio$AFDW_g.cm2<-Bio$AFDW_g/Bio$SA_cm2
+Bio$AFDW_mg.cm2 <- Bio$AFDW_g.cm2 * 1000
+
+##Separate Coral and Symbiont Fractions
+Bio.C<-subset(Bio, Fraction=="C")
+Bio.C<-rename(Bio.C, c("AFDW_mg.cm2" = "AFDW_mg.cm2_C"))
+
+Bio.S<-subset(Bio, Fraction=="Z")
+Bio.S<-rename(Bio.S, c("AFDW_mg.cm2" = "AFDW_mg.cm2_S"))
+
+
+####Check for Outliers
+
+##Check for Outliers in Biomass of Coral Host by Timepoint
+
+#Week 2
+ggplot(subset(Bio.C, TimeP=="W2"), aes(x=Set, y=AFDW_mg.cm2_C)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,2.5)+
+  theme(axis.text.x = element_text(angle = 90))
+
+#Month 1
+ggplot(subset(Bio.C, TimeP=="M1"), aes(x=Set, y=AFDW_mg.cm2_C)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,2.5)+
+  theme(axis.text.x = element_text(angle = 90))
+
+Bio.C$RandN[which(Bio.C$TimeP=="M1" & Bio.C$AFDW_mg.cm2_C<0.55)] #20 #Also outlier for Protein
+
+#Month 4
+ggplot(subset(Bio.C, TimeP=="M4"), aes(x=Set, y=AFDW_mg.cm2_C)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  theme(axis.text.x = element_text(angle = 90))
+
+Bio.C$RandN[which(Bio.C$TimeP=="M4" & Bio.C$AFDW_mg.cm2_C>20)] #123 #Need to check this
+
+ggplot(subset(Bio.C, TimeP=="M4"), aes(x=Set, y=AFDW_mg.cm2_C)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,2.5)+
+  theme(axis.text.x = element_text(angle = 90))
+
+#Month 8
+ggplot(subset(Bio.C, TimeP=="M8"), aes(x=Set, y=AFDW_mg.cm2_C)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,2.5)+
+  theme(axis.text.x = element_text(angle = 90))
+
+#Month 12
+ggplot(subset(Bio.C, TimeP=="M12"), aes(x=Set, y=AFDW_mg.cm2_C)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,3.5)+
+  theme(axis.text.x = element_text(angle = 90))
+
+Bio.C$RandN[which(Bio.C$TimeP=="M12" & Bio.C$AFDW_mg.cm2_C>3)] #222 #Also outlier for Protein
+
+##Remove Outliers 
+Bio.C.o<-Bio.C[-c(which((Bio.C$TimeP=="M1" & Bio.C$AFDW_mg.cm2_C<0.55) |
+(Bio.C$TimeP=="M4" & Bio.C$AFDW_mg.cm2_C>20) |
+(Bio.C$TimeP=="M12" & Bio.C$AFDW_mg.cm2_C>3))),]
+
+ggplot(Bio.C.o, aes(x=Set, y=AFDW_mg.cm2_C)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,2.5)+
+  theme(axis.text.x = element_text(angle = 90))
+
+
+##Check for Outliers in Biomass of Symbiont by Timepoint
+
+#Week 2
+ggplot(subset(Bio.S, TimeP=="W2"), aes(x=Set, y=AFDW_mg.cm2_S)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,1.5)+
+  theme(axis.text.x = element_text(angle = 90))
+
+#Month 1
+ggplot(subset(Bio.S, TimeP=="M1"), aes(x=Set, y=AFDW_mg.cm2_S)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(-0.5,1.5)+
+  theme(axis.text.x = element_text(angle = 90))
+
+Bio.S$RandN[which(Bio.S$TimeP=="M1" & Bio.S$AFDW_mg.cm2_S<0.05)] #25
+
+#Month 4
+ggplot(subset(Bio.S, TimeP=="M4"), aes(x=Set, y=AFDW_mg.cm2_S)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,1.5)+
+  theme(axis.text.x = element_text(angle = 90))
+
+#Month 8
+ggplot(subset(Bio.S, TimeP=="M8"), aes(x=Set, y=AFDW_mg.cm2_S)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,1.5)+
+  theme(axis.text.x = element_text(angle = 90))
+
+#Month 12
+ggplot(subset(Bio.S, TimeP=="M12"), aes(x=Set, y=AFDW_mg.cm2_S)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,2)+
+  theme(axis.text.x = element_text(angle = 90))
+
+Bio.S$RandN[which(Bio.S$TimeP=="M12" & Bio.S$AFDW_mg.cm2_S>1.5)] #222 #Also outlier for Protein and Biomass of Host
+
+
+##Remove Outliers 
+Bio.S.o<-Bio.S[-c(which((Bio.S$TimeP=="M1" & Bio.S$AFDW_mg.cm2_S<0.05) |
+  (Bio.S$TimeP=="M12" & Bio.S$AFDW_mg.cm2_S>1.5))),]
+
+ggplot(Bio.S.o, aes(x=Set, y=AFDW_mg.cm2_S)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,1.5)+
+  theme(axis.text.x = element_text(angle = 90))
+
+
+####Add AFDW of Coral and Symbiont to Main Coral Data
+
+##Merge Cleaned Biomass Data of Coral Host (C) and Symbiont (S) with Coral Main Data
+#Merges by ID column and adds and AFDW (mg/cm^2) (AFDW_mg.cm2_C or _S) columns from Biomass dataframes
+#Retains all Main samples
+names(Bio.C.o)
+CoralData<-merge(CoralData, Bio.C.o[,c(1, 25)], all.x=TRUE)
+names(Bio.S.o)
+CoralData<-merge(CoralData, Bio.S.o[,c(1, 25)], all.x=TRUE)
+
+##Calculate Symbiont:Host Ratio of Biomass
+CoralData$AFDW_mg.cm2_S.C<-CoralData$AFDW_mg.cm2_S/CoralData$AFDW_mg.cm2_C
 
 
 ####Symbionts####
