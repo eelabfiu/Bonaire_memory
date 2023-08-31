@@ -864,5 +864,160 @@ ggplot(subset(Sym.H, TimeP=="M12"), aes(x=Set, y=Sym10.6_cm2)) +
 
 Sym.H$RandN[which(Sym.H$TimeP=="M12" & Sym.H$Sym10.6_cm2>0.5)] #"M12_48" "M12_48" "M12_48" "M12_63" "M12_63" "M12_63"
 
-####Fv/Fm####
 
+
+####Fv/Fm####
+str(PAM)
+str(PAM_Meta)
+
+####Organize Data
+
+##Merge PAM Meta Data with PAM Data
+#Merges by Memory Number (Memory) column
+#Retains PAM Data only for relevant measurements with Meta Data 
+PAM<-merge(PAM_Meta, PAM, all.x=TRUE, all.y=FALSE)
+
+PAM[(which(is.na(PAM$Fv_Fm))),]
+
+##Merge PAM Data with Sample Data
+#Merges by ID column
+#Retains Sample Meta Data only for samples with Fv/Fm data (Thermal Assay samples only)
+PAM<-merge(PAM, SampData, all.x=TRUE, all.y=FALSE)
+
+##Initial Visual Check
+ggplot(PAM, aes(x=Set, y=Fv_Fm)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  theme(axis.text.x = element_text(angle = 90))
+
+
+####Check for Outliers
+
+##Check for Outliers in Symbionts by Treatment and Timepoint
+
+##Control
+PAM.C<-subset(PAM, Treat=="C")
+PAM.C<-PAM.C[-c(which(is.na(PAM.C$Fv_Fm))),]
+
+#Week 2
+ggplot(subset(PAM.C, TimeP=="W2"), aes(x=Set, y=Fv_Fm)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0.45,0.75)+
+  theme(axis.text.x = element_text(angle = 90))
+
+PAM.C$RandN[which(PAM.C$TimeP=="W2" & PAM.C$Fv_Fm<0.5)] # "W2_93" "W2_71"
+
+#Month 1
+ggplot(subset(PAM.C, TimeP=="M1"), aes(x=Set, y=Fv_Fm)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0.45,0.75)+
+  theme(axis.text.x = element_text(angle = 90))
+
+#Month 4
+ggplot(subset(PAM.C, TimeP=="M4"), aes(x=Set, y=Fv_Fm)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0.45,0.75)+
+  theme(axis.text.x = element_text(angle = 90))
+
+PAM.C$RandN[which(PAM.C$TimeP=="M4" & PAM.C$Fv_Fm<0.53)] # "M4_91"
+
+#Month 8
+ggplot(subset(PAM.C, TimeP=="M8"), aes(x=Set, y=Fv_Fm)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0.45,0.75)+
+  theme(axis.text.x = element_text(angle = 90))
+
+#Month 12
+ggplot(subset(PAM.C, TimeP=="M12"), aes(x=Set, y=Fv_Fm)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0.45,0.75)+
+  theme(axis.text.x = element_text(angle = 90))
+
+
+##Heated
+PAM.H<-subset(PAM, Treat=="H")
+PAM.H<-PAM.H[-c(which(is.na(PAM.H$Fv_Fm))),]
+
+#Week 2
+ggplot(subset(PAM.H, TimeP=="W2"), aes(x=Set, y=Fv_Fm)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0.25,0.7)+
+  theme(axis.text.x = element_text(angle = 90))
+
+PAM.H$RandN[which(PAM.H$TimeP=="W2" & PAM.H$Fv_Fm<0.5 & PAM.H$Site=="KL" & PAM.H$Genotype=="AC10")] # "W2_89"
+PAM.H$RandN[which(PAM.H$TimeP=="W2" & PAM.H$Fv_Fm<0.5 & PAM.H$Site=="SS" & PAM.H$Genotype=="AC12" & PAM.H$Orig=="N")] # "W2_94" "W2_94"
+PAM.H$RandN[which(PAM.H$TimeP=="W2" & PAM.H$Fv_Fm<0.5 & PAM.H$Site=="KL" & PAM.H$Genotype=="AC12" & PAM.H$Orig=="T")] # "W2_38" "W2_38" "W2_38"
+
+#Month 1
+ggplot(subset(PAM.H, TimeP=="M1"), aes(x=Set, y=Fv_Fm)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0.25,0.7)+
+  theme(axis.text.x = element_text(angle = 90))
+
+PAM.H$RandN[which(PAM.H$TimeP=="M1" & PAM.H$Fv_Fm<0.35)] # "M1_86"
+
+#Month 4
+ggplot(subset(PAM.H, TimeP=="M4"), aes(x=Set, y=Fv_Fm)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0.25,0.7)+
+  theme(axis.text.x = element_text(angle = 90))
+
+PAM.H$RandN[which(PAM.H$TimeP=="M4" & PAM.H$Fv_Fm<0.35 &  PAM.H$Site=="SS")] # "M4_84"
+
+#Month 8
+ggplot(subset(PAM.H, TimeP=="M8"), aes(x=Set, y=Fv_Fm)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0.25,0.7)+
+  theme(axis.text.x = element_text(angle = 90))
+
+PAM.H$RandN[which(PAM.H$TimeP=="M8" & PAM.H$Fv_Fm<0.45)] # "M8_83"
+
+#Month 12
+ggplot(subset(PAM.H, TimeP=="M12"), aes(x=Set, y=Fv_Fm)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0.2,0.7)+
+  theme(axis.text.x = element_text(angle = 90))
+
+
+##Remove Outliers 
+PAM.C.o<-PAM.C[-c(which((PAM.C$TimeP=="W2" & PAM.C$Fv_Fm<0.5) |
+              (PAM.C$TimeP=="M4" & PAM.C$Fv_Fm<0.53))),]
+
+PAM.H.o<-PAM.H[-c(which((PAM.H$TimeP=="W2" & PAM.H$Fv_Fm<0.5 & PAM.H$Site=="KL" & PAM.H$Genotype=="AC10") | 
+              (PAM.H$TimeP=="W2" & PAM.H$Fv_Fm<0.5 & PAM.H$Site=="SS" & PAM.H$Genotype=="AC12" & PAM.H$Orig=="N") |
+              (PAM.H$TimeP=="W2" & PAM.H$Fv_Fm<0.5 & PAM.H$Site=="KL" & PAM.H$Genotype=="AC12" & PAM.H$Orig=="T") |
+              (PAM.H$TimeP=="M1" & PAM.H$Fv_Fm<0.35)|
+              (PAM.H$TimeP=="M4" & PAM.H$Fv_Fm<0.35 &  PAM.H$Site=="SS") |
+                (PAM.H$TimeP=="M8" & PAM.H$Fv_Fm<0.45))),]
+
+##Recombine Cleaned PAM dataframes
+PAM.o<-rbind(PAM.C.o, PAM.H.o)
+
+ggplot(PAM.o, aes(x=Set, y=Fv_Fm)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  theme(axis.text.x = element_text(angle = 90))
+
+
+####Average Across Replicate Readings ("Rep" column: A, B, C)
+names(PAM.o)
+PAM.a<-aggregate(PAM.o$Fv_Fm, list(PAM.o$ID), mean)
+names(PAM.a)<-c("ID", "Fv_Fm")
+
+####Add Fv/Fm to Thermal Tolerance Data
+
+##Merge Averaged Fv/Fm Data with Thermal Tolerance Data
+#Merges by ID column
+#Retains all Thermal Tolerance Assay samples
+names(ThermData)
+ThermData<-merge(ThermData, PAM.a, all.x=TRUE, all.y=FALSE)
