@@ -200,7 +200,7 @@ ggplot(subset(Prot.C, TimeP=="M8"), aes(x=Set, y=TP_ug.cm2_C)) +
   ylim(100,1000)+
   theme(axis.text.x = element_text(angle = 90))
 
-Prot.C$RandN[which(Prot.C$TimeP=="M8" & Prot.C$TP_ug.cm2_C>550)] #"184" "184" "186" "187" "188"
+Prot.C$RandN[which(Prot.C$TimeP=="M8" & Prot.C$TP_ug.cm2_C>650)] #"184" "184" "186" "187" "188"
 
 #Month 12
 ggplot(subset(Prot.C, TimeP=="M12"), aes(x=Set, y=TP_ug.cm2_C)) + 
@@ -214,7 +214,7 @@ Prot.C$RandN[which(Prot.C$TimeP=="M12" & Prot.C$TP_ug.cm2_C>600)] #"211" "222" "
 ##Remove Outlier Readings
 Prot.C.o<-Prot.C[-c(which((Prot.C$TimeP=="M1" & Prot.C$TP_ug.cm2_C<200) |
 (Prot.C$TimeP=="M4" & Prot.C$TP_ug.cm2_C<170) |
-(Prot.C$TimeP=="M8" & Prot.C$TP_ug.cm2_C>550) |
+(Prot.C$TimeP=="M8" & Prot.C$TP_ug.cm2_C>650) |
 (Prot.C$TimeP=="M12" & Prot.C$TP_ug.cm2_C>600))),]
 
 ggplot(Prot.C.o, aes(x=Set, y=TP_ug.cm2_C)) + 
@@ -374,13 +374,6 @@ Bio.C$RandN[which(Bio.C$TimeP=="M1" & Bio.C$AFDW_mg.cm2_C<0.55)] #20 #Also outli
 ggplot(subset(Bio.C, TimeP=="M4"), aes(x=Set, y=AFDW_mg.cm2_C)) + 
   geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
   geom_jitter(shape=16, position=position_jitter(0.1))+
-  theme(axis.text.x = element_text(angle = 90))
-
-Bio.C$RandN[which(Bio.C$TimeP=="M4" & Bio.C$AFDW_mg.cm2_C>20)] #123 #Need to check this
-
-ggplot(subset(Bio.C, TimeP=="M4"), aes(x=Set, y=AFDW_mg.cm2_C)) + 
-  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
-  geom_jitter(shape=16, position=position_jitter(0.1))+
   ylim(0,2.5)+
   theme(axis.text.x = element_text(angle = 90))
 
@@ -402,7 +395,6 @@ Bio.C$RandN[which(Bio.C$TimeP=="M12" & Bio.C$AFDW_mg.cm2_C>3)] #222 #Also outlie
 
 ##Remove Outliers 
 Bio.C.o<-Bio.C[-c(which((Bio.C$TimeP=="M1" & Bio.C$AFDW_mg.cm2_C<0.55) |
-(Bio.C$TimeP=="M4" & Bio.C$AFDW_mg.cm2_C>20) |
 (Bio.C$TimeP=="M12" & Bio.C$AFDW_mg.cm2_C>3))),]
 
 ggplot(Bio.C.o, aes(x=Set, y=AFDW_mg.cm2_C)) + 
@@ -583,6 +575,10 @@ ggplot(subset(Chl.M, TimeP=="M12"), aes(x=Set, y=Chl_ug.cm2)) +
 
 Chl.M$RandN[which(Chl.M$TimeP=="M12" & Chl.M$Chl_ug.cm2>6)] #"222" "222" "222" #Also outlier for Protein and Biomass
 
+##Remove Outliers 
+Chl.M.o<-Chl.M[-c(which((Chl.M$TimeP=="M1" & Chl.M$Chl_ug.cm2<0.5) | 
+                          (Chl.M$TimeP=="M12" & Chl.M$Chl_ug.cm2>6))),]
+
 
 ##Control
 Chl.C<-subset(Chl, Treat=="C")
@@ -596,6 +592,12 @@ ggplot(subset(Chl.C, TimeP=="W2"), aes(x=Set, y=Chl_ug.cm2)) +
 
 Chl.C$RandN[which(Chl.C$TimeP=="W2" & Chl.C$Chl_ug.cm2>2.5)] #"W2_24" "W2_8" 
 ##Need to Check Week 2
+
+ggplot(subset(Chl.C, TimeP=="W2"), aes(x=Set, y=Chl_ug.cm2)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,2.5)+
+  theme(axis.text.x = element_text(angle = 90))
 
 #Month 1
 ggplot(subset(Chl.C, TimeP=="M1"), aes(x=Set, y=Chl_ug.cm2)) + 
@@ -619,7 +621,6 @@ ggplot(subset(Chl.C, TimeP=="M8"), aes(x=Set, y=Chl_ug.cm2)) +
   theme(axis.text.x = element_text(angle = 90))
 
 Chl.C$RandN[which(Chl.C$TimeP=="M8" & Chl.C$Chl_ug.cm2>2.5)] #"M8_33" "M8_33" "M8_33" 
-Chl.C$RandN[which(Chl.C$TimeP=="M8" & Chl.C$Chl_ug.cm2<0.5)] #"M8_12" "M8_12" "M8_12"
 
 #Month 12
 ggplot(subset(Chl.C, TimeP=="M12"), aes(x=Set, y=Chl_ug.cm2)) + 
@@ -627,6 +628,10 @@ ggplot(subset(Chl.C, TimeP=="M12"), aes(x=Set, y=Chl_ug.cm2)) +
   geom_jitter(shape=16, position=position_jitter(0.1))+
   ylim(0,4)+
   theme(axis.text.x = element_text(angle = 90))
+
+##Remove Outliers 
+Chl.C.o<-Chl.C[-c(which((Chl.C$TimeP=="W2" & Chl.C$Chl_ug.cm2>2.5)| 
+                          (Chl.C$TimeP=="M8" & Chl.C$Chl_ug.cm2>2.5))),]
 
 
 ##Heated
@@ -663,7 +668,7 @@ ggplot(subset(Chl.H, TimeP=="M8"), aes(x=Set, y=Chl_ug.cm2)) +
   ylim(0,2)+
   theme(axis.text.x = element_text(angle = 90))
 
-Chl.H$RandN[which(Chl.H$TimeP=="M8" & Chl.H$Chl_ug.cm2>1.5)] #"M8_11" "M8_11" "M8_42" "M8_42"
+Chl.H$RandN[which(Chl.H$TimeP=="M8" & Chl.H$Chl_ug.cm2>1.5 & Chl.H$Genotype=="AC10")] #"M8_11" "M8_11"
 
 #Month 12
 ggplot(subset(Chl.H, TimeP=="M12"), aes(x=Set, y=Chl_ug.cm2)) + 
@@ -672,23 +677,21 @@ ggplot(subset(Chl.H, TimeP=="M12"), aes(x=Set, y=Chl_ug.cm2)) +
   ylim(0,1)+
   theme(axis.text.x = element_text(angle = 90))
 
-Chl.H$RandN[which(Chl.H$TimeP=="M12" & Chl.H$Chl_ug.cm2>0.51)] #M12_63" "M12_63"
+Chl.H$RandN[which(Chl.H$TimeP=="M12" & Chl.H$Chl_ug.cm2>0.5)] #"M12_63" "M12_63" "M12_63"
 
-
-##Remove Outliers 
-Chl.M.o<-Chl.M[-c(which((Chl.M$TimeP=="M1" & Chl.M$Chl_ug.cm2<0.5) | 
-                          (Chl.M$TimeP=="M12" & Chl.M$Chl_ug.cm2>6))),]
-
-Chl.C.o<-Chl.C[-c(which((Chl.C$TimeP=="W2" & Chl.C$Chl_ug.cm2>2.5)| 
-(Chl.C$TimeP=="M8" & Chl.C$Chl_ug.cm2>2.5) |
-(Chl.C$TimeP=="M8" & Chl.C$Chl_ug.cm2<0.5))),]
-
+##Remove Outliers
 Chl.H.o<-Chl.H[-c(which((Chl.H$TimeP=="W2" & Chl.H$Chl_ug.cm2>0.75) |
-(Chl.H$TimeP=="M8" & Chl.H$Chl_ug.cm2>1.5) | 
-(Chl.H$TimeP=="M12" & Chl.H$Chl_ug.cm2>0.51))),]
+(Chl.H$TimeP=="M8" & Chl.H$Chl_ug.cm2>1.5 & Chl.H$Genotype=="AC10") | 
+(Chl.H$TimeP=="M12" & Chl.H$Chl_ug.cm2>0.50))),]
 
 ##Recombine Cleaned Chlorophyll dataframes
 Chl.o<-rbind(Chl.M.o, Chl.C.o, Chl.H.o)
+
+ggplot(Chl.o, aes(x=Set, y=Chl_ug.cm2)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  theme(axis.text.x = element_text(angle = 90))
+
 
 ####Average Across Replicate Readings ("Rep" column: A, B, C)
 names(Chl.o)
@@ -712,7 +715,6 @@ ThermData<-merge(Corals_Therm[,c(1:9, 13, 15)], Chl.a, all.x=TRUE, all.y=FALSE)
 
 
 ####Symbionts####
-
 str(Sym)
 
 ####Calculate Dilution Factors
@@ -778,8 +780,6 @@ ggplot(subset(Sym.C, TimeP=="M1"), aes(x=Set, y=Sym10.6_cm2)) +
   ylim(0,2)+
   theme(axis.text.x = element_text(angle = 90))
 
-Sym.C$RandN[which(Sym.C$TimeP=="M1" & Sym.C$Sym10.6_cm2>1 & Sym.C$Site=="KL")] # "M1_14"
-
 #Month 4
 ggplot(subset(Sym.C, TimeP=="M4"), aes(x=Set, y=Sym10.6_cm2)) + 
   geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
@@ -787,18 +787,12 @@ ggplot(subset(Sym.C, TimeP=="M4"), aes(x=Set, y=Sym10.6_cm2)) +
   ylim(0,2)+
   theme(axis.text.x = element_text(angle = 90))
 
-Sym.C$RandN[which(Sym.C$TimeP=="M4" & Sym.C$Sym10.6_cm2>0.85)] # "M4_53" "M4_53" "M4_74" "M4_76"
-Sym.C$RandN[which(Sym.C$TimeP=="M4" & Sym.C$Sym10.6_cm2>0.45 & Sym.C$Site=="KL")] # "M4_29" "M4_29" "M4_83" "M4_83"
-
 #Month 8
 ggplot(subset(Sym.C, TimeP=="M8"), aes(x=Set, y=Sym10.6_cm2)) + 
   geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
   geom_jitter(shape=16, position=position_jitter(0.1))+
   ylim(0,2)+
   theme(axis.text.x = element_text(angle = 90))
-
-Sym.C$RandN[which(Sym.C$TimeP=="M8" & Sym.C$Sym10.6_cm2>1.5)] #"M8_33" "M8_33" "M8_33"
-Sym.C$RandN[which(Sym.C$TimeP=="M8" & Sym.C$Sym10.6_cm2>1 & Sym.C$Site=="KL")] #"M8_48"
 
 #Month 12
 ggplot(subset(Sym.C, TimeP=="M12"), aes(x=Set, y=Sym10.6_cm2)) + 
@@ -826,8 +820,6 @@ ggplot(subset(Sym.H, TimeP=="M1"), aes(x=Set, y=Sym10.6_cm2)) +
   theme(axis.text.x = element_text(angle = 90))
 
 Sym.H$RandN[which(Sym.H$TimeP=="M1" & Sym.H$Sym10.6_cm2>0.75)] #"M1_73" "M1_73"
-Sym.H$RandN[which(Sym.H$TimeP=="M1" & Sym.H$Sym10.6_cm2>0.55 & Sym.H$Site=="KL")] #"M1_58" "M1_58"
-Sym.H$RandN[which(Sym.H$TimeP=="M1" & Sym.H$Sym10.6_cm2>0.4 & Sym.H$Site=="SS" & Sym.H$Genotype=="AC8")] # "M1_94" "M1_94" "M1_94"
 
 #Month 4
 ggplot(subset(Sym.H, TimeP=="M4"), aes(x=Set, y=Sym10.6_cm2)) + 
@@ -836,8 +828,7 @@ ggplot(subset(Sym.H, TimeP=="M4"), aes(x=Set, y=Sym10.6_cm2)) +
   ylim(0,1.5)+
   theme(axis.text.x = element_text(angle = 90))
 
-Sym.H$RandN[which(Sym.H$TimeP=="M4" & Sym.H$Sym10.6_cm2>0.6)] #"M4_44" "M4_49" "M4_61" "M4_61" "M4_61" "M4_85"
-Sym.H$RandN[which(Sym.H$TimeP=="M4" & Sym.H$Sym10.6_cm2>0.45 & Sym.H$Site=="KL")] #"M4_59" "M4_72" "M4_72" "M4_88" "M4_88" "M4_94"
+Sym.H$RandN[which(Sym.H$TimeP=="M4" & Sym.H$Sym10.6_cm2>1)] #"M4_61"
 
 #Month 8
 ggplot(subset(Sym.H, TimeP=="M8"), aes(x=Set, y=Sym10.6_cm2)) + 
@@ -846,9 +837,6 @@ ggplot(subset(Sym.H, TimeP=="M8"), aes(x=Set, y=Sym10.6_cm2)) +
   ylim(0,2.1)+
   theme(axis.text.x = element_text(angle = 90))
 
-Sym.H$RandN[which(Sym.H$TimeP=="M8" & Sym.H$Sym10.6_cm2>1.5)] #"M8_42" "M8_42" "M8_42"
-Sym.H$RandN[which(Sym.H$TimeP=="M8" & Sym.H$Sym10.6_cm2>1.2 & Sym.H$Site=="KL")] #"M8_28" "M8_28" "M8_28"
-
 #Month 12
 ggplot(subset(Sym.H, TimeP=="M12"), aes(x=Set, y=Sym10.6_cm2)) + 
   geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
@@ -856,8 +844,31 @@ ggplot(subset(Sym.H, TimeP=="M12"), aes(x=Set, y=Sym10.6_cm2)) +
   ylim(0,1)+
   theme(axis.text.x = element_text(angle = 90))
 
-Sym.H$RandN[which(Sym.H$TimeP=="M12" & Sym.H$Sym10.6_cm2>0.5)] #"M12_48" "M12_48" "M12_48" "M12_63" "M12_63" "M12_63"
+##Remove Outliers
+Sym.H.o<-Sym.H[-c(which((Sym.H$TimeP=="M1" & Sym.H$Sym10.6_cm2>0.75) |
+(Sym.H$TimeP=="M4" & Sym.H$Sym10.6_cm2>1))),]
 
+##Recombine Cleaned Chlorophyll dataframes
+Sym.o<-rbind(Sym.C, Sym.H.o)
+
+ggplot(Sym.o, aes(x=Set, y=Sym10.6_cm2)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  theme(axis.text.x = element_text(angle = 90))
+
+
+####Average Across Replicate Readings ("Rep" column: A, B, C)
+names(Sym.o)
+Sym.a<-aggregate(Sym.o$Sym10.6_cm2, list(Sym.o$RandN, Sym.o$ID), mean)
+names(Sym.a)<-c("RandN", "ID", "Sym10.6_cm2")
+
+####Add Symbiont Density to Thermal Tolerance Data
+
+##Merge Averaged Symbiont Data with Thermal Tolerance Data
+#Merges by Random Number (RandN) and ID columns
+#Retains all Thermal Tolerance Assay samples
+names(ThermData)
+ThermData<-merge(ThermData, Sym.a, all.x=TRUE, all.y=FALSE)
 
 
 ####Fv/Fm####
@@ -932,6 +943,9 @@ ggplot(subset(PAM.C, TimeP=="M12"), aes(x=Set, y=Fv_Fm)) +
   ylim(0.45,0.75)+
   theme(axis.text.x = element_text(angle = 90))
 
+##Remove Outliers
+PAM.C.o<-PAM.C[-c(which(PAM.C$TimeP=="M4" & PAM.C$Fv_Fm<0.53)),]
+
 
 ##Heated
 PAM.H<-subset(PAM, Treat=="H")
@@ -943,10 +957,6 @@ ggplot(subset(PAM.H, TimeP=="W2"), aes(x=Set, y=Fv_Fm)) +
   geom_jitter(shape=16, position=position_jitter(0.1))+
   ylim(0.25,0.7)+
   theme(axis.text.x = element_text(angle = 90))
-
-PAM.H$RandN[which(PAM.H$TimeP=="W2" & PAM.H$Fv_Fm<0.5 & PAM.H$Site=="KL" & PAM.H$Genotype=="AC10")] # "W2_89"
-PAM.H$RandN[which(PAM.H$TimeP=="W2" & PAM.H$Fv_Fm<0.5 & PAM.H$Site=="SS" & PAM.H$Genotype=="AC12" & PAM.H$Orig=="N")] # "W2_94" "W2_94"
-PAM.H$RandN[which(PAM.H$TimeP=="W2" & PAM.H$Fv_Fm<0.5 & PAM.H$Site=="KL" & PAM.H$Genotype=="AC12" & PAM.H$Orig=="T")] # "W2_38" "W2_38" "W2_38"
 
 #Month 1
 ggplot(subset(PAM.H, TimeP=="M1"), aes(x=Set, y=Fv_Fm)) + 
@@ -984,13 +994,7 @@ ggplot(subset(PAM.H, TimeP=="M12"), aes(x=Set, y=Fv_Fm)) +
 
 
 ##Remove Outliers 
-PAM.C.o<-PAM.C[-c(which((PAM.C$TimeP=="W2" & PAM.C$Fv_Fm<0.5) |
-              (PAM.C$TimeP=="M4" & PAM.C$Fv_Fm<0.53))),]
-
-PAM.H.o<-PAM.H[-c(which((PAM.H$TimeP=="W2" & PAM.H$Fv_Fm<0.5 & PAM.H$Site=="KL" & PAM.H$Genotype=="AC10") | 
-              (PAM.H$TimeP=="W2" & PAM.H$Fv_Fm<0.5 & PAM.H$Site=="SS" & PAM.H$Genotype=="AC12" & PAM.H$Orig=="N") |
-              (PAM.H$TimeP=="W2" & PAM.H$Fv_Fm<0.5 & PAM.H$Site=="KL" & PAM.H$Genotype=="AC12" & PAM.H$Orig=="T") |
-              (PAM.H$TimeP=="M1" & PAM.H$Fv_Fm<0.35)|
+PAM.H.o<-PAM.H[-c(which((PAM.H$TimeP=="M1" & PAM.H$Fv_Fm<0.35)|
               (PAM.H$TimeP=="M4" & PAM.H$Fv_Fm<0.35 &  PAM.H$Site=="SS") |
                 (PAM.H$TimeP=="M8" & PAM.H$Fv_Fm<0.45))),]
 
@@ -1015,3 +1019,8 @@ names(PAM.a)<-c("ID", "Fv_Fm")
 #Retains all Thermal Tolerance Assay samples
 names(ThermData)
 ThermData<-merge(ThermData, PAM.a, all.x=TRUE, all.y=FALSE)
+
+
+####Write Out Data####
+write.csv(CoralData, "Outputs/CoralData.csv", row.names=FALSE)
+write.csv(ThermData, "Outputs/ThermData.csv", row.names=FALSE)
