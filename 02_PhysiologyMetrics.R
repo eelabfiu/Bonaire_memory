@@ -182,8 +182,6 @@ ggplot(subset(Prot.C, TimeP=="M1"), aes(x=Set, y=TP_ug.cm2_C)) +
   ylim(50,1000)+
   theme(axis.text.x = element_text(angle = 90))
 
-Prot.C$RandN[which(Prot.C$TimeP=="M1" & Prot.C$TP_ug.cm2_C>600)] #"15" "15" "15" "29" "29" "29"
-Prot.C$RandN[which(Prot.C$TimeP=="M1" & Prot.C$TP_ug.cm2_C>500 & Prot.C$Site=="KL")] #"4"
 Prot.C$RandN[which(Prot.C$TimeP=="M1" & Prot.C$TP_ug.cm2_C<200)] #"20" "20" "20"
 
 #Month 4
@@ -194,7 +192,6 @@ ggplot(subset(Prot.C, TimeP=="M4"), aes(x=Set, y=TP_ug.cm2_C)) +
   theme(axis.text.x = element_text(angle = 90))
 
 Prot.C$RandN[which(Prot.C$TimeP=="M4" & Prot.C$TP_ug.cm2_C<170)] #"121" "125" "126" "127"
-Prot.C$RandN[which(Prot.C$TimeP=="M4" & Prot.C$TP_ug.cm2_C<250 & Prot.C$Site=="SS")] #"125" "126" "140" "140"
 
 #Month 8
 ggplot(subset(Prot.C, TimeP=="M8"), aes(x=Set, y=TP_ug.cm2_C)) + 
@@ -215,11 +212,8 @@ ggplot(subset(Prot.C, TimeP=="M12"), aes(x=Set, y=TP_ug.cm2_C)) +
 Prot.C$RandN[which(Prot.C$TimeP=="M12" & Prot.C$TP_ug.cm2_C>600)] #"211" "222" "222" "222"
 
 ##Remove Outlier Readings
-Prot.C.o<-Prot.C[-c(which((Prot.C$TimeP=="M1" & Prot.C$TP_ug.cm2_C>600) |
-(Prot.C$TimeP=="M1" & Prot.C$TP_ug.cm2_C>500 & Prot.C$Site=="KL") |
-(Prot.C$TimeP=="M1" & Prot.C$TP_ug.cm2_C<200) |
+Prot.C.o<-Prot.C[-c(which((Prot.C$TimeP=="M1" & Prot.C$TP_ug.cm2_C<200) |
 (Prot.C$TimeP=="M4" & Prot.C$TP_ug.cm2_C<170) |
-(Prot.C$TimeP=="M4" & Prot.C$TP_ug.cm2_C<250 & Prot.C$Site=="SS") |
 (Prot.C$TimeP=="M8" & Prot.C$TP_ug.cm2_C>550) |
 (Prot.C$TimeP=="M12" & Prot.C$TP_ug.cm2_C>600))),]
 
@@ -248,7 +242,7 @@ ggplot(subset(Prot.S, TimeP=="M1"), aes(x=Set, y=TP_ug.cm2_S)) +
   ylim(50,1400)+
   theme(axis.text.x = element_text(angle = 90))
 
-Prot.S$RandN[which(Prot.S$TimeP=="M1" & Prot.S$TP_ug.cm2_S>750)] #"15" "4"  "41" "47" "5"
+Prot.S$RandN[which(Prot.S$TimeP=="M1" & Prot.S$TP_ug.cm2_S>1000)] #"41"
 Prot.S$RandN[which(Prot.S$TimeP=="M1" & Prot.S$TP_ug.cm2_S<250)] #"20" "20" "20"
 
 #Month 4
@@ -278,7 +272,7 @@ Prot.S$RandN[which(Prot.S$TimeP=="M12" & Prot.S$TP_ug.cm2_S>750)] #"222" "222" "
 
 ##Remove Outlier Readings
 Prot.S.o<-Prot.S[-c(which((Prot.S$TimeP=="W2" & Prot.S$TP_ug.cm2_S>750) |
-(Prot.S$TimeP=="M1" & Prot.S$TP_ug.cm2_S>750) |
+(Prot.S$TimeP=="M1" & Prot.S$TP_ug.cm2_S>1000) |
 (Prot.S$TimeP=="M1" & Prot.S$TP_ug.cm2_S<250) |
 (Prot.S$TimeP=="M4" & Prot.S$TP_ug.cm2_S>500 & Prot.S$Site=="SS" & Prot.S$Genotype=="AC8") |
 (Prot.S$TimeP=="M12" & Prot.S$TP_ug.cm2_S>750))),]
