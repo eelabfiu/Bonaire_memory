@@ -255,6 +255,7 @@ shapiro.test(log(Therm.M8$Sym10.6_cm2+1))
 
 kruskal.test(Sym10.6_cm2~Treatment, Therm.M8)
 # Kruskal-Wallis chi-squared = 1.0078, df = 1, p-value = 0.3154
+#No significant difference between Treatments in Month 8 Symbionts
 
 ggplot(Therm.M8, aes(x=Treatment, y=Sym10.6_cm2)) + 
   geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
@@ -425,11 +426,14 @@ shapiro.test(Therm.H.W2$Fv_Fm_p)
 ##Not Normal
 
 
+
+
+
 ####Figures####
 
-####Summary Statistics 
+####Chlorophyll
 
-##Chlorophyll
+##Summary Statistics 
 
 Chl_p.SE<-summarySE(Therm.H, measurevar="Chl_p", groupvars=c("TimeP", "Genotype", "Site", "Orig", "Origin"), na.rm=TRUE)
 
@@ -445,8 +449,7 @@ Chl_p.SE$Geno.Site<-paste(Chl_p.SE$Genotype, Chl_p.SE$Site,  sep=".")
 Chl_p.SE$Geno.Site<-factor(Chl_p.SE$Geno.Site, levels=c("AC8.SS", "AC8.KL", "AC10.SS",  "AC10.KL", "AC12.SS",  "AC12.KL"), ordered=TRUE)
 
 
-
-####Plot Mean +/- Standard Deviation by Genotype and Site
+##Plot Mean +/- Standard Deviation by Genotype and Site
 
 ##Week 2
 Chl_p.SE.W2.plot<-ggplot(Chl_p.SE[which(Chl_p.SE$TimeP=="W2"),], aes(x=Geno.Site, y=Chl_p, colour=Geno.Site, group=Origin)) + 
@@ -521,3 +524,269 @@ Chl_p.SE.M12.plot<-ggplot(Chl_p.SE[which(Chl_p.SE$TimeP=="M12"),], aes(x=Geno.Si
         legend.box.background = element_rect(color = "black"))+
   ylim(0, 50)+
   labs(x="Genotype and Site", y=expression(paste('% Retention of Chlorophyll (\u03BCg cm'^-2*")")));Chl_p.SE.M12.plot
+
+
+####Symbiont Density
+
+##Summary Statistics 
+
+Sym_p.SE<-summarySE(Therm.H, measurevar="Sym_p", groupvars=c("TimeP", "Genotype", "Site", "Orig", "Origin"), na.rm=TRUE)
+
+str(Sym_p.SE)
+Sym_p.SE$TimeP<-factor(Sym_p.SE$TimeP, levels=c("W2", "M1", "M4", "M8", "M12"), ordered=TRUE)
+Sym_p.SE$Site<-factor(Sym_p.SE$Site, levels=c("SS", "KL"), ordered=TRUE)
+Sym_p.SE$Genotype<-factor(Sym_p.SE$Genotype, levels=c("AC8", "AC10", "AC12"), ordered=TRUE)
+Sym_p.SE$Orig<-factor(Sym_p.SE$Orig, levels=c("N", "T"), ordered=TRUE)
+Sym_p.SE$Origin<-factor(Sym_p.SE$Origin, levels=c("Native", "Transplant"), ordered=TRUE)
+
+Sym_p.SE$Geno.Orig<-paste(Sym_p.SE$Genotype, Sym_p.SE$Orig, sep=".")
+Sym_p.SE$Geno.Site<-paste(Sym_p.SE$Genotype, Sym_p.SE$Site,  sep=".")
+Sym_p.SE$Geno.Site<-factor(Sym_p.SE$Geno.Site, levels=c("AC8.SS", "AC8.KL", "AC10.SS",  "AC10.KL", "AC12.SS",  "AC12.KL"), ordered=TRUE)
+
+
+##Plot Mean +/- Standard Deviation by Genotype and Site
+
+##Week 2
+Sym_p.SE.W2.plot<-ggplot(Sym_p.SE[which(Sym_p.SE$TimeP=="W2"),], aes(x=Geno.Site, y=Sym_p, colour=Geno.Site, group=Origin)) + 
+  geom_errorbar(aes(ymin=Sym_p-sd, ymax=Sym_p+sd), width=cap.sz, position=position_dodge(0.3), size=bar.sz) +
+  geom_point(aes(shape=Origin), position=position_dodge(0.3), size=point.sz, stroke=bar.sz+1)+
+  theme_classic()+
+  scale_colour_manual(values=Geno.Site.colors.o)+
+  scale_shape_manual(values=c(19, 1))+
+  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"))+
+  ylim(0, 105)+
+  labs(x="Genotype and Site", y=expression(paste('% Retention of Symbionts (cells cm'^-2*")")));Sym_p.SE.W2.plot
+
+
+##Month 1
+Sym_p.SE.M1.plot<-ggplot(Sym_p.SE[which(Sym_p.SE$TimeP=="M1"),], aes(x=Geno.Site, y=Sym_p, colour=Geno.Site, group=Origin)) + 
+  geom_errorbar(aes(ymin=Sym_p-sd, ymax=Sym_p+sd), width=cap.sz, position=position_dodge(0.3), size=bar.sz) +
+  geom_point(aes(shape=Origin), position=position_dodge(0.3), size=point.sz, stroke=bar.sz+1)+
+  theme_classic()+
+  scale_colour_manual(values=Geno.Site.colors.o)+
+  scale_shape_manual(values=c(19, 1))+
+  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"))+
+  ylim(-5, 105)+
+  labs(x="Genotype and Site", y=expression(paste('% Retention of Symbionts (cells cm'^-2*")")));Sym_p.SE.M1.plot
+
+
+##Month 4
+Sym_p.SE.M4.plot<-ggplot(Sym_p.SE[which(Sym_p.SE$TimeP=="M4"),], aes(x=Geno.Site, y=Sym_p, colour=Geno.Site, group=Origin)) + 
+  geom_errorbar(aes(ymin=Sym_p-sd, ymax=Sym_p+sd), width=cap.sz, position=position_dodge(0.3), size=bar.sz) +
+  geom_point(aes(shape=Origin), position=position_dodge(0.3), size=point.sz, stroke=bar.sz+1)+
+  theme_classic()+
+  scale_colour_manual(values=Geno.Site.colors.o)+
+  scale_shape_manual(values=c(19, 1))+
+  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"))+
+  ylim(0, 107)+
+  labs(x="Genotype and Site", y=expression(paste('% Retention of Symbionts (cells cm'^-2*")")));Sym_p.SE.M4.plot
+
+
+##Month 8
+Sym_p.SE.M8.plot<-ggplot(Sym_p.SE[which(Sym_p.SE$TimeP=="M8"),], aes(x=Geno.Site, y=Sym_p, colour=Geno.Site, group=Origin)) + 
+  geom_errorbar(aes(ymin=Sym_p-sd, ymax=Sym_p+sd), width=cap.sz, position=position_dodge(0.3), size=bar.sz) +
+  geom_point(aes(shape=Origin), position=position_dodge(0.3), size=point.sz, stroke=bar.sz+1)+
+  theme_classic()+
+  scale_colour_manual(values=Geno.Site.colors.o)+
+  scale_shape_manual(values=c(19, 1))+
+  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"))+
+  ylim(0, 120)+
+  labs(x="Genotype and Site", y=expression(paste('% Retention of Symbionts (cells cm'^-2*")")));Sym_p.SE.M8.plot
+
+##Month 12
+Sym_p.SE.M12.plot<-ggplot(Sym_p.SE[which(Sym_p.SE$TimeP=="M12"),], aes(x=Geno.Site, y=Sym_p, colour=Geno.Site, group=Origin)) + 
+  geom_errorbar(aes(ymin=Sym_p-sd, ymax=Sym_p+sd), width=cap.sz, position=position_dodge(0.3), size=bar.sz) +
+  geom_point(aes(shape=Origin), position=position_dodge(0.3), size=point.sz, stroke=bar.sz+1)+
+  theme_classic()+
+  scale_colour_manual(values=Geno.Site.colors.o)+
+  scale_shape_manual(values=c(19, 1))+
+  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"))+
+  ylim(-5, 100)+
+  labs(x="Genotype and Site", y=expression(paste('% Retention of Symbionts (cells cm'^-2*")")));Sym_p.SE.M12.plot
+
+
+####Fv/Fm
+
+##Summary Statistics 
+
+Fv_Fm_p.SE<-summarySE(Therm.H, measurevar="Fv_Fm_p", groupvars=c("TimeP", "Genotype", "Site", "Orig", "Origin"), na.rm=TRUE)
+
+str(Fv_Fm_p.SE)
+Fv_Fm_p.SE$TimeP<-factor(Fv_Fm_p.SE$TimeP, levels=c("W2", "M1", "M4", "M8", "M12"), ordered=TRUE)
+Fv_Fm_p.SE$Site<-factor(Fv_Fm_p.SE$Site, levels=c("SS", "KL"), ordered=TRUE)
+Fv_Fm_p.SE$Genotype<-factor(Fv_Fm_p.SE$Genotype, levels=c("AC8", "AC10", "AC12"), ordered=TRUE)
+Fv_Fm_p.SE$Orig<-factor(Fv_Fm_p.SE$Orig, levels=c("N", "T"), ordered=TRUE)
+Fv_Fm_p.SE$Origin<-factor(Fv_Fm_p.SE$Origin, levels=c("Native", "Transplant"), ordered=TRUE)
+
+Fv_Fm_p.SE$Geno.Orig<-paste(Fv_Fm_p.SE$Genotype, Fv_Fm_p.SE$Orig, sep=".")
+Fv_Fm_p.SE$Geno.Site<-paste(Fv_Fm_p.SE$Genotype, Fv_Fm_p.SE$Site,  sep=".")
+Fv_Fm_p.SE$Geno.Site<-factor(Fv_Fm_p.SE$Geno.Site, levels=c("AC8.SS", "AC8.KL", "AC10.SS",  "AC10.KL", "AC12.SS",  "AC12.KL"), ordered=TRUE)
+
+
+##Plot Mean +/- Standard Deviation by Genotype and Site
+
+##Week 2
+Fv_Fm.SE.W2.plot<-ggplot(Fv_Fm_p.SE[which(Fv_Fm_p.SE$TimeP=="W2"),], aes(x=Geno.Site, y=Fv_Fm_p, colour=Geno.Site, group=Origin)) + 
+  geom_errorbar(aes(ymin=Fv_Fm_p-sd, ymax=Fv_Fm_p+sd), width=cap.sz, position=position_dodge(0.3), size=bar.sz) +
+  geom_point(aes(shape=Origin), position=position_dodge(0.3), size=point.sz, stroke=bar.sz+1)+
+  theme_classic()+
+  scale_colour_manual(values=Geno.Site.colors.o)+
+  scale_shape_manual(values=c(19, 1))+
+  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"))+
+  ylim(0, 105)+
+  labs(x="Genotype and Site", y="% Retention of Chl. Fluorescence (Fv/Fm)");Fv_Fm.SE.W2.plot
+
+
+##Month 1
+Fv_Fm.SE.M1.plot<-ggplot(Fv_Fm_p.SE[which(Fv_Fm_p.SE$TimeP=="M1"),], aes(x=Geno.Site, y=Fv_Fm_p, colour=Geno.Site, group=Origin)) + 
+  geom_errorbar(aes(ymin=Fv_Fm_p-sd, ymax=Fv_Fm_p+sd), width=cap.sz, position=position_dodge(0.3), size=bar.sz) +
+  geom_point(aes(shape=Origin), position=position_dodge(0.3), size=point.sz, stroke=bar.sz+1)+
+  theme_classic()+
+  scale_colour_manual(values=Geno.Site.colors.o)+
+  scale_shape_manual(values=c(19, 1))+
+  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"))+
+  ylim(0, 105)+
+  labs(x="Genotype and Site", y="% Retention of Chl. Fluorescence (Fv/Fm)");Fv_Fm.SE.M1.plot
+
+##Month 4
+Fv_Fm.SE.M4.plot<-ggplot(Fv_Fm_p.SE[which(Fv_Fm_p.SE$TimeP=="M4"),], aes(x=Geno.Site, y=Fv_Fm_p, colour=Geno.Site, group=Origin)) + 
+  geom_errorbar(aes(ymin=Fv_Fm_p-sd, ymax=Fv_Fm_p+sd), width=cap.sz, position=position_dodge(0.3), size=bar.sz) +
+  geom_point(aes(shape=Origin), position=position_dodge(0.3), size=point.sz, stroke=bar.sz+1)+
+  theme_classic()+
+  scale_colour_manual(values=Geno.Site.colors.o)+
+  scale_shape_manual(values=c(19, 1))+
+  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"))+
+  ylim(0, 105)+
+  labs(x="Genotype and Site", y="% Retention of Chl. Fluorescence (Fv/Fm)");Fv_Fm.SE.M4.plot
+
+
+##Month 8
+Fv_Fm.SE.M8.plot<-ggplot(Fv_Fm_p.SE[which(Fv_Fm_p.SE$TimeP=="M8"),], aes(x=Geno.Site, y=Fv_Fm_p, colour=Geno.Site, group=Origin)) + 
+  geom_errorbar(aes(ymin=Fv_Fm_p-sd, ymax=Fv_Fm_p+sd), width=cap.sz, position=position_dodge(0.3), size=bar.sz) +
+  geom_point(aes(shape=Origin), position=position_dodge(0.3), size=point.sz, stroke=bar.sz+1)+
+  theme_classic()+
+  scale_colour_manual(values=Geno.Site.colors.o)+
+  scale_shape_manual(values=c(19, 1))+
+  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"))+
+  ylim(0, 105)+
+  labs(x="Genotype and Site", y="% Retention of Chl. Fluorescence (Fv/Fm)");Fv_Fm.SE.M8.plot
+
+
+##Month 12
+Fv_Fm.SE.M12.plot<-ggplot(Fv_Fm_p.SE[which(Fv_Fm_p.SE$TimeP=="M12"),], aes(x=Geno.Site, y=Fv_Fm_p, colour=Geno.Site, group=Origin)) + 
+  geom_errorbar(aes(ymin=Fv_Fm_p-sd, ymax=Fv_Fm_p+sd), width=cap.sz, position=position_dodge(0.3), size=bar.sz) +
+  geom_point(aes(shape=Origin), position=position_dodge(0.3), size=point.sz, stroke=bar.sz+1)+
+  theme_classic()+
+  scale_colour_manual(values=Geno.Site.colors.o)+
+  scale_shape_manual(values=c(19, 1))+
+  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"))+
+  ylim(0, 105)+
+  labs(x="Genotype and Site", y="% Retention of Chl. Fluorescence (Fv/Fm)");Fv_Fm.SE.M12.plot
+
+
+
+####Week 2 Natives Only####
+
+####Chlorophyll
+
+##Check normality
+hist(Therm.H.W2$Chl_p[which(Therm.H.W2$Orig=="N")])
+qqnorm(Therm.H.W2$Chl_p[which(Therm.H.W2$Orig=="N")])
+shapiro.test(Therm.H.W2$Chl_p[which(Therm.H.W2$Orig=="N")])
+#Normal
+
+summary(aov(Chl_p~Genotype*Site, data=Therm.H.W2[which(Therm.H.W2$Orig=="N"),]))
+#               Df Sum Sq Mean Sq F value   Pr(>F)    
+# Genotype       2  873.3   436.6  12.541 0.000451 ***
+# Site           1   59.7    59.7   1.716 0.207696    
+# Genotype:Site  2  113.8    56.9   1.635 0.224231    
+# Residuals     17  591.9    34.8   
+
+####Symbionts
+
+##Check normality
+hist(Therm.H.W2$Sym_p[which(Therm.H.W2$Orig=="N")])
+qqnorm(Therm.H.W2$Sym_p[which(Therm.H.W2$Orig=="N")])
+shapiro.test(Therm.H.W2$Sym_p[which(Therm.H.W2$Orig=="N")])
+##Normal
+
+summary(aov(Sym_p~Genotype*Site, data=Therm.H.W2[which(Therm.H.W2$Orig=="N"),]))
+#               Df Sum Sq Mean Sq F value   Pr(>F)    
+# Genotype       2  12806    6403  26.757 4.05e-06 ***
+# Site           1   1301    1301   5.435   0.0316 *  
+# Genotype:Site  2   1500     750   3.135   0.0679 .  
+# Residuals     18   4307     239      
+
+##Week 2
+Sym_p.SE.W2.N.plot<-ggplot(Sym_p.SE[which(Sym_p.SE$TimeP=="W2" & Sym_p.SE$Orig=="N"),], aes(x=Geno.Site, y=Sym_p, colour=Geno.Site)) + 
+  geom_errorbar(aes(ymin=Sym_p-sd, ymax=Sym_p+sd), width=cap.sz, position=position_dodge(0.3), size=bar.sz) +
+  geom_point(position=position_dodge(0.3), size=point.sz, stroke=bar.sz+1)+
+  theme_classic()+
+  scale_colour_manual(values=Geno.Site.colors.o)+
+  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"))+
+  ylim(0, 105)+
+  labs(x="Genotype and Site", y=expression(paste('% Retention of Symbionts (cells cm'^-2*")")));Sym_p.SE.W2.N.plot
+
+ggplot(Sym_p.SE[which(Sym_p.SE$TimeP=="W2" & Sym_p.SE$Orig=="N"),], aes(x=Site, y=Sym_p, colour=Genotype)) + 
+  geom_errorbar(aes(ymin=Sym_p-sd, ymax=Sym_p+sd), width=cap.sz, position=position_dodge(0.3), size=bar.sz) +
+  geom_point(position=position_dodge(0.3), size=point.sz, stroke=bar.sz+1)+
+  theme_classic()+
+  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"))+
+  ylim(0, 105)
+
+ggplot(Sym_p.SE[which(Sym_p.SE$TimeP=="W2" & Sym_p.SE$Orig=="N"),], aes(x=Genotype, y=Sym_p, colour=Site)) + 
+  geom_errorbar(aes(ymin=Sym_p-sd, ymax=Sym_p+sd), width=cap.sz, position=position_dodge(0.3), size=bar.sz) +
+  geom_point(position=position_dodge(0.3), size=point.sz, stroke=bar.sz+1)+
+  theme_classic()+
+  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"))+
+  ylim(0, 105)
+
+
+####Fv/Fm
+
+##Check normality
+hist(Therm.H.W2$Fv_Fm_p[which(Therm.H.W2$Orig=="N")])
+qqnorm(Therm.H.W2$Fv_Fm_p[which(Therm.H.W2$Orig=="N")])
+shapiro.test(Therm.H.W2$Fv_Fm_p[which(Therm.H.W2$Orig=="N")])
+##Not Normal
+
+
