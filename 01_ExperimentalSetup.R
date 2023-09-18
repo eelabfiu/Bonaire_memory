@@ -95,7 +95,7 @@ Study_Sites.plot<-ggplot(Bonaire.sf)+
         axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
         legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz)); Study_Sites.plot
 
-ggsave(filename="Figures/01_Design/Study_Sites.png", plot=Study_Sites.plot, dpi=300, width=6, height=12, units="in")
+ggsave(filename="Figures/01_Design/Study_Sites.png", plot=Study_Sites.plot, dpi=300, width=8, height=12, units="in")
 
 
 
