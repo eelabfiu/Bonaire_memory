@@ -21,8 +21,12 @@ knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 ### Load Packages
 ```{r}
 ##Install Packages if Needed
+if (!require("ggplot2")) install.packages("ggplot2")
+if (!require("cowplot")) install.packages("cowplot")
 
 ##Load Packages
+library(ggplot2) #Required for ggplots
+library(cowplot) #Required for plotting panel figures
 
 ```
 
@@ -69,8 +73,22 @@ corrplot(Phys.corr$r, type="upper", order="hclust",
 
 # SIBER Ellipses
 
+### Run SIBER
+Grouping by each genotype at each site, timepoint, and from each origin
+
+### Plot Ellipses over Time
+
+#### TP1
+
+#### TP2
+
+#### TP3
+
+#### TP4
+
 
 # Ellipse Overlap
 
+### Calculate Percent Overlap
 
 # Figures
