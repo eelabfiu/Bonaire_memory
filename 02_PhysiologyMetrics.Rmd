@@ -1,0 +1,1094 @@
+---
+title: "Calculation of Physiological Metrics"
+author: "Serena Hackerott"
+date: "1/1/2024"
+output:
+  html_document:
+    toc: yes
+    df_print: paged
+  html_notebook:
+    toc: yes
+    toc_float: yes
+---
+
+# Setup
+
+```{r Setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+
+### Load Packages
+```{r}
+##Install Packages if Needed
+if (!require("ggplot2")) install.packages("ggplot2")
+if (!require("plyr")) install.packages("plyr")
+
+##Load Packages
+library(ggplot2)
+library(plyr)
+```
+
+
+### Graphing Parameters
+```{r}
+#Note: Run "Graphing Parameters" section from 01_ExperimentalSetup.Rmd file
+```
+
+
+# Sample Data and Metadata
+
+### Load and Organize Data
+```{r}
+####Load Data
+
+Prot<-read.csv("Data/Protein.csv", header=TRUE)
+Bio<-read.csv("Data/Biomass.csv", header=TRUE)
+Sym<-read.csv("Data/Symbionts.csv", header=TRUE)
+Chl<-read.csv("Data/Chlorophyll.csv", header=TRUE)
+PAM<-read.csv("Data/PAMData.csv", header=TRUE)
+PAM_Meta<-read.csv("Data/PAMMeta.csv", header=TRUE)
+BCA.Stand<-read.csv("Data/BCAStandards.csv", header=TRUE)
+Wax.Stand<-read.csv("Data/WaxStandards.csv", header=TRUE)
+SampData<-read.csv("Data/Samples.csv", header=TRUE)
+
+
+####Sample Meta Data
+str(SampData)
+
+##Set factor variables
+SampData$TimeP<-factor(SampData$TimeP, levels=c("IN", "TP1", "TP2", "TP3", "TP4"))
+SampData$Site<-factor(SampData$Site, levels=c("KL", "SS"))
+SampData$Genotype<-factor(SampData$Genotype, levels=c("AC8", "AC10", "AC12"))
+SampData$Orig<-factor(SampData$Orig, levels=c("N", "T"))
+SampData$Origin<-factor(SampData$Origin, levels=c("Native", "Transplant"))
+
+##Add a Sample Set Variable
+SampData$Set<-paste(SampData$TimeP, SampData$Site, SampData$Genotype, SampData$Treat, SampData$Orig, sep=".")
+
+##Add Site.Orig variable
+SampData$Site.Orig<-paste(SampData$Site, SampData$Orig, sep=".")
+SampData$Site.Orig<-factor(SampData$Site.Orig, levels=c("KL.N", "KL.T", "SS.N", "SS.T"))
+
+
+```
+
+
+### Sample Surface Area
+```{r}
+####Create Standard Curve
+
+##Calculate Surface Area of Cylinders from Standards
+Wax.Stand$SA_cm2<-2*pi*(Wax.Stand$Dm_cm/2)*Wax.Stand$Ht_cm+2*pi*(Wax.Stand$Dm_cm/2)^2
+
+##Calculate Difference in Wax Weight
+Wax.Stand$Wax.D_g<- Wax.Stand$Wax.F_g-Wax.Stand$Wax.I_g
+
+##Linear Model of SA as a Function of Wax Weight
+wax.SA.lm  <- lm(SA_cm2~Wax.D_g, data=Wax.Stand)
+summary(wax.SA.lm)
+coef(wax.SA.lm)
+
+SA.mod <- function(wax.weight) {
+  coefs <- coef(wax.SA.lm)
+  #y = mx + b
+  SA <- ((coefs[2] * wax.weight) + coefs[1])
+  return(SA)}
+
+####Apply Standard Curve
+
+##Calculate Difference in Wax Weight (g) in Sample Data
+SampData$Wax.D_g<- SampData$Wax.F_g-SampData$Wax.I_g
+
+##Calculate Surface Area (cm^2) by Applying Linear Model Function
+SampData$SA_cm2<-SA.mod(SampData$Wax.D_g)
+
+```
+
+
+### Subset Sample MetaData by Experiment
+```{r}
+##Main Corals in the Nursery
+Corals_Main<-subset(SampData, Treat=="M")
+
+##Thermal Tolerance Assay
+Corals_Therm<-subset(SampData, Treat=="C" | Treat=="H")
+```
+
+
+# Protein
+
+### Calculate Protein Concentration
+```{r}
+####Create Standard Curve
+
+##Subset Standards Data
+Prot.St<- subset(Prot, Input=="Standard")
+
+##Merge Standard Meta Data with Absorbance data
+#Merges by Random Number (RandN) column
+BCAStands<-merge(BCA.Stand, Prot.St, all.x=TRUE)
+
+##Plot Protein Concentration as a function of Absorbance 
+plot(BCAStands$A562, BCAStands$Protein_ug.ml, pch=19)
+
+##Fit Models of Protein Concentration as a function of Absorbance 
+
+#First degree polynomial equation:
+BCA.lm  <- lm(Protein_ug.ml~A562, data=BCAStands)
+#Second degree polynomial equation:
+BCA.ploy2 <- lm(Protein_ug.ml~poly(A562,2,raw=TRUE), data=BCAStands)
+#Third degree polynomial equation:
+BCA.ploy3 <- lm(Protein_ug.ml~poly(A562,3,raw=TRUE), data=BCAStands)
+
+##Add Models to Plot
+xx <- seq(0,3, length=50)
+
+lines(xx, predict(BCA.lm, newdata=data.frame(A562=xx)), col="red")
+lines(xx, predict(BCA.ploy2, newdata=data.frame(A562=xx)), col="green")
+lines(xx, predict(BCA.ploy3, newdata=data.frame(A562=xx)), col="blue")
+
+##Compare Models for Best Fit
+anova(BCA.lm, BCA.ploy2)
+#Poly2 is a significantly better fit than linear
+
+anova(BCA.ploy2, BCA.ploy3)
+#Poly3 is significantly better fit than Ploy2
+
+##Create a function with the Poly3 model Equation
+summary(BCA.ploy3)
+coef(BCA.ploy3)
+
+TP.mod <- function(absorbance) {
+  coefs <- coef(BCA.ploy3)
+  #y = d + cx + bx^2 + ax^3
+  protein <- coefs[1] + (coefs[2] * absorbance) + (coefs[3] * absorbance^2) + (coefs[4] * absorbance^3)
+  return(protein)}
+
+
+####Apply Standard Curve
+
+##Subset Sample Data (Unknown Sample)
+Prot.Un<- subset(Prot, Input=="Un")
+
+##Calculate Protein Concentration (ug/ml)
+Prot.Un$TP_ug.ml<-TP.mod(Prot.Un$A562)
+
+##Merge with Sample Meta Data to Calculate Protein per Surface Area
+#Merges by Random Number (RandN) column
+#Adds necessary Slurry Volume (Vol_ml) and Surface Area (SA_cm2) columns
+#Retains Sample Meta Data only for samples with Protein data (Main samples only)
+Prot.Un<-merge(Prot.Un, SampData, all.x=TRUE, all.y=FALSE)
+
+##Calculate Total Protein (ug) 
+Prot.Un$TP_ug<-Prot.Un$TP_ug.ml*Prot.Un$Vol_ml
+
+##Calculate Protein per Surface Area (ug/cm^2)
+Prot.Un$TP_ug.cm2<-Prot.Un$TP_ug/Prot.Un$SA_cm2
+
+##Separate Coral and Symbiont Fractions
+Prot.C<- subset(Prot.Un, Fraction=="C")
+Prot.C<-rename(Prot.C, c("TP_ug.cm2" = "TP_ug.cm2_C"))
+
+Prot.S<- subset(Prot.Un, Fraction=="S")
+Prot.S<-rename(Prot.S, c("TP_ug.cm2" = "TP_ug.cm2_S"))
+```
+
+
+### Check for Outliers
+Check for Outliers by Timepoint, grouped by sample set. Removing any clear outlier samples and outliers of technical replicates before averaging across technical repliates. 
+
+#### Coral Host
+```{r}
+##Initial Visual Check
+ggplot(Prot.C, aes(x=Set, y=TP_ug.cm2_C)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  theme(axis.text.x = element_text(angle = 90))
+
+##Check for Outliers by Timepoint
+
+#TP1
+ggplot(subset(Prot.C, TimeP=="TP1"), aes(x=Set, y=TP_ug.cm2_C)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(50,1000)+
+  theme(axis.text.x = element_text(angle = 90))
+
+#TP2
+ggplot(subset(Prot.C, TimeP=="TP2"), aes(x=Set, y=TP_ug.cm2_C)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(50,1000)+
+  theme(axis.text.x = element_text(angle = 90))
+
+Prot.C$RandN[which(Prot.C$TimeP=="TP2" & Prot.C$TP_ug.cm2_C<120)] # "125" "126" "127"
+
+#Month TP3
+ggplot(subset(Prot.C, TimeP=="TP3"), aes(x=Set, y=TP_ug.cm2_C)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(100,1000)+
+  theme(axis.text.x = element_text(angle = 90))
+
+Prot.C$RandN[which(Prot.C$TimeP=="TP3" & Prot.C$TP_ug.cm2_C>700)] #"186" "187" "188"
+
+#Month TP4
+ggplot(subset(Prot.C, TimeP=="TP4"), aes(x=Set, y=TP_ug.cm2_C)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(50,1100)+
+  theme(axis.text.x = element_text(angle = 90))
+
+Prot.C$RandN[which(Prot.C$TimeP=="TP4" & Prot.C$TP_ug.cm2_C>600)] #"211" "222" "222" "222"
+
+##Remove Outlier Readings
+Prot.C.o<-Prot.C[-c(which((Prot.C$TimeP=="TP2" & Prot.C$TP_ug.cm2_C<120) |
+(Prot.C$TimeP=="TP3" & Prot.C$TP_ug.cm2_C>700) |
+(Prot.C$TimeP=="TP4" & Prot.C$TP_ug.cm2_C>600))),]
+
+##Visual Check
+ggplot(Prot.C.o, aes(x=Set, y=TP_ug.cm2_C)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(100,600)+
+  theme(axis.text.x = element_text(angle = 90))
+
+```
+
+
+#### Symbiont
+```{r}
+##Initial Visual Check
+ggplot(Prot.S, aes(x=Set, y=TP_ug.cm2_S)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  theme(axis.text.x = element_text(angle = 90))
+
+##Check for Outliers by Timepoint
+#TP1
+ggplot(subset(Prot.S, TimeP=="TP1"), aes(x=Set, y=TP_ug.cm2_S)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(50, 1200)+
+  theme(axis.text.x = element_text(angle = 90))
+
+Prot.S$RandN[which(Prot.S$TimeP=="TP1" & Prot.S$TP_ug.cm2_S>750)] #"49" "52" "84"
+
+#TP2
+ggplot(subset(Prot.S, TimeP=="TP2"), aes(x=Set, y=TP_ug.cm2_S)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(50,1000)+
+  theme(axis.text.x = element_text(angle = 90))
+
+Prot.S$RandN[which(Prot.S$TimeP=="TP2" & Prot.S$TP_ug.cm2_S>500 & Prot.S$Site=="SS" & Prot.S$Genotype=="AC8")] #"129"
+
+#TP3
+ggplot(subset(Prot.S, TimeP=="TP3"), aes(x=Set, y=TP_ug.cm2_S)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(50,1000)+
+  theme(axis.text.x = element_text(angle = 90))
+
+#TP4
+ggplot(subset(Prot.S, TimeP=="TP4"), aes(x=Set, y=TP_ug.cm2_S)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(50,1000)+
+  theme(axis.text.x = element_text(angle = 90))
+
+Prot.S$RandN[which(Prot.S$TimeP=="TP4" & Prot.S$TP_ug.cm2_S>750)] #"222" "222" "222"
+
+##Remove Outlier Readings
+Prot.S.o<-Prot.S[-c(which((Prot.S$TimeP=="TP1" & Prot.S$TP_ug.cm2_S>750) |
+(Prot.S$TimeP=="TP2" & Prot.S$TP_ug.cm2_S>500 & Prot.S$Site=="SS" & Prot.S$Genotype=="AC8") |
+(Prot.S$TimeP=="TP4" & Prot.S$TP_ug.cm2_S>750))),]
+
+##Visual Check
+ggplot(Prot.S.o, aes(x=Set, y=TP_ug.cm2_S)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(100,750)+
+  theme(axis.text.x = element_text(angle = 90))
+
+```
+
+
+### Add Protein to Main Coral Data
+```{r}
+####Average Across Replicate Readings ("Rep" column: A, B, C)
+names(Prot.C.o)
+Prot.C.a<-aggregate(Prot.C.o$TP_ug.cm2_C, list(Prot.C.o$RandN, Prot.C.o$ID), mean)
+names(Prot.C.a)<-c("RandN", "ID", "TP_ug.cm2_C")
+
+names(Prot.S.o)
+Prot.S.a<-aggregate(Prot.S.o$TP_ug.cm2_S, list(Prot.S.o$RandN, Prot.S.o$ID), mean)
+names(Prot.S.a)<-c("RandN", "ID", "TP_ug.cm2_S")
+
+
+####Merge Averaged Protein Data of Coral Host (C) and Symbiont (S) with Coral Main Data
+#Merges by Random Number (RandN) and ID columns
+#Retains all Main samples
+#Retains RandN, ID, TimeP, Site, Genotype, Orig, Origin, Set, and SA_cm2 from Corals_Main
+names(Corals_Main)
+
+CoralData<-merge(Corals_Main[,c(1:5, 8:9, 13:14, 16)], Prot.C.a, all.x=TRUE)
+CoralData<-merge(CoralData, Prot.S.a, all.x=TRUE)
+
+```
+
+
+# Biomass
+
+### Calculate Ash Free Dry Weight
+```{r}
+##Calculate Change in Weight after Burning (g)
+Bio$DeltaBurn_g<-Bio$Dried_g-Bio$Burned_g
+
+##Calculate Ash Free Dry Weight (AFDW) (g) per Volume Input of Tissue (ml) 
+Bio$AFDW_g.ml<-Bio$DeltaBurn_g/Bio$InVol_ml
+
+##Merge with Sample Meta Data to Calculate Biomass per Surface Area
+#Merges by Random Number (RandN) column
+#Adds necessary Slurry Volume (Vol_ml) and Surface Area (SA_cm2) columns
+#Retains Sample Meta Data only for samples with Biomass data (Main samples only)
+Bio<-merge(Bio, SampData, all.x=TRUE, all.y=FALSE)
+
+##Calculate Total AFDW (g) 
+Bio$AFDW_g<-Bio$AFDW_g.ml*Bio$Vol_ml
+
+##Calculate AFDW per Surface Area (mg/cm^2)
+Bio$AFDW_g.cm2<-Bio$AFDW_g/Bio$SA_cm2
+Bio$AFDW_mg.cm2 <- Bio$AFDW_g.cm2 * 1000
+
+##Separate Coral and Symbiont Fractions
+Bio.C<-subset(Bio, Fraction=="C")
+Bio.C<-rename(Bio.C, c("AFDW_mg.cm2" = "AFDW_mg.cm2_C"))
+
+Bio.S<-subset(Bio, Fraction=="Z")
+Bio.S<-rename(Bio.S, c("AFDW_mg.cm2" = "AFDW_mg.cm2_S"))
+
+```
+
+
+### Check for Outliers
+Check for Outliers by Timepoint, grouped by sample set. Removing any clear outlier samples. 
+
+#### Coral Host
+```{r}
+##Initial Visual Check
+ggplot(Bio.C, aes(x=Set, y=AFDW_mg.cm2_C)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  theme(axis.text.x = element_text(angle = 90))
+
+##Check for Outliers by Timepoint
+
+#TP1
+ggplot(subset(Bio.C, TimeP=="TP1"), aes(x=Set, y=AFDW_mg.cm2_C)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,2.5)+
+  theme(axis.text.x = element_text(angle = 90))
+
+#TP2
+ggplot(subset(Bio.C, TimeP=="TP2"), aes(x=Set, y=AFDW_mg.cm2_C)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,2.5)+
+  theme(axis.text.x = element_text(angle = 90))
+
+#TP3
+ggplot(subset(Bio.C, TimeP=="TP3"), aes(x=Set, y=AFDW_mg.cm2_C)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,2.5)+
+  theme(axis.text.x = element_text(angle = 90))
+
+#TP4
+ggplot(subset(Bio.C, TimeP=="TP4"), aes(x=Set, y=AFDW_mg.cm2_C)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,3.5)+
+  theme(axis.text.x = element_text(angle = 90))
+
+Bio.C$RandN[which(Bio.C$TimeP=="TP4" & Bio.C$AFDW_mg.cm2_C>3)] #222 #Also outlier for Protein
+
+##Remove Outliers 
+Bio.C.o<-Bio.C[-c(which(Bio.C$TimeP=="TP4" & Bio.C$AFDW_mg.cm2_C>3)),]
+
+##Visual Check
+ggplot(Bio.C.o, aes(x=Set, y=AFDW_mg.cm2_C)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,2.5)+
+  theme(axis.text.x = element_text(angle = 90))
+
+```
+
+
+
+#### Symbiont
+```{r}
+##Initial Visual Check
+ggplot(Bio.S, aes(x=Set, y=AFDW_mg.cm2_S)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  theme(axis.text.x = element_text(angle = 90))
+
+##Check for Outliers by Timepoint
+
+#TP1
+ggplot(subset(Bio.S, TimeP=="TP1"), aes(x=Set, y=AFDW_mg.cm2_S)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,1.5)+
+  theme(axis.text.x = element_text(angle = 90))
+
+#TP2
+ggplot(subset(Bio.S, TimeP=="TP2"), aes(x=Set, y=AFDW_mg.cm2_S)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,1.5)+
+  theme(axis.text.x = element_text(angle = 90))
+
+#TP3
+ggplot(subset(Bio.S, TimeP=="TP3"), aes(x=Set, y=AFDW_mg.cm2_S)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,1.5)+
+  theme(axis.text.x = element_text(angle = 90))
+
+#TP4
+ggplot(subset(Bio.S, TimeP=="TP4"), aes(x=Set, y=AFDW_mg.cm2_S)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,2)+
+  theme(axis.text.x = element_text(angle = 90))
+
+Bio.S$RandN[which(Bio.S$TimeP=="TP4" & Bio.S$AFDW_mg.cm2_S>1.5)] #222 #Also outlier for Protein and Biomass of Host
+
+
+##Remove Outliers 
+Bio.S.o<-Bio.S[-c(which(Bio.S$TimeP=="TP4" & Bio.S$AFDW_mg.cm2_S>1.5)),]
+
+##Visual Check
+ggplot(Bio.S.o, aes(x=Set, y=AFDW_mg.cm2_S)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,1.5)+
+  theme(axis.text.x = element_text(angle = 90))
+
+```
+
+
+### Add Biomass to Main Coral Data
+```{r}
+##Merge Cleaned Biomass Data of Coral Host (C) and Symbiont (S) with Coral Main Data
+#Merges by ID column and adds AFDW (mg/cm^2) (AFDW_mg.cm2_C or _S) columns from Biomass dataframes
+#Retains all Main samples
+names(Bio.C.o)
+CoralData<-merge(CoralData, Bio.C.o[,c(1, 26)], all.x=TRUE)
+names(Bio.S.o)
+CoralData<-merge(CoralData, Bio.S.o[,c(1, 26)], all.x=TRUE)
+
+##Calculate Symbiont:Host Ratio of Biomass
+CoralData$AFDW_mg.cm2_S.C<-CoralData$AFDW_mg.cm2_S/CoralData$AFDW_mg.cm2_C
+
+```
+
+
+# Chlorophyll
+
+### Calculate Chlorophyll Concentration
+Equations for Dinos from Jeffrey and Humphrey 1975 in 100% acetone
+Chla = 11.43 * A663 - 0.64 * A630
+Chlc2 = 27.09 * A630 - 3.63 * A663
+```{r}
+##Subtract Background A750 from A630 and A663
+Chl$A630.c<-Chl$A630-Chl$A750
+Chl$A663.c<-Chl$A663-Chl$A750
+
+##Divide by Pathlength (0.5cm pathlength for 175ul sample in UVStar Plate) 
+Chl$A630.c<-c(Chl$A630.c/0.5)
+Chl$A663.c<-c(Chl$A663.c/0.5)
+
+##Calculate Chl-a and Chl-c2 in ug/ml
+Chl$Chl.a_ug.ml<-11.43*Chl$A663.c- 0.64*Chl$A630.c
+Chl$Chl.c2_ug.ml <- 27.09*Chl$A630.c - 3.63*Chl$A663.c
+
+##Merge with Sample Data to Calculate Chlorophyll per Surface Area
+#Merges by Random Number (RandN) column
+#Adds necessary Slurry Volume (Vol_ml) and Surface Area (SA_cm2) columns
+Chl<-merge(Chl, SampData,  all=TRUE)
+
+##Calculate Total Chlorophyll-a and c2 (ug) 
+Chl$Chl.a_ug<-Chl$Chl.a_ug.ml*Chl$Vol_ml
+Chl$Chl.c2_ug<-Chl$Chl.c2_ug.ml*Chl$Vol_ml
+
+##Calculate Chlorophyll-a and c2 per Surface Area (ug/cm^2)
+Chl$Chl.a_ug.cm2<-Chl$Chl.a_ug/Chl$SA_cm2
+Chl$Chl.c2_ug.cm2<-Chl$Chl.c2_ug/Chl$SA_cm2
+
+##Initial Visual Check
+ggplot(Chl, aes(x=Set, y=Chl.a_ug.cm2)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  theme(axis.text.x = element_text(angle = 90))
+
+ggplot(Chl, aes(x=Set, y=Chl.c2_ug.cm2)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  theme(axis.text.x = element_text(angle = 90))
+
+##Set Negative Values to Zero
+Chl$Chl.a_ug.cm2[(which(Chl$Chl.a_ug.cm2<0))]<-0
+Chl$Chl.c2_ug.cm2[(which(Chl$Chl.c2_ug.cm2<0))]<-0
+
+##Add Chlorophyll-a and c2 for Total Chlorophyll per Surface Area (ug/cm^2)
+Chl$Chl_ug.cm2<-Chl$Chl.a_ug.cm2+Chl$Chl.c2_ug.cm2
+
+##Visual Check
+ggplot(Chl, aes(x=Set, y=Chl_ug.cm2)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  theme(axis.text.x = element_text(angle = 90))
+
+```
+
+
+### Check for Outliers
+Check for Outliers by Treatment and Timepoint, grouped by sample set. Removing clear outlier samples and outliers of technical replicates before averaging across technical repliates. 
+
+#### Main
+```{r}
+##Subset Main Corals
+Chl.M<-subset(Chl, Treat=="M")
+
+#TP1
+ggplot(subset(Chl.M, TimeP=="TP1"), aes(x=Set, y=Chl_ug.cm2)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,2.5)+
+  theme(axis.text.x = element_text(angle = 90))
+
+
+#TP2
+ggplot(subset(Chl.M, TimeP=="TP2"), aes(x=Set, y=Chl_ug.cm2)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,4.5)+
+  theme(axis.text.x = element_text(angle = 90))
+
+#TP3
+ggplot(subset(Chl.M, TimeP=="TP3"), aes(x=Set, y=Chl_ug.cm2)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,4.5)+
+  theme(axis.text.x = element_text(angle = 90))
+
+#TP4
+ggplot(subset(Chl.M, TimeP=="TP4"), aes(x=Set, y=Chl_ug.cm2)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,7.5)+
+  theme(axis.text.x = element_text(angle = 90))
+
+Chl.M$RandN[which(Chl.M$TimeP=="TP4" & Chl.M$Chl_ug.cm2>6)] #"222" "222" "222" #Also outlier for Protein and Biomass
+
+##Remove Outliers 
+Chl.M.o<-Chl.M[-c(which(Chl.M$TimeP=="TP4" & Chl.M$Chl_ug.cm2>6)),]
+
+```
+
+
+#### Control
+```{r}
+##Subset Control Treatment in Thermal Tolerance Assay 
+Chl.C<-subset(Chl, Treat=="C")
+
+#IN
+ggplot(subset(Chl.C, TimeP=="IN"), aes(x=Set, y=Chl_ug.cm2)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,2.5)+
+  theme(axis.text.x = element_text(angle = 90))
+
+Chl.C$RandN[which(Chl.C$TimeP=="IN" & Chl.C$Chl_ug.cm2<0.25)] #"W2_45"
+
+#TP1
+ggplot(subset(Chl.C, TimeP=="TP1"), aes(x=Set, y=Chl_ug.cm2)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,2.5)+
+  theme(axis.text.x = element_text(angle = 90))
+
+#TP2
+ggplot(subset(Chl.C, TimeP=="TP2"), aes(x=Set, y=Chl_ug.cm2)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,2.5)+
+  theme(axis.text.x = element_text(angle = 90))
+
+#TP3
+ggplot(subset(Chl.C, TimeP=="TP3"), aes(x=Set, y=Chl_ug.cm2)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,3.5)+
+  theme(axis.text.x = element_text(angle = 90))
+
+Chl.C$RandN[which(Chl.C$TimeP=="TP3" & Chl.C$Chl_ug.cm2>2.5)] #"M8_33" "M8_33" "M8_33" 
+
+#TP4
+ggplot(subset(Chl.C, TimeP=="TP4"), aes(x=Set, y=Chl_ug.cm2)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,4)+
+  theme(axis.text.x = element_text(angle = 90))
+
+##Remove Outliers 
+Chl.C.o<-Chl.C[-c(which((Chl.C$TimeP=="IN" & Chl.C$Chl_ug.cm2<0.25)| 
+                          (Chl.C$TimeP=="TP3" & Chl.C$Chl_ug.cm2>2.5))),]
+
+```
+
+
+#### Heated
+```{r}
+##Subset Heated Treatment in Thermal Tolerance Assay
+Chl.H<-subset(Chl, Treat=="H")
+
+#IN
+ggplot(subset(Chl.H, TimeP=="IN"), aes(x=Set, y=Chl_ug.cm2)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,1)+
+  theme(axis.text.x = element_text(angle = 90))
+
+Chl.H$RandN[which(Chl.H$TimeP=="IN" & Chl.H$Chl_ug.cm2>0.75)] #"W2_88" "W2_88" "W2_88"
+
+#TP1
+ggplot(subset(Chl.H, TimeP=="TP1"), aes(x=Set, y=Chl_ug.cm2)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,1)+
+  theme(axis.text.x = element_text(angle = 90))
+
+#TP2
+ggplot(subset(Chl.H, TimeP=="TP2"), aes(x=Set, y=Chl_ug.cm2)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,1)+
+  theme(axis.text.x = element_text(angle = 90))
+
+#TP3
+ggplot(subset(Chl.H, TimeP=="TP3"), aes(x=Set, y=Chl_ug.cm2)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,2)+
+  theme(axis.text.x = element_text(angle = 90))
+
+Chl.H$RandN[which(Chl.H$TimeP=="TP3" & Chl.H$Chl_ug.cm2>1.5 & Chl.H$Genotype=="AC10")] #"M8_11" "M8_11"
+
+#TP4
+ggplot(subset(Chl.H, TimeP=="TP4"), aes(x=Set, y=Chl_ug.cm2)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,1)+
+  theme(axis.text.x = element_text(angle = 90))
+
+Chl.H$RandN[which(Chl.H$TimeP=="TP4" & Chl.H$Chl_ug.cm2>0.5)] #"M12_63" "M12_63" "M12_63"
+
+##Remove Outliers
+Chl.H.o<-Chl.H[-c(which((Chl.H$TimeP=="IN" & Chl.H$Chl_ug.cm2>0.75) |
+(Chl.H$TimeP=="TP3" & Chl.H$Chl_ug.cm2>1.5 & Chl.H$Genotype=="AC10") | 
+(Chl.H$TimeP=="TP4" & Chl.H$Chl_ug.cm2>0.50))),]
+
+```
+
+
+### Add Chlorophyll to Main and Thermal Datasets
+```{r}
+##Recombine Cleaned Chlorophyll dataframes
+Chl.o<-rbind(Chl.M.o, Chl.C.o, Chl.H.o)
+
+ggplot(Chl.o, aes(x=Set, y=Chl_ug.cm2)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  theme(axis.text.x = element_text(angle = 90))
+
+
+##Average Across Replicate Readings ("Rep" column: A, B, C)
+names(Chl.o)
+Chl.a<-aggregate(Chl.o$Chl_ug.cm2, list(Chl.o$RandN, Chl.o$ID), mean)
+names(Chl.a)<-c("RandN", "ID", "Chl_ug.cm2")
+
+##Add Total Chlorophyll to Main Coral Data and Thermal Tolerance Data
+
+##Merge Averaged Chlorophyll Data with Coral Main Data
+#Merges by Random Number (RandN) and ID columns
+#Retains all Main samples
+names(Chl.a)
+CoralData<-merge(CoralData, Chl.a, all.x=TRUE, all.y=FALSE)
+
+##Merge Averaged Chlorophyll Data with Thermal Tolerance Data
+#Merges by Random Number (RandN) and ID columns
+#Retains all Thermal Tolerance Assay samples
+#Retains RandN, ID, TimeP, Site, Genotype, Treat, Treatment, Orig, Origin, Set, and SA_cm2 from Corals_Therm
+names(Corals_Therm)
+ThermData<-merge(Corals_Therm[,c(1:9, 13:14, 16)], Chl.a, all.x=TRUE, all.y=FALSE)
+
+```
+
+
+# Symbionts
+
+### Calculate Symbiont Density
+```{r}
+####Calculate Dilution Factors
+
+#Scales for 1:10 Dilution Sent for Flow Cytometry
+Sym$Send_df<-Sym$SendInputVol_ul/Sym$SendTotalVol_ul
+
+##Scales for Resuspending Symbiont Pellet based on Volume of 0.01% SDS Used
+Sym$Resp_df<-Sym$InputVol_ul/Sym$RespVol_ul
+
+####Calculate Symbiont Density
+
+##Scale Flow Cy Count/ul to account for Dilution Factor applied at Flow Cy Center
+Sym$Count_ul_scaled_FC_df<-Sym$Count_ul/Sym$FC_df
+
+##Scale Flow Cy Count/ul to account for Sent Dilution Factor
+Sym$Count_ul_scaled_send_df<-Sym$Count_ul_scaled_FC_df/Sym$Send_df
+
+##Scale Flow Cy Count/ul to account for Resuspension Dilution Factor
+Sym$Count_ul_scaled_resp_df<-Sym$Count_ul_scaled_send_df/Sym$Resp_df
+
+##Merge with Sample Data to Calculate Symbionts per Surface Area
+#Merges by Random Number (RandN) column
+#Adds necessary Slurry Volume (Vol_ml) and Surface Area (SA_cm2) columns
+#Retains Sample Meta Data only for samples with Symbiont data (Thermal Assay samples only)
+Sym<-merge(Sym, SampData, all.x=TRUE, all.y=FALSE)
+
+##Calculate Total Symbiont Count (scaling to Slurry Total Volume in ul)
+Sym$Count_total<-Sym$Count_ul_scaled_resp_df*(Sym$Vol_ml*1000)
+
+##Calculate Symbionts per Surface Area
+Sym$Sym_cm2<-Sym$Count_total/Sym$SA_cm2
+
+##Scale to Symb * 10^6 / cm^2
+Sym$Sym10.6_cm2<-Sym$Sym_cm2/10^6
+
+##Initial Visual Check
+ggplot(Sym, aes(x=Set, y=Sym10.6_cm2)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  theme(axis.text.x = element_text(angle = 90))
+
+```
+
+
+### Check for Outliers
+Check for Outliers by Treatment and Timepoint, grouped by sample set. Removing outliers of technical replicates before averaging across technical repliates. 
+
+#### Control
+```{r}
+##Subset Control Treatment in Thermal Tolerance Assay
+Sym.C<-subset(Sym, Treat=="C")
+Sym.C<-Sym.C[-c(which(is.na(Sym.C$Sym10.6_cm2))),]
+
+#IN
+ggplot(subset(Sym.C, TimeP=="IN"), aes(x=Set, y=Sym10.6_cm2)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,2)+
+  theme(axis.text.x = element_text(angle = 90))
+
+#TP1
+ggplot(subset(Sym.C, TimeP=="TP1"), aes(x=Set, y=Sym10.6_cm2)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,2)+
+  theme(axis.text.x = element_text(angle = 90))
+
+#TP2
+ggplot(subset(Sym.C, TimeP=="TP2"), aes(x=Set, y=Sym10.6_cm2)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,2)+
+  theme(axis.text.x = element_text(angle = 90))
+
+#TP3
+ggplot(subset(Sym.C, TimeP=="TP3"), aes(x=Set, y=Sym10.6_cm2)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,2)+
+  theme(axis.text.x = element_text(angle = 90))
+
+#TP4
+ggplot(subset(Sym.C, TimeP=="TP4"), aes(x=Set, y=Sym10.6_cm2)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,2)+
+  theme(axis.text.x = element_text(angle = 90))
+
+```
+
+
+#### Heated
+```{r}
+##Subset Heated Treatment in Thermal Tolerance Assay
+Sym.H<-subset(Sym, Treat=="H")
+
+#IN
+ggplot(subset(Sym.H, TimeP=="IN"), aes(x=Set, y=Sym10.6_cm2)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,1)+
+  theme(axis.text.x = element_text(angle = 90))
+
+#TP1
+ggplot(subset(Sym.H, TimeP=="TP1"), aes(x=Set, y=Sym10.6_cm2)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,1)+
+  theme(axis.text.x = element_text(angle = 90))
+
+Sym.H$RandN[which(Sym.H$TimeP=="TP1" & Sym.H$Sym10.6_cm2>0.75)] #"M1_73" "M1_73"
+
+#TP2
+ggplot(subset(Sym.H, TimeP=="TP2"), aes(x=Set, y=Sym10.6_cm2)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,1.5)+
+  theme(axis.text.x = element_text(angle = 90))
+
+Sym.H$RandN[which(Sym.H$TimeP=="TP2" & Sym.H$Sym10.6_cm2>0.75)] #"M4_61" "M4_85"
+
+#TP3
+ggplot(subset(Sym.H, TimeP=="TP3"), aes(x=Set, y=Sym10.6_cm2)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,2.1)+
+  theme(axis.text.x = element_text(angle = 90))
+
+Sym.H$RandN[which(Sym.H$TimeP=="TP3" & Sym.H$Sym10.6_cm2>1.8)] #"M8_42"
+
+#TP4
+ggplot(subset(Sym.H, TimeP=="TP4"), aes(x=Set, y=Sym10.6_cm2)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0,1)+
+  theme(axis.text.x = element_text(angle = 90))
+
+##Remove Outliers
+Sym.H.o<-Sym.H[-c(which((Sym.H$TimeP=="TP1" & Sym.H$Sym10.6_cm2>0.75) | 
+                          (Sym.H$TimeP=="TP2" & Sym.H$Sym10.6_cm2>0.75) |
+                          (Sym.H$TimeP=="TP3" & Sym.H$Sym10.6_cm2>1.8))),]
+
+```
+
+
+### Add Symbionts to Thermal Data
+```{r}
+##Recombine Cleaned Symbionts dataframes
+Sym.o<-rbind(Sym.C, Sym.H.o)
+
+##Visual Check
+ggplot(Sym.o, aes(x=Set, y=Sym10.6_cm2)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  theme(axis.text.x = element_text(angle = 90))
+
+##Average Across Replicate Readings ("Rep" column: A, B, C)
+names(Sym.o)
+Sym.a<-aggregate(Sym.o$Sym10.6_cm2, list(Sym.o$RandN, Sym.o$ID), mean)
+names(Sym.a)<-c("RandN", "ID", "Sym10.6_cm2")
+
+##Add Symbiont Density to Thermal Tolerance Data
+
+##Merge Averaged Symbiont Data with Thermal Tolerance Data
+#Merges by Random Number (RandN) and ID columns
+#Retains all Thermal Tolerance Assay samples
+names(ThermData)
+ThermData<-merge(ThermData, Sym.a, all.x=TRUE, all.y=FALSE)
+
+```
+
+
+# Fv/Fm
+
+### Organize Data
+```{r}
+##Merge PAM Meta Data with PAM Data
+#Merges by Memory Number (Memory) column
+#Retains PAM Data only for relevant measurements with Meta Data 
+PAM<-merge(PAM_Meta, PAM, all.x=TRUE, all.y=FALSE)
+
+PAM<-PAM[-c(which(is.na(PAM$Fv_Fm))),]
+
+##Merge PAM Data with Sample Data
+#Merges by ID column
+#Retains Sample Meta Data only for samples with Fv/Fm data (Thermal Assay samples only)
+PAM<-merge(PAM, SampData, all.x=TRUE, all.y=FALSE)
+
+##Initial Visual Check
+ggplot(PAM, aes(x=Set, y=Fv_Fm)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  theme(axis.text.x = element_text(angle = 90))
+
+```
+
+
+### Check for Outliers
+Check for Outliers by Treatment and Timepoint, grouped by sample set. Removing outliers of technical replicates before averaging across technical repliates. 
+
+#### Control
+```{r}
+##Subset Control Treatment in Thermal Tolerance Assay
+PAM.C<-subset(PAM, Treat=="C")
+
+#IN
+ggplot(subset(PAM.C, TimeP=="IN"), aes(x=Set, y=Fv_Fm)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0.45,0.75)+
+  theme(axis.text.x = element_text(angle = 90))
+
+PAM.C$RandN[which(PAM.C$TimeP=="IN" & PAM.C$Fv_Fm<0.5)] # "W2_93" 
+
+#TP1
+ggplot(subset(PAM.C, TimeP=="TP1"), aes(x=Set, y=Fv_Fm)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0.45,0.75)+
+  theme(axis.text.x = element_text(angle = 90))
+
+#TP2
+ggplot(subset(PAM.C, TimeP=="TP2"), aes(x=Set, y=Fv_Fm)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0.45,0.75)+
+  theme(axis.text.x = element_text(angle = 90))
+
+PAM.C$RandN[which(PAM.C$TimeP=="TP2" & PAM.C$Fv_Fm<0.53)] # "M4_91"
+
+#TP3
+ggplot(subset(PAM.C, TimeP=="TP3"), aes(x=Set, y=Fv_Fm)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0.45,0.75)+
+  theme(axis.text.x = element_text(angle = 90))
+
+#TP4
+ggplot(subset(PAM.C, TimeP=="TP4"), aes(x=Set, y=Fv_Fm)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0.45,0.75)+
+  theme(axis.text.x = element_text(angle = 90))
+
+##Remove Outliers
+PAM.C.o<-PAM.C[-c(which((PAM.C$TimeP=="IN" & PAM.C$Fv_Fm<0.5) | (PAM.C$TimeP=="TP2" & PAM.C$Fv_Fm<0.53))),]
+
+```
+
+
+
+
+#### Heated
+```{r}
+##Subset Heated Treatment in Thermal Tolerance Assay
+PAM.H<-subset(PAM, Treat=="H")
+
+#IN
+ggplot(subset(PAM.H, TimeP=="IN"), aes(x=Set, y=Fv_Fm)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0.25,0.7)+
+  theme(axis.text.x = element_text(angle = 90))
+
+PAM.H$RandN[which(PAM.H$TimeP=="IN" & PAM.H$Fv_Fm<0.5 &  PAM.H$Site=="SS")] # "W2_94" "W2_94"
+
+
+#TP1
+ggplot(subset(PAM.H, TimeP=="TP1"), aes(x=Set, y=Fv_Fm)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0.25,0.7)+
+  theme(axis.text.x = element_text(angle = 90))
+
+PAM.H$RandN[which(PAM.H$TimeP=="TP1" & PAM.H$Fv_Fm<0.35)] # "M1_86"
+
+#TP2
+ggplot(subset(PAM.H, TimeP=="TP2"), aes(x=Set, y=Fv_Fm)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0.25,0.7)+
+  theme(axis.text.x = element_text(angle = 90))
+
+PAM.H$RandN[which(PAM.H$TimeP=="TP2" & PAM.H$Fv_Fm<0.35 &  PAM.H$Site=="SS")] # "M4_84"
+
+#TP3
+ggplot(subset(PAM.H, TimeP=="TP3"), aes(x=Set, y=Fv_Fm)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0.25,0.7)+
+  theme(axis.text.x = element_text(angle = 90))
+
+PAM.H$RandN[which(PAM.H$TimeP=="TP3" & PAM.H$Fv_Fm<0.45)] # "M8_83"
+
+#TP4
+ggplot(subset(PAM.H, TimeP=="TP4"), aes(x=Set, y=Fv_Fm)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  ylim(0.2,0.7)+
+  theme(axis.text.x = element_text(angle = 90))
+
+
+##Remove Outliers 
+PAM.H.o<-PAM.H[-c(which((PAM.H$TimeP=="IN" & PAM.H$Fv_Fm<0.5 &  PAM.H$Site=="SS") | 
+                          (PAM.H$TimeP=="TP1" & PAM.H$Fv_Fm<0.35)|
+              (PAM.H$TimeP=="TP2" & PAM.H$Fv_Fm<0.35 &  PAM.H$Site=="SS") |
+                (PAM.H$TimeP=="TP3" & PAM.H$Fv_Fm<0.45))),]
+
+```
+
+### Add Fv/Fm to Thermal Data
+```{r}
+##Recombine Cleaned PAM dataframes
+PAM.o<-rbind(PAM.C.o, PAM.H.o)
+
+ggplot(PAM.o, aes(x=Set, y=Fv_Fm)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  theme(axis.text.x = element_text(angle = 90))
+
+
+##Average Across Replicate Readings ("Rep" column: A, B, C)
+names(PAM.o)
+PAM.a<-aggregate(PAM.o$Fv_Fm, list(PAM.o$ID), mean)
+names(PAM.a)<-c("ID", "Fv_Fm")
+
+##Add Fv/Fm to Thermal Tolerance Data
+
+##Merge Averaged Fv/Fm Data with Thermal Tolerance Data
+#Merges by ID column
+#Retains all Thermal Tolerance Assay samples
+names(ThermData)
+ThermData<-merge(ThermData, PAM.a, all.x=TRUE, all.y=FALSE)
+
+```
+
+
+# Write Out Datasets
+```{r}
+##Main Coral Data
+write.csv(CoralData, "Outputs/CoralData.csv", row.names=FALSE)
+
+##Thermal Tolerance Assay
+write.csv(ThermData, "Outputs/ThermData.csv", row.names=FALSE)
+
+```
+

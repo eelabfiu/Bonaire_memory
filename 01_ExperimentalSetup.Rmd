@@ -1,0 +1,912 @@
+---
+title: "Experimental Setup of Reciprocal Transplant Study"
+author: "Serena Hackerott"
+date: "12/28/2023"
+output:
+  html_document:
+    toc: yes
+    df_print: paged
+  html_notebook:
+    toc: yes
+    toc_float: yes
+---
+
+# Setup
+
+```{r Setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+
+### Load Packages
+```{r}
+#setwd("C:/Users/snhac/OneDrive/Documents/FIU/Bonaire Project/Year 2/Data Analysis/Bonaire Memory")
+
+##Install Packages if Needed
+if (!require("viridis")) install.packages("viridis")
+if (!require("scales")) install.packages("scales")
+if (!require("geodata")) install.packages("geodata")
+if (!require("sf")) install.packages("sf")
+if (!require("ggplot2")) install.packages("ggplot2")
+if (!require("cowplot")) install.packages("cowplot")
+if (!require("lubridate")) install.packages("lubridate")
+if (!require("Rmisc")) install.packages("Rmisc")
+if (!require("png")) install.packages("png")
+if (!require("grid")) install.packages("grid")
+if (!require("plotrix")) install.packages("plotrix")
+
+##Load Packages
+library(viridis)
+library(scales)
+library(geodata)
+library(sf)
+library(ggplot2)
+library(cowplot)
+library(lubridate)
+library(Rmisc)
+library(png)
+library(grid)
+library(plotrix)
+library(Hmisc)
+library(corrplot)
+library(factoextra)
+library(vegan)
+library(ggtext)
+```
+
+
+### Graphing Parameters
+```{r Graphing Parameters}
+####Colors by Groups
+
+##Sites
+show_col(viridis_pal(option = "mako")(25))
+Site.colors.o <- c("#3B5698FF", "#5BCDADFF")
+#Sites: Klein Bonaire, Something Special
+
+
+##Origin Colors
+Orig.colors.o<- c("#40498EFF", "#357BA2FF", "#5BCDADFF","#B1E4C2FF")
+#Origins: KL Native, KL Transplant, SS Native, SS Transplant
+
+##Heat Assay Treatments
+show_col(viridis_pal(option = "turbo")(25))
+HC.colors.o<-c("#3BA0FDFF", "#BA1E02FF")
+#Heat Assay Treatments: Control, Heated
+
+
+
+####Set Shapes for Genotypes
+Geno.shapes.o<-c(15, 17, 19)
+#Genotypes: AC8, AC10, AC12
+
+
+####Plot Feature Sizes
+axis.title.sz=18
+axis.txt.sz=14
+leg.title.sz=15
+leg.txt.sz=12
+levels.sz=7
+sig.sz=5
+panel.lab.sz=25
+point.sz=4
+bar.sz=1
+cap.sz=0.3
+
+```
+
+
+# Sample Data and Metadata
+
+### Load and Organize Data
+```{r}
+##Load Data
+Sites<-read.csv("Data/BonaireSites.csv", header=TRUE)
+Dates<-read.csv("Data/BonaireDates.csv", header=TRUE)
+TempCond<-read.csv("Data/TempCond.csv", header=TRUE)
+PAR<-read.csv("Data/PAR10.csv", header=TRUE)
+Nutrients<-read.csv("Data/Nutrients.csv", header=TRUE)
+HCTemp<-read.csv("Data/HCTemp.csv", header=TRUE)
+AssayPAR<-read.csv("Data/AssayPAR.csv", header=TRUE)
+
+##Set factor variables
+Sites$Site<-factor(Sites$Site, levels=c("SS", "KL", "KR", "OL", "RP", "BN"), ordered=TRUE)
+Sites$Type<-factor(Sites$Type, levels=c("Study", "Capital", "Harvest"), ordered=TRUE)
+
+Dates$TimeP<-factor(Dates$TimeP, ordered=TRUE, levels=c("T0", "IN", "TP1", "TP2", "TP3", "TP4"))
+
+TempCond$Site<-factor(TempCond$Site, ordered=TRUE, levels=c("KL", "SS"))
+PAR$Site<-factor(PAR$Site, ordered=TRUE, levels=c("KL", "SS"))
+
+Nutrients$Site<-factor(Nutrients$Site, ordered=TRUE, levels=c("KL", "SS"))
+Nutrients$Month<-factor(Nutrients$Month, ordered=TRUE, levels=c("Aug", "Sep", "Oct", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"))
+Nutrients$Month.n<-factor(Nutrients$Month.n, ordered=TRUE, levels=c("M0", "M1", "M2", "M3", "M4", "M5", "M6", "M7", "M8", "M9", "M10", "M11", "M12"))
+
+HCTemp$TimeP<-factor(HCTemp$TimeP, ordered=TRUE, levels=c("IN", "TP1", "TP2", "TP3", "TP4"))
+HCTemp$TempTreatment<-factor(HCTemp$TempTreatment, ordered=TRUE, levels=c("Control", "Heated"))
+
+AssayPAR$TimeP<-factor(AssayPAR$TimeP, ordered=TRUE, levels=c("IN", "TP1", "TP2", "TP3", "TP4"))
+
+##Set date and time variables
+TempCond$Date<-as.Date(TempCond$Date, format='%d/%m/%Y')
+TempCond$Date.Time<-ymd_hm(c(paste(as.character(TempCond$Date), as.character(TempCond$Time))), tz="US/Eastern")
+
+PAR$Date<-as.Date(PAR$Date, format='%d/%m/%Y')
+PAR$Date.Time<-ymd_hms(c(paste(as.character(PAR$Date), as.character(PAR$Time))), tz="US/Eastern")
+
+Nutrients$Date<-as.Date(Nutrients$Date, format='%m/%d/%Y')
+
+HCTemp$Date.Time<-mdy_hm(as.character(HCTemp$Date.Time), tz="US/Eastern")
+
+AssayPAR$Date.Time<-mdy_hm(as.character(AssayPAR$Date.Time), tz="US/Eastern")
+AssayPAR$Time<-hms(AssayPAR$Time)
+
+```
+
+
+# Site Map
+
+### Load Map Data
+```{r}
+##Load Bonaire Map data
+BES_remote <- "https://biogeo.ucdavis.edu/data/gadm3.6/Rsf/gadm36_BES_1_sf.rds"
+
+BES_rds <- file.path(tempdir(), "gadm36_BES_1_sf.rds")
+
+if (toupper(Sys.info()["sysname"]) == "WINDOWS") {
+  download.file(
+    url = BES_remote,
+    destfile = BES_rds,
+    method = "wininet",
+    mode = "wb"
+  )
+} else {
+  download.file(
+    url = BES_remote,
+    destfile = BES_rds,
+    method = "auto"
+  )
+}
+
+##Read
+BES.sf<-readRDS(BES_rds)
+
+##Subset Bonaire
+Bonaire.sf<-BES.sf[1,]
+
+```
+
+
+### Plot map of Bonaire with Study Sites
+```{r}
+Study_Sites.plot<-ggplot(Bonaire.sf)+
+  geom_sf(fill="white")+
+  labs(x="Longitude", y="Latitude")+
+  geom_point(data=Sites, 
+             aes(x=Long, y=Lat, colour=Site, shape=Type), size=c(rep(point.sz+3.5, 3), rep(point.sz+1,3)))+
+  scale_colour_manual(values=c("#5BCDADFF", "#3B5698FF", "darkred", "grey25", "grey25", "grey25"))+
+  scale_shape_manual(values=c(19, 17, 9))+
+  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.position="none")+
+  annotate("text", x=Sites$Long[which(Sites$Site=="SS")], y=Sites$Lat[which(Sites$Site=="SS")]+0.01, label = Sites$SiteName[which(Sites$Site=="SS")], size=sig.sz, fontface="bold", hjust=0)+
+  annotate("text", x=Sites$Long[which(Sites$Site=="KL")], y=Sites$Lat[which(Sites$Site=="KL")]+0.01, label = Sites$SiteName[which(Sites$Site=="KL")], size=sig.sz, fontface="bold", hjust=1)+
+  annotate("text", x=Sites$Long[which(Sites$Site=="KR")]+0.01, y=Sites$Lat[which(Sites$Site=="KR")], label = Sites$SiteName[which(Sites$Site=="KR")], size=sig.sz, fontface="bold", hjust=0)+
+   annotate("text", x=Sites$Long[which(Sites$Genotype=="AC8")], y=Sites$Lat[which(Sites$Genotype=="AC8")]+0.01, label = Sites$Genotype[which(Sites$Genotype=="AC8")], size=sig.sz, fontface="bold")+
+  annotate("text", x=Sites$Long[which(Sites$Genotype=="AC10")], y=Sites$Lat[which(Sites$Genotype=="AC10")]-0.01, label = Sites$Genotype[which(Sites$Genotype=="AC10")], size=sig.sz, fontface="bold")+
+  annotate("text", x=Sites$Long[which(Sites$Genotype=="AC12")], y=Sites$Lat[which(Sites$Genotype=="AC12")]+0.01, label = Sites$Genotype[which(Sites$Genotype=="AC12")], size=sig.sz, fontface="bold"); Study_Sites.plot
+
+##Save Figure
+ggsave(filename="Figures/01_Design/Study_Sites.png", plot=Study_Sites.plot, dpi=300, width=6, height=8, units="in")
+
+```
+
+
+# Environmental Conditions
+
+### Temperature and Conductivity
+
+#### Plot Temperature Profiles
+```{r}
+Temp.plot<-ggplot()+
+  geom_line(data=na.omit(TempCond), aes(color=Site, x=Date.Time, y=Temp_C), linewidth=bar.sz-.25, alpha=0.7) +  
+  theme_bw()+
+  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), legend.box.background = element_rect(color = "black"),  legend.direction = "horizontal", legend.position=c(0.5,0.9))+
+  scale_color_manual(values = c(Site.colors.o))+
+    labs(x="Date", y="Temperature (\u00B0C)");Temp.plot
+
+##Save Figure
+ggsave(filename="Figures/01_Design/Temperature.png", plot=Temp.plot, dpi=300, width=12, height=4, units="in")
+
+```
+
+
+#### Plot Conductivity Profiles
+```{r}
+Cond.plot<-ggplot()+
+  geom_line(data=na.omit(TempCond), aes(color=Site, x=Date.Time, y=Cond_mS.cm), linewidth=bar.sz-.25, alpha=0.7) +  
+  theme_bw()+
+  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), legend.box.background = element_rect(color = "black"),  legend.direction = "horizontal", legend.position=c(0.5,0.1))+
+  scale_color_manual(values = c(Site.colors.o))+
+    labs(x="Date", y="Conductivity (\u03BCS/cm)");Cond.plot
+
+##Save Figure
+ggsave(filename="Figures/01_Design/Conductivity.png", plot=Cond.plot, dpi=300, width=12, height=4, units="in")
+
+```
+
+
+#### Daily Stats
+Calculate daily average, minimum, maximum, standard deviation, and range by site and date. 
+```{r}
+##Mean
+TC.mean<-aggregate(TempCond[4:5], list(TempCond$Site, TempCond$Date), mean)
+names(TC.mean)<-c("Site", "Date", "Temp.a", "Cond.a")
+
+##Min
+TC.min<-aggregate(TempCond[4:5], list(TempCond$Site, TempCond$Date), min)
+names(TC.min)<-c("Site", "Date", "Temp.min", "Cond.min")
+
+##Max
+TC.max<-aggregate(TempCond[4:5], list(TempCond$Site, TempCond$Date), max)
+names(TC.max)<-c("Site", "Date", "Temp.max", "Cond.max")
+
+##SD
+TC.sd<-aggregate(TempCond[4:5], list(TempCond$Site, TempCond$Date), sd)
+names(TC.sd)<-c("Site", "Date", "Temp.sd", "Cond.sd")
+
+##Merge together
+TC.daily<-merge(TC.mean, TC.min)
+TC.daily<-merge(TC.daily, TC.max)
+TC.daily<-merge(TC.daily, TC.sd)
+
+##Range
+TC.daily$Temp.r<-TC.daily$Temp.max-TC.daily$Temp.min
+TC.daily$Cond.r<-TC.daily$Cond.max-TC.daily$Cond.min
+
+```
+
+
+#### Bi-monthly Stats
+
+Set Bi-monthly variable based on first or second half of each month and average daily stats by bi-monthly bins.
+```{r}
+##Bi-monthly Bins
+TC.daily$BiMonth<-ifelse(TC.daily$Date < as.Date("2021-08-16"), "M0.1", 
+ifelse(TC.daily$Date > as.Date("2021-08-15") & TC.daily$Date < as.Date("2021-09-01"), "M0.2",
+ifelse(TC.daily$Date > as.Date("2021-08-31") & TC.daily$Date < as.Date("2021-09-16"), "M1.1",
+ifelse(TC.daily$Date > as.Date("2021-09-15") & TC.daily$Date < as.Date("2021-10-01"), "M1.2",
+ifelse(TC.daily$Date > as.Date("2021-09-30") & TC.daily$Date < as.Date("2021-10-16"), "M2.1",
+ifelse(TC.daily$Date > as.Date("2021-10-15") & TC.daily$Date < as.Date("2021-11-01"), "M2.2",
+ifelse(TC.daily$Date > as.Date("2021-10-31") & TC.daily$Date < as.Date("2021-11-16"), "M3.1",
+ifelse(TC.daily$Date > as.Date("2021-11-15") & TC.daily$Date < as.Date("2021-12-01"), "M3.2",
+ifelse(TC.daily$Date > as.Date("2021-11-30") & TC.daily$Date < as.Date("2021-12-16"), "M4.1",
+ifelse(TC.daily$Date > as.Date("2021-12-15") & TC.daily$Date < as.Date("2022-01-01"), "M4.2",
+ifelse(TC.daily$Date > as.Date("2021-12-31") & TC.daily$Date < as.Date("2022-01-16"), "M5.1",
+ifelse(TC.daily$Date > as.Date("2022-01-15") & TC.daily$Date < as.Date("2022-02-01"), "M5.2",
+ifelse(TC.daily$Date > as.Date("2022-01-31") & TC.daily$Date < as.Date("2022-02-16"), "M6.1",
+ifelse(TC.daily$Date > as.Date("2022-02-15") & TC.daily$Date < as.Date("2022-03-01"), "M6.2",
+ifelse(TC.daily$Date > as.Date("2022-02-28") & TC.daily$Date < as.Date("2022-03-16"), "M7.1",
+ifelse(TC.daily$Date > as.Date("2022-03-15") & TC.daily$Date < as.Date("2022-04-01"), "M7.2",
+ifelse(TC.daily$Date > as.Date("2022-03-31") & TC.daily$Date < as.Date("2022-04-16"), "M8.1",
+ifelse(TC.daily$Date > as.Date("2022-04-15") & TC.daily$Date < as.Date("2022-05-01"), "M8.2",
+ifelse(TC.daily$Date > as.Date("2022-04-30") & TC.daily$Date < as.Date("2022-05-16"), "M9.1",
+ifelse(TC.daily$Date > as.Date("2022-05-15") & TC.daily$Date < as.Date("2022-06-01"), "M9.2",
+ifelse(TC.daily$Date > as.Date("2022-05-31") & TC.daily$Date < as.Date("2022-06-16"), "M10.1",
+ifelse(TC.daily$Date > as.Date("2022-06-15") & TC.daily$Date < as.Date("2022-07-01"), "M10.2",
+ifelse(TC.daily$Date > as.Date("2022-06-30") & TC.daily$Date < as.Date("2022-07-16"), "M11.1",
+ifelse(TC.daily$Date > as.Date("2022-07-15") & TC.daily$Date < as.Date("2022-08-01"), "M11.2",
+ifelse(TC.daily$Date > as.Date("2022-07-31") & TC.daily$Date < as.Date("2022-08-16"), "M12.1", NA)))))))))))))))))))))))))
+
+
+##Average
+TC.bimonth<-aggregate(TC.daily[3:12], list(TC.daily$Site, TC.daily$BiMonth), mean)
+names(TC.bimonth)<-c("Site", "BiMonth", names(TC.daily)[3:12])
+
+```
+
+
+### Light
+
+```{r}
+##Remove measurements at 5 min increments from PAR
+PAR<-PAR[-c(which(PAR$Minute==5 | PAR$Minute==15 | PAR$Minute==25 | PAR$Minute==35 | PAR$Minute==45 | PAR$Minute==55)),]
+
+```
+
+
+### Plot Light Profiles
+```{r}
+Light.plot<-ggplot()+
+  geom_line(data=na.omit(PAR), aes(color=Site, x=Date.Time, y=PAR_umol.m2.s), linewidth=bar.sz-.25, alpha=0.7) +  
+  theme_bw()+
+  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_markdown(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), legend.box.background = element_rect(color = "black"),  legend.direction = "horizontal", legend.position=c(0.5,0.9))+
+  scale_color_manual(values = c(Site.colors.o))+
+    labs(x="Date", y="PAR (\u03BCmol/m^2/s)");Light.plot
+
+
+##Save Figure
+ggsave(filename="Figures/01_Design/Light.png", plot=Light.plot, dpi=300, width=12, height=4, units="in")
+
+```
+
+#### Daily Stats
+Calculate daily average, maximum, and standard deviation, by site and date. 
+```{r}
+
+##Mean
+PAR.mean<-aggregate(PAR[4], list(PAR$Site, PAR$Date), mean)
+names(PAR.mean)<-c("Site", "Date", "PAR.a")
+
+##Max
+PAR.max<-aggregate(PAR[4], list(PAR$Site, PAR$Date), max)
+names(PAR.max)<-c("Site", "Date", "PAR.max")
+
+##SD
+PAR.sd<-aggregate(PAR[4], list(PAR$Site, PAR$Date), sd)
+names(PAR.sd)<-c("Site", "Date", "PAR.sd")
+
+##Merge together
+PAR.daily<-merge(PAR.mean, PAR.max)
+PAR.daily<-merge(PAR.daily, PAR.sd)
+
+```
+
+
+Also calculate hours over saturating irradiance of 270 umol/m2/s based on [Chalker 1981](https://link.springer.com/article/10.1007/BF00406821)
+```{r}
+##Calculate Hours over Saturating
+PAR$Sat<-ifelse(PAR$PAR_umol.m2.s>270, 1, 0)
+
+##Sum number of measurements over Saturating 
+PAR.sat<-aggregate(PAR[7], list(PAR$Site, PAR$Date), sum)
+names(PAR.sat)<-c("Site", "Date", "Sat.sum")
+
+##Calculate Hours
+#(Number of 10-min increment measurements - 1 Assumed as a starting point) / 6 increments per Hour)
+PAR.sat$Sat.hr<-(PAR.sat$Sat.sum-1)/6
+
+##Add to PAR.daily dataframe
+PAR.daily<-merge(PAR.daily, PAR.sat)
+
+```
+
+
+#### Bi-monthly Stats
+
+Set Bi-monthly variable based on first or second half of each month and average daily stats by bi-monthly bins.
+```{r}
+##Bi-monthly Bins
+PAR.daily$BiMonth<-ifelse(PAR.daily$Date < as.Date("2021-08-16"), "M0.1", 
+ifelse(PAR.daily$Date > as.Date("2021-08-15") & PAR.daily$Date < as.Date("2021-09-01"), "M0.2",
+ifelse(PAR.daily$Date > as.Date("2021-08-31") & PAR.daily$Date < as.Date("2021-09-16"), "M1.1",
+ifelse(PAR.daily$Date > as.Date("2021-09-15") & PAR.daily$Date < as.Date("2021-10-01"), "M1.2",
+ifelse(PAR.daily$Date > as.Date("2021-09-30") & PAR.daily$Date < as.Date("2021-10-16"), "M2.1",
+ifelse(PAR.daily$Date > as.Date("2021-10-15") & PAR.daily$Date < as.Date("2021-11-01"), "M2.2",
+ifelse(PAR.daily$Date > as.Date("2021-10-31") & PAR.daily$Date < as.Date("2021-11-16"), "M3.1",
+ifelse(PAR.daily$Date > as.Date("2021-11-15") & PAR.daily$Date < as.Date("2021-12-01"), "M3.2",
+ifelse(PAR.daily$Date > as.Date("2021-11-30") & PAR.daily$Date < as.Date("2021-12-16"), "M4.1",
+ifelse(PAR.daily$Date > as.Date("2021-12-15") & PAR.daily$Date < as.Date("2022-01-01"), "M4.2",
+ifelse(PAR.daily$Date > as.Date("2021-12-31") & PAR.daily$Date < as.Date("2022-01-16"), "M5.1",
+ifelse(PAR.daily$Date > as.Date("2022-01-15") & PAR.daily$Date < as.Date("2022-02-01"), "M5.2",
+ifelse(PAR.daily$Date > as.Date("2022-01-31") & PAR.daily$Date < as.Date("2022-02-16"), "M6.1",
+ifelse(PAR.daily$Date > as.Date("2022-02-15") & PAR.daily$Date < as.Date("2022-03-01"), "M6.2",
+ifelse(PAR.daily$Date > as.Date("2022-02-28") & PAR.daily$Date < as.Date("2022-03-16"), "M7.1",
+ifelse(PAR.daily$Date > as.Date("2022-03-15") & PAR.daily$Date < as.Date("2022-04-01"), "M7.2",
+ifelse(PAR.daily$Date > as.Date("2022-03-31") & PAR.daily$Date < as.Date("2022-04-16"), "M8.1",
+ifelse(PAR.daily$Date > as.Date("2022-04-15") & PAR.daily$Date < as.Date("2022-05-01"), "M8.2",
+ifelse(PAR.daily$Date > as.Date("2022-04-30") & PAR.daily$Date < as.Date("2022-05-16"), "M9.1",
+ifelse(PAR.daily$Date > as.Date("2022-05-15") & PAR.daily$Date < as.Date("2022-06-01"), "M9.2",
+ifelse(PAR.daily$Date > as.Date("2022-05-31") & PAR.daily$Date < as.Date("2022-06-16"), "M10.1",
+ifelse(PAR.daily$Date > as.Date("2022-06-15") & PAR.daily$Date < as.Date("2022-07-01"), "M10.2",
+ifelse(PAR.daily$Date > as.Date("2022-06-30") & PAR.daily$Date < as.Date("2022-07-16"), "M11.1",
+ifelse(PAR.daily$Date > as.Date("2022-07-15") & PAR.daily$Date < as.Date("2022-08-01"), "M11.2",
+ifelse(PAR.daily$Date > as.Date("2022-07-31") & PAR.daily$Date < as.Date("2022-08-16"), "M12.1", NA)))))))))))))))))))))))))
+
+
+##Average
+PAR.bimonth<-aggregate(PAR.daily[3:7], list(PAR.daily$Site, PAR.daily$BiMonth), mean)
+names(PAR.bimonth)<-c("Site", "BiMonth", names(PAR.daily)[3:7])
+
+```
+
+
+### Nutrients
+```{r}
+##Calculate Total N/ Total P Ratio 
+Nutrients$N.P<-Nutrients$TN_uM/Nutrients$TP_uM
+
+##Calculate DIN as NO3+NO2+NH4
+Nutrients$DIN_uM<-Nutrients$NO3.NO2_uM+Nutrients$NH4_uM
+
+##Add Bi-monthly variable
+Nutrients$BiMonth<-paste(Nutrients$Month.n, Nutrients$Sample, sep=".")
+
+##Check for Outliers
+boxplot(Nutrients$DIN_uM~Nutrients$Site)
+Nutrients$BiMonth[which(Nutrients$DIN_uM>20)]
+
+boxplot(Nutrients$N.P~Nutrients$Site)
+Nutrients$BiMonth[which(Nutrients$N.P>25)]
+
+##Remove Outliers
+Nutrients.o<-Nutrients[-c(which(Nutrients$DIN_uM>20 | Nutrients$N.P>25)),]
+
+```
+
+
+### Plot N to P Profiles
+```{r}
+N.P.plot<-ggplot()+
+  geom_line(data=na.omit(Nutrients.o), aes(color=Site, x=Date, y=N.P), linewidth=bar.sz) +  
+  geom_point(data=na.omit(Nutrients.o), aes(color=Site, x=Date, y=N.P), size=point.sz) +  
+  theme_bw()+
+  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), legend.box.background = element_rect(color = "black"),  legend.direction = "horizontal", legend.position=c(0.5,0.9))+
+  scale_color_manual(values = c(Site.colors.o))+
+    labs(x="Date", y="Total Nitrogen : Phosphorus");N.P.plot
+
+##Save Figure
+ggsave(filename="Figures/01_Design/NtoP.png", plot=N.P.plot, dpi=300, width=12, height=4, units="in")
+
+```
+
+
+### Plot DIN Profiles
+```{r}
+DIN.plot<-ggplot()+
+  geom_line(data=na.omit(Nutrients.o), aes(color=Site, x=Date, y=DIN_uM), linewidth=bar.sz) +  
+  geom_point(data=na.omit(Nutrients.o), aes(color=Site, x=Date, y=DIN_uM), size=point.sz) +  
+  theme_bw()+
+  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), legend.box.background = element_rect(color = "black"),  legend.direction = "horizontal", legend.position=c(0.5,0.9))+
+  scale_color_manual(values = c(Site.colors.o))+
+    labs(x="Date", y="Dissolved Inorg. Nitrogen (\u03BCM)");DIN.plot
+
+##Save Figure
+ggsave(filename="Figures/01_Design/DIN.png", plot=DIN.plot, dpi=300, width=12, height=4, units="in")
+
+```
+
+
+### Multivariate
+Merge bi-monthly datasets of environmental conditions together for multivariate analysis.
+
+#### Check for Outliers
+```{r}
+##Merge dataframes
+EnvData<-merge(TC.bimonth, PAR.bimonth)
+EnvData<-merge(EnvData, Nutrients.o[,c(1,16, 8:15)])
+
+names(EnvData)
+
+boxplot(EnvData$Temp.a~EnvData$Site)
+
+boxplot(EnvData$Temp.sd~EnvData$Site)
+
+boxplot(EnvData$Cond.a~EnvData$Site)
+
+boxplot(EnvData$Cond.sd~EnvData$Site)
+
+boxplot(EnvData$PAR.a~EnvData$Site)
+
+boxplot(EnvData$PAR.sd~EnvData$Site)
+
+boxplot(EnvData$Sat.hr~EnvData$Site)
+
+boxplot(EnvData$DIN_uM~EnvData$Site)
+
+boxplot(EnvData$N.P~EnvData$Site)
+```
+
+
+#### Check Correlation
+```{r}
+##Check correlation between variables
+Env.cor<-rcorr(as.matrix(EnvData[,-c(1:2)]), type="pearson")
+Env.cor
+
+diag(Env.cor$P)<-0
+
+corrplot(Env.cor$r, type="upper", order="hclust", 
+         p.mat = Env.cor$P, sig.level = 0.01, insig = "blank")
+```
+
+
+Keep main parameters of interest Temp.a, Temp.sd, Cond.a, Cond.sd, PAR.a, DIN, N.P
+```{r}
+names(EnvData)
+EnvData.cut<-EnvData[,c(1:4, 9:10, 17, 24:25 )]
+
+##Check correlation between variables
+Env.cor2<-rcorr(as.matrix(EnvData.cut[,-c(1:2)]), type="pearson")
+Env.cor2
+
+diag(Env.cor2$P)<-0
+
+corrplot(Env.cor2$r, type="upper", order="hclust", 
+         p.mat = Env.cor2$P, sig.level = 0.01, insig = "blank")
+
+```
+
+
+#### PERMANOVA
+```{r}
+names(EnvData.cut)
+adonis2(vegdist(EnvData.cut[,3:9], "euclidean")~EnvData.cut$Site, data=EnvData.cut, method="euclidean")
+
+##Check dispersion by Site
+anova(betadisper(vegdist(EnvData.cut[,3:9], "euclidean"), EnvData.cut$Site))
+
+```
+
+
+#### PCA
+```{r}
+library(ggfortify)
+
+##PCA
+Env.pca<-prcomp(EnvData.cut[,-c(1:2)], scale.=TRUE)
+
+summary(Env.pca)
+
+Env.pca.plot<-autoplot(Env.pca, data=EnvData.cut, colour="Site", loadings=TRUE,
+         loadings.label=TRUE, loadings.colour="black", loadings.label.colour="black", size=point.sz)+
+    scale_colour_manual(values =Site.colors.o)+
+  theme_classic()+
+   theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.title.sz), legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"))+
+  annotate("text", x=0.01, y=-0.32,label = "Site PERMANOVA p=0.017", size=sig.sz-1, fontface="bold.italic", hjust=0)+
+  annotate("text", x=0.01, y=-0.35,label = "Site PERMDISP p=0.507", size=sig.sz-1, fontface="italic", hjust=0); Env.pca.plot
+
+##Save figure
+ggsave(filename="Figures/01_Design/Environment.png", plot=Env.pca.plot, dpi=300, width=8, height=6, units="in")
+
+```
+
+Check variable contributions
+```{r}
+##PC1
+fviz_contrib(Env.pca, choice = "var", axes = 1, top = 10)
+
+##PC2
+fviz_contrib(Env.pca, choice = "var", axes = 2, top = 10)
+
+##PC1 and 2
+fviz_contrib(Env.pca, choice = "var", axes = 1:2, top = 10)
+
+##Variables by PC's
+Env.pca_var<-get_pca_var(Env.pca)
+corrplot(Env.pca_var$contrib, is.corr=FALSE)
+```
+
+
+### Univariate
+
+#### Average Temperature
+```{r}
+shapiro.test(TC.daily$Temp.a)
+##Not normal
+
+##Non parametric test
+wilcox.test(TC.daily$Temp.a[which(TC.daily$Site=="KL")], TC.daily$Temp.a[which(TC.daily$Site=="SS")], alternative = "two.sided")
+```
+
+
+#### Temperature Standard Deviation
+```{r}
+shapiro.test(TC.daily$Temp.sd)
+##Not normal
+
+##Non parametric test
+wilcox.test(TC.daily$Temp.sd[which(TC.daily$Site=="KL")], TC.daily$Temp.sd[which(TC.daily$Site=="SS")], alternative = "two.sided")
+```
+
+
+#### Average Conductivity
+```{r}
+shapiro.test(TC.daily$Cond.a)
+##Not normal
+
+##Non parametric test
+wilcox.test(TC.daily$Cond.a[which(TC.daily$Site=="KL")], TC.daily$Cond.a[which(TC.daily$Site=="SS")], alternative = "two.sided")
+
+wilcox.test(TC.daily$Cond.a[which(TC.daily$Site=="KL")], TC.daily$Cond.a[which(TC.daily$Site=="SS")], alternative = "greater")
+
+```
+
+
+#### Conductivity Standard Deviation
+```{r}
+shapiro.test(TC.daily$Cond.sd)
+##Not normal
+
+##Non parametric test
+wilcox.test(TC.daily$Cond.sd[which(TC.daily$Site=="KL")], TC.daily$Cond.sd[which(TC.daily$Site=="SS")], alternative = "two.sided")
+
+wilcox.test(TC.daily$Cond.sd[which(TC.daily$Site=="KL")], TC.daily$Cond.sd[which(TC.daily$Site=="SS")], alternative = "greater")
+```
+
+
+#### Average PAR
+```{r}
+shapiro.test(PAR.daily$PAR.a)
+##Not normal
+
+##Non parametric test
+wilcox.test(PAR.daily$PAR.a[which(PAR.daily$Site=="KL")], PAR.daily$PAR.a[which(PAR.daily$Site=="SS")], alternative = "two.sided")
+
+wilcox.test(PAR.daily$PAR.a[which(PAR.daily$Site=="KL")], PAR.daily$PAR.a[which(PAR.daily$Site=="SS")], alternative = "less")
+```
+
+
+#### Hours of Saturating Irradiance
+```{r}
+shapiro.test(PAR.daily$Sat.hr)
+##Not normal
+
+##Non parametric test
+wilcox.test(PAR.daily$Sat.hr[which(PAR.daily$Site=="KL")], PAR.daily$Sat.hr[which(PAR.daily$Site=="SS")], alternative = "two.sided")
+
+wilcox.test(PAR.daily$Sat.hr[which(PAR.daily$Site=="KL")], PAR.daily$Sat.hr[which(PAR.daily$Site=="SS")], alternative = "less")
+```
+
+
+#### Total N to P
+```{r}
+shapiro.test(Nutrients.o$N.P)
+##Normal
+
+var.test(N.P ~ Site, Nutrients.o, alternative = "two.sided")
+##Equal Variance
+
+##Parametric test
+t.test(Nutrients.o$N.P[which(Nutrients.o$Site=="KL")], Nutrients.o$N.P[which(Nutrients.o$Site=="SS")], var.equal=TRUE, alternative = "two.sided")
+
+```
+
+
+#### Total N
+```{r}
+shapiro.test(Nutrients.o$TN_uM)
+##Normal
+
+var.test(TN_uM ~ Site, Nutrients.o, alternative = "two.sided")
+##Equal Variance
+
+##Parametric test
+t.test(Nutrients.o$TN_uM[which(Nutrients.o$Site=="KL")], Nutrients.o$TN_uM[which(Nutrients.o$Site=="SS")], var.equal=TRUE, alternative = "two.sided")
+
+```
+
+
+#### Total P
+```{r}
+shapiro.test(Nutrients.o$TP_uM)
+##Not normal
+
+##Non parametric test
+wilcox.test(Nutrients.o$TP_uM[which(Nutrients.o$Site=="KL")], Nutrients.o$TP_uM[which(Nutrients.o$Site=="SS")], alternative = "two.sided")
+
+```
+
+
+#### DIN
+```{r}
+shapiro.test(Nutrients.o$DIN)
+##Not normal
+
+##Non parametric test
+wilcox.test(Nutrients.o$DIN[which(Nutrients.o$Site=="KL")], Nutrients.o$DIN[which(Nutrients.o$Site=="SS")], alternative = "two.sided")
+
+```
+
+
+# Thermal Tolerance Assay 
+
+### Daigram of Exposure
+```{r}
+## Design Data
+HA_Design<-data.frame(Hours=c(rep(c(0, 3, 6, 7, 18),2)), TempTreatment=c(rep("Control",5), rep("Heated", 5)), Temp_C=c(rep(0, 5), 0.1, 8, 8, 0.1, 0.1))
+HA_Design$TempTreatment<-factor(HA_Design$TempTreatment, ordered=TRUE, levels=c("Control", "Heated"))
+
+HA_SampTimes<-data.frame(Hours=c(7, 9, 11, 18), Sample=c(rep("FvFm", 3), "Bleaching"), Temp_C=c(rep(0.25,4)))
+
+##Plot Temperature Profiles
+HA_Design.plot<-ggplot(data=HA_Design, aes(color=TempTreatment, x=Hours, y=Temp_C)) +
+  annotate("rect", xmin=6, xmax=7, ymin=-Inf, ymax=Inf, alpha=0.8, fill="grey80")+
+  annotate("rect", xmin=8, xmax=9, ymin=-Inf, ymax=Inf, alpha=0.8, fill="grey80")+
+  annotate("rect", xmin=10, xmax=11, ymin=-Inf, ymax=Inf, alpha=0.8, fill="grey80")+
+  geom_line(data=HA_Design, aes(color=TempTreatment, x=Hours, y=Temp_C), linewidth=bar.sz+1) +
+  scale_color_manual(values = c(HC.colors.o))+
+   theme_bw()+
+  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+         legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), legend.box.background = element_rect(color = "black"),  legend.direction = "vertical", legend.position=c(0.8,0.8))+
+  labs(x="Time (hr)", y="\u00B0C + Ambient", colour="Treatment")+
+  ylim(0, 8.5)+
+  geom_point(data=HA_SampTimes, aes(x=Hours,y=Temp_C), color="grey0", size=point.sz, shape=c(8, 8, 8, 16));HA_Design.plot
+
+##Save figure
+ggsave(filename="Figures/01_Design/HeatAssayDesign.png", plot=HA_Design.plot, dpi=300, width=8, height=4, units="in")
+
+```
+
+
+
+
+### Average Temperature by Treatment by Timepoint
+```{r}
+names(HCTemp)
+
+##Average across Tanks per Treatment
+HCTemp.a<-aggregate(HCTemp$Temp_C, list(HCTemp$TimeP, HCTemp$TempTreatment, HCTemp$Minute), mean)
+names(HCTemp.a)<-c("TimeP", "TempTreatment", "Minute", "Temp_C")
+
+##Minimum
+HCTemp.min<-aggregate(HCTemp$Temp_C, list(HCTemp$TimeP, HCTemp$TempTreatment, HCTemp$Minute), min)
+names(HCTemp.min)<-c("TimeP", "TempTreatment", "Minute", "Temp_C.min")
+
+##Maximum
+HCTemp.max<-aggregate(HCTemp$Temp_C, list(HCTemp$TimeP, HCTemp$TempTreatment, HCTemp$Minute), max)
+names(HCTemp.max)<-c("TimeP", "TempTreatment", "Minute", "Temp_C.max")
+
+##Combine Summary Stats
+HCTemp.a<-merge(HCTemp.a, HCTemp.min)
+HCTemp.a<-merge(HCTemp.a, HCTemp.max)
+
+##Set Treatment as Ordered Factor
+HCTemp.a$TempTreatment<-factor(HCTemp.a$TempTreatment, ordered=TRUE, levels=c("Control", "Heated"))
+
+```
+
+
+### Plot Temperature by Treatment per Timepoint
+```{r}
+##Create Annotation dataframe with Ambient Temperatures
+HCTemp.amb<-data.frame(TimeP=c(levels(HCTemp.a$TimeP)), Temp_C=c(27.7, 27.7, 26.8, 25.8, 27.7), Minute=c(rep(660, 5)), label=c("Aug 27.7\u00B0C", "Aug 27.7\u00B0C", "Dec 26.8\u00B0C", "Mar 25.8\u00B0C", "Aug 27.7\u00B0C"))
+
+
+##Plot Figure
+HCTemp.plot<-ggplot() +
+  geom_ribbon(data=HCTemp.a, aes(x=Minute, ymin=Temp_C.min, ymax=Temp_C.max, fill=TempTreatment), alpha=0.5) +
+  geom_line(data=HCTemp.a, aes(color=TempTreatment, x=Minute, y=Temp_C), linewidth=bar.sz) +
+  scale_color_manual(values = c(HC.colors.o))+
+  scale_fill_manual(values = c(HC.colors.o))+
+   theme_bw()+
+  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.position="none", strip.text.y.right=element_text(size=axis.txt.sz, colour="black", angle = 0))+
+  labs(x="Time (min)", y="Temperature (\u00B0C)")+
+  ylim(25.5, 38)+
+  facet_grid(TimeP~.)+
+  geom_text(data=HCTemp.amb,  x=HCTemp.amb$Minute, y=HCTemp.amb$Temp_C+1.5, label=HCTemp.amb$label);HCTemp.plot
+
+##Save figure
+ggsave(filename="Figures/01_Design/HeatAssayTemp.png", plot=HCTemp.plot, dpi=300, width=4, height=8, units="in")
+
+```
+
+
+### Light during Experiment
+```{r}
+##Average between 11:00am to 5:00pm
+mean(na.omit(AssayPAR$PAR[which(AssayPAR$Time > hms("11:00:00") & AssayPAR$Time < hms("17:00:00"))]))
+
+##Standard Error between 11:00am to 5:00pm
+std.error(na.omit(AssayPAR$PAR[which(AssayPAR$Time > hms("11:00:00") & AssayPAR$Time < hms("17:00:00"))]))
+
+```
+
+
+
+
+# Figures
+
+### Figure 1 Panels
+
+#### Figure 1A Map
+```{r}
+##Save Figure
+ggsave(filename="Figures/01_Design/Fig1A_Study_Sites.png", plot=Study_Sites.plot, dpi=300, width=6, height=8, units="in")
+
+```
+
+#### Figure 1B and 1C Panels
+```{r}
+##Create Panel
+Study.Design_fig<-plot_grid(Env.pca.plot, HA_Design.plot,
+                        rel_widths=c(1, 1), rel_heights=c(1, 0.67), 
+                        nrow=2, byrow=T, labels = c('B', 'C'), 
+                        label_size=panel.lab.sz)
+
+##Save Figure
+ggsave(filename="Figures/01_Design/Fig1BC_Study_Design.png", plot=Study.Design_fig, dpi=300, width=6, height=8, units="in")
+
+```
+
+
+### Figure S1 Panels
+
+#### Adjust Figures for Panel
+```{r}
+Temp.plot.cut<-ggplot()+
+  geom_line(data=na.omit(TempCond), aes(color=Site, x=Date.Time, y=Temp_C), linewidth=bar.sz-.25, alpha=0.7) +  
+  theme_bw()+
+  theme(axis.title.x = element_blank(), axis.title.y = element_text(size = axis.txt.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), legend.box.background = element_rect(color = "black"),  legend.direction = "horizontal", legend.position=c(0.5,0.8))+
+  scale_color_manual(values = c(Site.colors.o))+
+    labs(x=NULL, y="Temperature (\u00B0C)")
+
+Cond.plot.cut<-ggplot()+
+  geom_line(data=na.omit(TempCond), aes(color=Site, x=Date.Time, y=Cond_mS.cm), linewidth=bar.sz-.25, alpha=0.7) +  
+  theme_bw()+
+  theme(axis.title.x = element_blank(), axis.title.y = element_text(size = axis.txt.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.position="none")+
+  scale_color_manual(values = c(Site.colors.o))+
+    labs(x=NULL, y="Conductivity (\u03BCS/cm)")
+
+Light.plot.cut<-ggplot()+
+  geom_line(data=na.omit(PAR), aes(color=Site, x=Date.Time, y=PAR_umol.m2.s), linewidth=bar.sz-.25, alpha=0.7) +  
+  theme_bw()+
+  theme(axis.title.x = element_blank(), axis.title.y = element_text(size = axis.txt.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.position="none")+
+  scale_color_manual(values = c(Site.colors.o))+
+    labs(x=NULL, y="PAR (\u03BCmol/m^2/s)")
+
+N.P.plot.cut<-ggplot()+
+  geom_line(data=na.omit(Nutrients.o), aes(color=Site, x=Date, y=N.P), linewidth=bar.sz) +  
+  geom_point(data=na.omit(Nutrients.o), aes(color=Site, x=Date, y=N.P), size=point.sz-1) +  
+  theme_bw()+
+  theme(axis.title.x = element_blank(), axis.title.y = element_text(size = axis.txt.sz),
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.position="none")+
+  scale_color_manual(values = c(Site.colors.o))+
+    labs(x=NULL, y="Total N:P")
+
+DIN.plot.cut<-ggplot()+
+  geom_line(data=na.omit(Nutrients.o), aes(color=Site, x=Date, y=DIN_uM), linewidth=bar.sz) +  
+  geom_point(data=na.omit(Nutrients.o), aes(color=Site, x=Date, y=DIN_uM), size=point.sz-1) +  
+  theme_bw()+
+  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.txt.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.position="none")+
+  scale_color_manual(values = c(Site.colors.o))+
+    labs(x="Date", y="DIN (\u03BCM)")
+```
+
+
+#### Figure S1
+```{r}
+##Create Panel
+Env.Param_fig<-plot_grid(Temp.plot.cut, Cond.plot.cut, Light.plot.cut, N.P.plot.cut, DIN.plot.cut,
+                        rel_widths=c(1, 1, 1, 1, 1, 1), rel_heights=c(1, 1, 1, 1, 1), 
+                        nrow=5, byrow=T, labels = c('A', 'B', 'C', 'D', 'E'), 
+                        label_size=panel.lab.sz)
+
+##Save Figure
+ggsave(filename="Figures/01_Design/FigS1_Environmental_Conditions.png", plot=Env.Param_fig, dpi=300, width=8, height=12, units="in")
+
+```
+
+
+### Figure S2B
+Note: Figure S2A is thermal tolerance assessment tank diagram. 
+```{r}
+##Save figure
+ggsave(filename="Figures/01_Design/FigS2B_Heat_Assay_Temperatures.png", plot=HCTemp.plot, dpi=300, width=4, height=8, units="in")
+```
+

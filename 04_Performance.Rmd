@@ -1,0 +1,1946 @@
+---
+title: "Coral Performance Following Reciprocal Transplant"
+author: "Serena Hackerott"
+date: "1/3/2024"
+output:
+  html_notebook:
+    toc: yes
+    toc_float: yes
+  html_document:
+    toc: yes
+    df_print: paged
+---
+
+# Setup
+
+```{r Setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+
+### Load Packages
+```{r}
+##Install Packages if Needed
+if (!require("ggplot2")) install.packages("ggplot2")
+
+##Load Packages
+library(ggplot2)
+library(lubridate)
+library(corrplot)
+library(cowplot)
+library(lme4)
+library(lmerTest)
+library(DHARMa)
+library(effectsize)
+library(jtools)
+library(tidyr)
+library(dplyr)
+library(emmeans)
+library(plotrix)
+
+library(Rmisc)
+
+```
+
+
+### Graphing Parameters
+```{r}
+#Note: Run "Graphing Parameters" section from 01_ExperimentalSetup.Rmd file
+```
+
+
+# Sample Data and Metadata
+
+### Load and Organize Data
+```{r}
+##Load Data
+
+##Growth
+Length<-read.csv("Data/Length.csv", header=TRUE)
+Dates<-read.csv("Data/BonaireDates.csv", header=TRUE)
+
+##Set date variables
+Dates$Date<-as.Date(Dates$Date, format='%m/%d/%Y')
+
+##Set factor variables
+Length$Site<-factor(Length$Site, levels=c("KL", "SS"))
+Length$Genotype<-factor(Length$Genotype, levels=c("AC8", "AC10", "AC12"))
+Length$Orig<-factor(Length$Orig, levels=c("N", "T"))
+Length$Origin<-factor(Length$Origin, levels=c("Native", "Transplant"))
+
+##Add a Sample Set Variable
+Length$Set<-paste(Length$Site, Length$Genotype, Length$Orig, sep=".")
+
+##Add Site.Orig variable
+Length$Site.Orig<-paste(Length$Site, Length$Orig, sep=".")
+Length$Site.Orig<-factor(Length$Site.Orig, levels=c("KL.N", "KL.T", "SS.N", "SS.T"))
+
+
+##Bleaching Metrics
+#Note: Physiological metrics calculated in 02_PhysiologyMetrics.R file
+Thermal<-read.csv("Outputs/ThermData.csv", header=TRUE)
+
+##Set factor variables
+Thermal$TimeP<-factor(Thermal$TimeP, levels=c("IN", "TP1", "TP2", "TP3", "TP4"))
+Thermal$Site<-factor(Thermal$Site, levels=c("KL", "SS"))
+Thermal$Genotype<-factor(Thermal$Genotype, levels=c("AC8", "AC10", "AC12"))
+Thermal$Orig<-factor(Thermal$Orig, levels=c("N", "T"))
+Thermal$Origin<-factor(Thermal$Origin, levels=c("Native", "Transplant"))
+
+```
+
+
+# Growth
+
+### Growth Rate TP1 to TP2
+
+#### Calculate Days
+```{r}
+##Subset Dates for TP 1 and TP 2 Growth
+Growth.Dates<-subset(Dates, Task=="Growth" & TimeP=="TP1" |
+                       Task=="Growth" & TimeP=="TP2" )
+
+##Convert to Wide format
+Growth.Dates<-Growth.Dates %>%  pivot_wider(names_from = TimeP, values_from = Date)
+
+##Calculate Number of Days
+#TP 1 to TP2
+Growth.Dates$TP1.2_days<-time_length(Growth.Dates$TP2-Growth.Dates$TP1, unit="days")
+
+```
+
+
+#### Calculate Total Linear Extension
+```{r}
+##Merge Length Data with Growth Dates
+#Merges by Site column
+#Adds TP1.2_days column
+Growth<-merge(Length, Growth.Dates[,c(-2)], all.x=TRUE)
+
+##Calculate Linear Extension (cm)
+Growth$Ext_cm<-Growth$TL.TP2_cm-Growth$TL.TP1_cm
+
+##Calculate Growth Rate (cm/day)
+Growth$TLE_cm.day<-Growth$Ext_cm/Growth$TP1.2_days
+
+```
+
+
+#### Data QC
+```{r}
+##Sample Size per Set
+Growth %>% 
+  group_by(Set) %>%
+  summarise(no_rows = length(Set))
+
+##Check for Outliers
+ggplot(Growth, aes(x=Set, y=TLE_cm.day)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  theme(axis.text.x = element_text(angle = 90))
+
+##Check Fragments >0.45cm/day
+Growth$ID[which(Growth$TLE_cm.day>0.41)]
+
+##Temporarily Remove Outliers
+Growth.o<-Growth[-c(which(Growth$TLE_cm.day>0.41)),]
+
+##Visual Check
+ggplot(Growth.o, aes(x=Set, y=TLE_cm.day)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  theme(axis.text.x = element_text(angle = 90))
+
+```
+
+
+### Compare Growth Rate
+```{r}
+#Check normality
+hist(Growth.o$TLE_cm.day)
+shapiro.test(Growth.o$TLE_cm.day)
+#Not normal
+
+hist(log(Growth.o$TLE_cm.day+1))
+shapiro.test(log(Growth.o$TLE_cm.day+1))
+##Still not normal but less skewed
+
+##Model with log +1 transformation
+#Function of Site and Origin, with Genotype as a Random effect
+#Interaction between Site and Origin
+Growth.lme_TP1.2<-lmer(log(TLE_cm.day+1)~Origin*Site+(1|Genotype), data=Growth.o)
+
+##Check residuals
+Growth.lme_res_TP1.2 <- simulateResiduals(fittedModel = Growth.lme_TP1.2, plot = F)
+plot(Growth.lme_res_TP1.2)
+
+##Model results
+summary(Growth.lme_TP1.2)
+
+eta_squared(Growth.lme_TP1.2)
+
+```
+
+
+Effect size of Origin for each Site
+```{r}
+##KL
+Growth.lme_TP1.2_KL<-lmer(log(TLE_cm.day+1)~Origin+(1|Genotype), data=Growth.o[which(Growth.o$Site=="KL"),])
+summary(Growth.lme_TP1.2_KL)
+eta_squared(Growth.lme_TP1.2_KL)
+
+
+##SS
+Growth.lme_TP1.2_SS<-lmer(log(TLE_cm.day+1)~Origin+(1|Genotype), data=Growth.o[which(Growth.o$Site=="SS"),])
+summary(Growth.lme_TP1.2_SS)
+eta_squared(Growth.lme_TP1.2_SS)
+
+```
+
+
+```{r Plot Growth Rate TP1 to 2}
+##Summary statistics by Site and Origin
+TP1.2_Growth.sum<-summarySE(Growth.o, measurevar="TLE_cm.day", groupvars=c("Site", "Origin", "Site.Orig"), na.rm=TRUE)
+
+##Plot Average Growth Rate across Treatments
+TP1.2_Growth.plot<-ggplot(TP1.2_Growth.sum, aes(x=Site, y=TLE_cm.day, colour=Site.Orig)) + 
+  scale_colour_manual(values=Orig.colors.o)+
+  geom_errorbar(aes(ymin=TLE_cm.day-se, ymax=TLE_cm.day+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
+  geom_point(size=point.sz, position=position_dodge(width=0.5))+
+  theme_classic()+
+  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"))+
+  labs(x="Site and Origin", y=expression(paste('Growth Rate (cm day'^-1*")")), colour="Origin")+
+  ylim(0, 0.3); TP1.2_Growth.plot
+```
+
+
+### Average Growth Rates by Genotype
+```{r}
+##Summary statistics by Genotype and Origin
+TP1.2_Growth.sum.SS<-summarySE(subset(Growth.o, Site=="SS"), measurevar="TLE_cm.day", groupvars=c("Genotype", "Origin"), na.rm=TRUE)
+
+TP1.2_Growth.sum.SS
+
+##Calculate Percent Difference between Native and Transplant by Genotype
+TP1.2_Growth.SS<-TP1.2_Growth.sum.SS[which(TP1.2_Growth.sum.SS$Origin=="Native"), c(1,4)]
+names(TP1.2_Growth.SS)[2]<-paste(names(TP1.2_Growth.SS)[2], "N", sep="_")
+TP1.2_Growth.SS$TLE_cm.day_T<-TP1.2_Growth.sum.SS$TLE_cm.day[which(TP1.2_Growth.sum.SS$Origin=="Transplant")]
+TP1.2_Growth.SS$Perc.Inc<-((TP1.2_Growth.SS$TLE_cm.day_N-TP1.2_Growth.SS$TLE_cm.day_T)/TP1.2_Growth.SS$TLE_cm.day_T)*100
+
+TP1.2_Growth.SS
+
+##Mean and Standard Error
+mean(TP1.2_Growth.SS$Perc.Inc)
+std.error(TP1.2_Growth.SS$Perc.Inc)
+```
+
+
+# Thermal Tolerance
+
+### Percent Retention
+
+#### Subset Thermal Assay Data by Treatment
+```{r}
+##Control
+Therm_C<-subset(Thermal, Treat=="C")
+
+##Heated
+Therm_H<-subset(Thermal, Treat=="H")
+```
+
+
+#### Calculate Percent Retention
+Calculating retention as proportion remaining relative to corresponding control levels (0-1) for each site and genotype at each timepoint.
+```{r}
+##Calculate averages for Control Treatment for each Site, Genotype, and Timepoint 
+Therm_C<-na.omit(Therm_C)
+names(Therm_C)
+Therm_C.a<-aggregate(Therm_C[,c(13:15)], list(Therm_C$Site, Therm_C$Genotype, Therm_C$TimeP, Therm_C$Origin), mean, na.action = na.omit)
+names(Therm_C.a)[1:4]<-c("Site", "Genotype", "TimeP", "Origin")
+names(Therm_C.a)[5:7]<-paste(names(Therm_C.a)[5:7], "C", sep="_")
+
+##Merge Control Averages with Heated Samples
+#Merges by Site, Genotype, and Timepoint
+Therm_H<-merge(Therm_H, Therm_C.a, all.x=TRUE )
+
+##Calculate Proportion Retained for each Bleaching Metric relative to Control
+Therm_H$Chl.prop<-round((Therm_H$Chl_ug.cm2/Therm_H$Chl_ug.cm2_C), 4)
+Therm_H$Sym.prop<-round((Therm_H$Sym10.6_cm2/Therm_H$Sym10.6_cm2_C), 4)
+Therm_H$PAM.prop<-round((Therm_H$Fv_Fm/Therm_H$Fv_Fm_C), 4)
+
+##Set values >1 to 1
+Therm_H$Chl.prop[which(Therm_H$Chl.prop>1)]<-1.0000
+Therm_H$Sym.prop[which(Therm_H$Sym.prop>1)]<-1.0000
+Therm_H$PAM.prop[which(Therm_H$PAM.prop>1)]<-1.0000
+
+```
+
+
+# Initial Heat Assay 
+
+```{r}
+##Subset Initial Timepoint
+Thermal_IN<-subset(Thermal, TimeP=="IN")
+Thermal_IN$Site.Treat<-paste(Thermal_IN$Site, Thermal_IN$Treat, sep=".")
+Thermal_IN$Site.Treat<-factor(Thermal_IN$Site.Treat, levels=c("KL.C", "KL.H", "SS.C", "SS.H"))
+
+
+Therm_IN<-subset(Therm_H, TimeP=="IN")
+```
+
+
+### Heated vs Control
+
+
+#### Symbionts
+```{r}
+#Check normality
+hist(Thermal_IN$Sym10.6_cm2)
+shapiro.test(Thermal_IN$Sym10.6_cm2)
+#Not normal
+
+hist(log(Thermal_IN$Sym10.6_cm2+1))
+shapiro.test(log(Thermal_IN$Sym10.6_cm2+1))
+#Normal
+
+##Model
+#Function of Site and Treatment, with Genotype as a Random effect
+Sym.lme_IN<-lmer(log(Sym10.6_cm2+1)~Site*Treatment+(1|Genotype), data=Thermal_IN)
+
+##Check residuals
+Sym.lme_res_IN <- simulateResiduals(fittedModel = Sym.lme_IN, plot = F)
+plot(Sym.lme_res_IN)
+
+##Model results
+summary(Sym.lme_IN)
+
+eta_squared(Sym.lme_IN)
+
+emmeans(Sym.lme_IN, pairwise ~ Site | Treatment)
+
+emmeans(Sym.lme_IN, pairwise ~ Treatment | Site)
+
+```
+
+
+```{r Plot Symbionts Initial}
+##Summary statistics by Site
+IN_Sym.sum<-summarySE(Thermal_IN, measurevar="Sym10.6_cm2", groupvars=c("Site", "Treatment", "Site.Treat"), na.rm=TRUE)
+
+##Plot Average Symbionts across Treatments
+IN_Sym.plot<-ggplot(IN_Sym.sum, aes(x=Site.Treat, y=Sym10.6_cm2, colour=Site)) + 
+  scale_colour_manual(values=Site.colors.o)+
+  geom_errorbar(aes(ymin=Sym10.6_cm2-se, ymax=Sym10.6_cm2+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
+  geom_point(aes(shape=Treatment), size=point.sz, position=position_dodge(width=0.5))+
+  scale_shape_manual(values=c(1,16))+
+  theme_classic()+
+  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"))+
+  labs(x="Site and Treatment", y=expression(paste('Symbiont Density ('*10^6,'cells cm'^-2*")")), colour="Site")+
+  ylim(0, 1); IN_Sym.plot
+```
+
+
+#### Chlorophyll
+```{r}
+#Check normality
+hist(Thermal_IN$Chl_ug.cm2)
+shapiro.test(Thermal_IN$Chl_ug.cm2)
+#Not normal
+
+hist(log(Thermal_IN$Chl_ug.cm2+1))
+shapiro.test(log(Thermal_IN$Chl_ug.cm2+1))
+#Still not normal but less skewed
+
+##Model
+#Function of Site and Treatment, with Genotype as a Random effect
+Chl.lme_IN<-lmer(log(Chl_ug.cm2+1)~Site*Treatment+(1|Genotype), data=Thermal_IN)
+
+##Check residuals
+Chl.lme_res_IN <- simulateResiduals(fittedModel = Chl.lme_IN, plot = F)
+plot(Chl.lme_res_IN)
+
+##Model results
+summary(Chl.lme_IN)
+
+eta_squared(Chl.lme_IN)
+
+emmeans(Chl.lme_IN, pairwise ~ Site | Treatment)
+
+emmeans(Chl.lme_IN, pairwise ~ Treatment | Site)
+
+```
+
+
+```{r Plot Chlorophyll Initial}
+##Summary statistics by Site
+IN_Chl.sum<-summarySE(Thermal_IN, measurevar="Chl_ug.cm2", groupvars=c("Site", "Treatment", "Site.Treat"), na.rm=TRUE)
+
+##Plot Average Chlorophyll across Treatments
+IN_Chl.plot<-ggplot(IN_Chl.sum, aes(x=Site.Treat, y=Chl_ug.cm2, colour=Site)) + 
+  scale_colour_manual(values=Site.colors.o)+
+  geom_errorbar(aes(ymin=Chl_ug.cm2-se, ymax=Chl_ug.cm2+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
+  geom_point(aes(shape=Treatment), size=point.sz, position=position_dodge(width=0.5))+
+  scale_shape_manual(values=c(1,16))+
+  theme_classic()+
+  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"))+
+  labs(x="Site and Treatment", y=expression(paste('Total Chlorophyll (\u03BCg cm'^-2*")")), colour="Site")+
+  ylim(0, 1.25); IN_Chl.plot
+```
+
+
+#### FvFm
+```{r}
+#Check normality
+hist(Thermal_IN$Fv_Fm)
+shapiro.test(Thermal_IN$Fv_Fm)
+#Not normal
+
+hist(log(Thermal_IN$Fv_Fm+1))
+shapiro.test(log(Thermal_IN$Fv_Fm+1))
+#Still not normal but less skewed
+
+##Model
+#Function of Site and Treatment, with Genotype as a Random effect
+PAM.lme_IN<-lmer(log(Fv_Fm+1)~Site*Treatment+(1|Genotype), data=Thermal_IN)
+
+##Check residuals
+PAM.lme_res_IN <- simulateResiduals(fittedModel = PAM.lme_IN, plot = F)
+plot(PAM.lme_res_IN)
+
+##Model results
+summary(PAM.lme_IN)
+
+eta_squared(PAM.lme_IN)
+
+emmeans(PAM.lme_IN, pairwise ~ Site | Treatment)
+
+emmeans(PAM.lme_IN, pairwise ~ Treatment | Site)
+
+```
+
+
+```{r Plot FvFm Initial}
+##Summary statistics by Site
+IN_PAM.sum<-summarySE(Thermal_IN, measurevar="Fv_Fm", groupvars=c("Site", "Treatment", "Site.Treat"), na.rm=TRUE)
+
+##Plot Average FvFm across Treatments
+IN_PAM.plot<-ggplot(IN_PAM.sum, aes(x=Site.Treat, y=Fv_Fm, colour=Site)) + 
+  scale_colour_manual(values=Site.colors.o)+
+  geom_errorbar(aes(ymin=Fv_Fm-se, ymax=Fv_Fm+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
+  geom_point(aes(shape=Treatment), size=point.sz, position=position_dodge(width=0.5))+
+  scale_shape_manual(values=c(1,16))+
+  theme_classic()+
+  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"))+
+  labs(x="Site and Treatment", y="Photochemical Efficiency (Fv/Fm)", colour="Site")+
+  ylim(0.5, 0.655); IN_PAM.plot
+```
+
+
+### Retention by Site
+
+#### Symbionts
+```{r}
+#Check normality
+hist(Therm_IN$Sym.prop)
+shapiro.test(Therm_IN$Sym.prop)
+#Normal
+
+##Model
+#Function of Site, with Genotype as a Random effect
+Tol_Sym.lme_IN<-lmer(Sym.prop~Site+(1|Genotype), data=Therm_IN)
+
+##Check residuals
+Tol_Sym.lme_res_IN <- simulateResiduals(fittedModel = Tol_Sym.lme_IN, plot = F)
+plot(Tol_Sym.lme_res_IN)
+
+##Model results
+summary(Tol_Sym.lme_IN)
+
+eta_squared(Tol_Sym.lme_IN)
+
+```
+
+
+```{r Plot Symbiont Retention Initial}
+##Summary statistics by Site
+IN_TolSym.sum<-summarySE(Therm_IN, measurevar="Sym.prop", groupvars=c("Site"), na.rm=TRUE)
+
+##Plot Average Symbiont Retention across Treatments
+IN_TolSym.plot<-ggplot(IN_TolSym.sum, aes(x=Site, y=Sym.prop, colour=Site)) + 
+  scale_colour_manual(values=Site.colors.o)+
+  geom_errorbar(aes(ymin=Sym.prop-se, ymax=Sym.prop+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
+  geom_point(size=point.sz, position=position_dodge(width=0.5))+
+  theme_classic()+
+  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"))+
+  labs(x="Site", y="Symbiont Retention", colour="Site")+
+  ylim(0, 1)+
+  annotate("text", x=1.5, y=0.75, label="-", size=sig.sz, fontface="bold"); IN_TolSym.plot
+```
+
+
+#### Chlorophyll
+```{r}
+#Check normality
+hist(Therm_IN$Chl.prop)
+shapiro.test(Therm_IN$Chl.prop)
+#Normal
+
+##Model
+#Function of Site, with Genotype as a Random effect
+Tol_Chl.lme_IN<-lmer(Chl.prop~Site+(1|Genotype), data=Therm_IN)
+
+##Check residuals
+Tol_Chl.lme_res_IN <- simulateResiduals(fittedModel = Tol_Chl.lme_IN, plot = F)
+plot(Tol_Chl.lme_res_IN)
+
+##Model results
+summary(Tol_Chl.lme_IN)
+
+eta_squared(Tol_Chl.lme_IN)
+
+```
+
+
+```{r Plot Chlorophyll Retention Initial}
+##Summary statistics by Site and Origin
+IN_TolChl.sum<-summarySE(Therm_IN, measurevar="Chl.prop", groupvars=c("Site"), na.rm=TRUE)
+
+##Plot Average Chlorophyll Retention across Treatments
+IN_TolChl.plot<-ggplot(IN_TolChl.sum, aes(x=Site, y=Chl.prop, colour=Site)) + 
+  scale_colour_manual(values=Site.colors.o)+
+  geom_errorbar(aes(ymin=Chl.prop-se, ymax=Chl.prop+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
+  geom_point(size=point.sz, position=position_dodge(width=0.5))+
+  theme_classic()+
+  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"))+
+  labs(x="Site", y="Chlorophyll Retention", colour="Site")+
+  ylim(0, 0.35); IN_TolChl.plot
+```
+
+
+#### FvFm
+```{r}
+#Check normality
+hist(Therm_IN$PAM.prop)
+shapiro.test(Therm_IN$PAM.prop)
+#Not normal
+
+hist(log(Therm_IN$PAM.prop+1))
+shapiro.test(log(Therm_IN$PAM.prop+1))
+##Still not normal
+
+##Model
+#Function of Site, with Genotype as a Random effect
+Tol_PAM.lme_IN<-lmer(PAM.prop~Site+(1|Genotype), data=Therm_IN)
+
+##Check residuals
+Tol_PAM.lme_res_IN <- simulateResiduals(fittedModel = Tol_PAM.lme_IN, plot = F)
+plot(Tol_PAM.lme_res_IN)
+
+##Model results
+summary(Tol_PAM.lme_IN)
+
+eta_squared(Tol_PAM.lme_IN)
+
+```
+
+
+```{r Plot FvFm Retention Initial}
+##Summary statistics by Site and Origin
+IN_TolPAM.sum<-summarySE(Therm_IN, measurevar="PAM.prop", groupvars=c("Site"), na.rm=TRUE)
+
+##Plot Average FvFm Retention across Treatments
+IN_TolPAM.plot<-ggplot(IN_TolPAM.sum, aes(x=Site, y=PAM.prop, colour=Site)) + 
+  scale_colour_manual(values=Site.colors.o)+
+  geom_errorbar(aes(ymin=PAM.prop-se, ymax=PAM.prop+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
+  geom_point(size=point.sz, position=position_dodge(width=0.5))+
+  theme_classic()+
+  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"))+
+  labs(x="Site", y="Photochemical Efficiency Retention", colour="Site")+
+  ylim(0.6, 1)+
+  annotate("text", x=1.5, y=1, label="*", size=sig.sz, fontface="bold"); IN_TolPAM.plot
+```
+
+
+# Tolerance after Transplant
+
+
+### TP1
+```{r}
+##Subset Timepoint 1
+Therm_TP1<-subset(Therm_H, TimeP=="TP1")
+```
+
+
+#### Symbionts
+```{r}
+#Check normality
+hist(Therm_TP1$Sym.prop)
+shapiro.test(Therm_TP1$Sym.prop)
+#Not normal
+
+hist(log(Therm_TP1$Sym.prop+1))
+shapiro.test(log(Therm_TP1$Sym.prop+1))
+##Still not normal but less skewed
+
+##Model with log +1 transformation
+#Function of Site and Origin, with Genotype as a Random effect
+#Interaction between Site and Origin
+Tol_Sym.lme_TP1<-lmer(log(Sym.prop+1)~Origin*Site+(1|Genotype), data=Therm_TP1)
+
+##Check residuals
+Tol_Sym.lme_res_TP1 <- simulateResiduals(fittedModel = Tol_Sym.lme_TP1, plot = F)
+plot(Tol_Sym.lme_res_TP1)
+
+##Model results
+summary(Tol_Sym.lme_TP1)
+
+eta_squared(Tol_Sym.lme_TP1)
+
+```
+
+
+Effect size of Origin for each Site
+```{r}
+##KL
+Tol_Sym.lme_TP1_KL<-lmer(log(Sym.prop+1)~Origin+(1|Genotype), data=Therm_TP1[which(Therm_TP1$Site=="KL"),])
+summary(Tol_Sym.lme_TP1_KL)
+eta_squared(Tol_Sym.lme_TP1_KL)
+
+
+##SS
+Tol_Sym.lme_TP1_SS<-lmer(log(Sym.prop+1)~Origin+(1|Genotype), data=Therm_TP1[which(Therm_TP1$Site=="SS"),])
+summary(Tol_Sym.lme_TP1_SS)
+eta_squared(Tol_Sym.lme_TP1_SS)
+
+```
+
+
+```{r Plot Symbiont Retention TP1}
+##Summary statistics by Site and Origin
+TP1_TolSym.sum<-summarySE(Therm_TP1, measurevar="Sym.prop", groupvars=c("Site", "Origin", "Site.Orig"), na.rm=TRUE)
+
+##Plot Average Symbiont Retention across Treatments
+TP1_TolSym.plot<-ggplot(TP1_TolSym.sum, aes(x=Site, y=Sym.prop, colour=Site.Orig)) + 
+  scale_colour_manual(values=Orig.colors.o)+
+  geom_errorbar(aes(ymin=Sym.prop-se, ymax=Sym.prop+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
+  geom_point(size=point.sz, position=position_dodge(width=0.5))+
+  theme_classic()+
+  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"))+
+  labs(x="Site and Origin", y="Symbiont Retention", colour="Origin")+
+  ylim(0, 1)+
+  annotate("text", x=1, y=0.75, label="*", size=sig.sz, fontface="bold"); TP1_TolSym.plot
+```
+
+
+#### Chlorophyll
+```{r}
+#Check normality
+hist(Therm_TP1$Chl.prop)
+shapiro.test(Therm_TP1$Chl.prop)
+#Not normal
+
+hist(log(Therm_TP1$Chl.prop+1))
+shapiro.test(log(Therm_TP1$Chl.prop+1))
+##Still not normal but less skewed
+
+##Model with log +1 transformation
+#Function of Site and Origin, with Genotype as a Random effect
+#Interaction between Site and Origin
+Tol_Chl.lme_TP1<-lmer(log(Chl.prop+1)~Origin*Site+(1|Genotype), data=Therm_TP1)
+
+##Check residuals
+Tol_Chl.lme_res_TP1 <- simulateResiduals(fittedModel = Tol_Chl.lme_TP1, plot = F)
+plot(Tol_Chl.lme_res_TP1)
+
+##Model results
+summary(Tol_Chl.lme_TP1)
+
+eta_squared(Tol_Chl.lme_TP1)
+
+```
+
+
+Effect size of Origin for each Site
+```{r}
+##KL
+Tol_Chl.lme_TP1_KL<-lmer(log(Chl.prop+1)~Origin+(1|Genotype), data=Therm_TP1[which(Therm_TP1$Site=="KL"),])
+summary(Tol_Chl.lme_TP1_KL)
+eta_squared(Tol_Chl.lme_TP1_KL)
+
+
+##SS
+Tol_Chl.lme_TP1_SS<-lmer(log(Chl.prop+1)~Origin+(1|Genotype), data=Therm_TP1[which(Therm_TP1$Site=="SS"),])
+summary(Tol_Chl.lme_TP1_SS)
+eta_squared(Tol_Chl.lme_TP1_SS)
+
+```
+
+
+```{r Plot Chlorophyll Retention TP1}
+##Summary statistics by Site and Origin
+TP1_TolChl.sum<-summarySE(Therm_TP1, measurevar="Chl.prop", groupvars=c("Site", "Origin", "Site.Orig"), na.rm=TRUE)
+
+##Plot Average Chlorophyll Retention across Treatments
+TP1_TolChl.plot<-ggplot(TP1_TolChl.sum, aes(x=Site, y=Chl.prop, colour=Site.Orig)) + 
+  scale_colour_manual(values=Orig.colors.o)+
+  geom_errorbar(aes(ymin=Chl.prop-se, ymax=Chl.prop+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
+  geom_point(size=point.sz, position=position_dodge(width=0.5))+
+  theme_classic()+
+  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"))+
+  labs(x="Site and Origin", y="Chlorophyll Retention", colour="Origin")+
+  ylim(0, 0.35); TP1_TolChl.plot
+```
+
+
+#### FvFm
+```{r}
+#Check normality
+hist(Therm_TP1$PAM.prop)
+shapiro.test(Therm_TP1$PAM.prop)
+#Not normal
+
+hist(log(Therm_TP1$PAM.prop+1))
+shapiro.test(log(Therm_TP1$PAM.prop+1))
+##Still not normal
+
+##Model
+#Function of Site and Origin, with Genotype as a Random effect
+#Interaction between Site and Origin
+Tol_PAM.lme_TP1<-lmer(PAM.prop~Origin*Site+(1|Genotype), data=Therm_TP1)
+
+##Check residuals
+Tol_PAM.lme_res_TP1 <- simulateResiduals(fittedModel = Tol_PAM.lme_TP1, plot = F)
+plot(Tol_PAM.lme_res_TP1)
+
+##Model results
+summary(Tol_PAM.lme_TP1)
+
+eta_squared(Tol_PAM.lme_TP1)
+
+```
+
+
+Effect size of Origin for each Site
+```{r}
+##KL
+Tol_PAM.lme_TP1_KL<-lmer(PAM.prop~Origin+(1|Genotype), data=Therm_TP1[which(Therm_TP1$Site=="KL"),])
+summary(Tol_PAM.lme_TP1_KL)
+eta_squared(Tol_PAM.lme_TP1_KL)
+
+
+##SS
+Tol_PAM.lme_TP1_SS<-lmer(PAM.prop~Origin+(1|Genotype), data=Therm_TP1[which(Therm_TP1$Site=="SS"),])
+summary(Tol_PAM.lme_TP1_SS)
+eta_squared(Tol_PAM.lme_TP1_SS)
+
+```
+
+
+```{r Plot FvFm Retention TP1}
+##Summary statistics by Site and Origin
+TP1_TolPAM.sum<-summarySE(Therm_TP1, measurevar="PAM.prop", groupvars=c("Site", "Origin", "Site.Orig"), na.rm=TRUE)
+
+##Plot Average FvFm Retention across Treatments
+TP1_TolPAM.plot<-ggplot(TP1_TolPAM.sum, aes(x=Site, y=PAM.prop, colour=Site.Orig)) + 
+  scale_colour_manual(values=Orig.colors.o)+
+  geom_errorbar(aes(ymin=PAM.prop-se, ymax=PAM.prop+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
+  geom_point(size=point.sz, position=position_dodge(width=0.5))+
+  theme_classic()+
+  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"))+
+  labs(x="Site and Origin", y="Photochemical Efficiency Retention", colour="Origin")+
+  ylim(0.6, 1)+
+  annotate("text", x=1, y=1, label="**", size=sig.sz, fontface="bold"); TP1_TolPAM.plot
+```
+
+
+### TP2
+```{r}
+##Subset Timepoint 2
+Therm_TP2<-subset(Therm_H, TimeP=="TP2")
+```
+
+
+#### Symbionts
+```{r}
+#Check normality
+hist(Therm_TP2$Sym.prop)
+shapiro.test(Therm_TP2$Sym.prop)
+#Not normal
+
+hist(log(Therm_TP2$Sym.prop+1))
+shapiro.test(log(Therm_TP2$Sym.prop+1))
+##Still not normal
+
+##Model
+#Function of Site and Origin, with Genotype as a Random effect
+#Interaction between Site and Origin
+Tol_Sym.lme_TP2<-lmer(Sym.prop~Origin*Site+(1|Genotype), data=Therm_TP2)
+
+##Check residuals
+Tol_Sym.lme_res_TP2 <- simulateResiduals(fittedModel = Tol_Sym.lme_TP2, plot = F)
+plot(Tol_Sym.lme_res_TP2)
+
+##Model results
+summary(Tol_Sym.lme_TP2)
+
+eta_squared(Tol_Sym.lme_TP2)
+
+```
+
+
+Effect size of Origin for each Site
+```{r}
+##KL
+Tol_Sym.lme_TP2_KL<-lmer(Sym.prop~Origin+(1|Genotype), data=Therm_TP2[which(Therm_TP2$Site=="KL"),])
+summary(Tol_Sym.lme_TP2_KL)
+eta_squared(Tol_Sym.lme_TP2_KL)
+
+
+##SS
+Tol_Sym.lme_TP2_SS<-lmer(Sym.prop~Origin+(1|Genotype), data=Therm_TP2[which(Therm_TP2$Site=="SS"),])
+summary(Tol_Sym.lme_TP2_SS)
+eta_squared(Tol_Sym.lme_TP2_SS)
+
+```
+
+
+```{r Plot Symbiont Retention TP2}
+##Summary statistics by Site and Origin
+TP2_TolSym.sum<-summarySE(Therm_TP2, measurevar="Sym.prop", groupvars=c("Site", "Origin", "Site.Orig"), na.rm=TRUE)
+
+##Plot Average Retention across Treatments
+TP2_TolSym.plot<-ggplot(TP2_TolSym.sum, aes(x=Site, y=Sym.prop, colour=Site.Orig)) + 
+  scale_colour_manual(values=Orig.colors.o)+
+  geom_errorbar(aes(ymin=Sym.prop-se, ymax=Sym.prop+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
+  geom_point(size=point.sz, position=position_dodge(width=0.5))+
+  theme_classic()+
+  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"))+
+  labs(x="Site and Origin", y="Symbiont Retention", colour="Origin")+
+  ylim(0, 1); TP2_TolSym.plot
+```
+
+
+#### Chlorophyll
+```{r}
+#Check normality
+hist(Therm_TP2$Chl.prop)
+shapiro.test(Therm_TP2$Chl.prop)
+#Normal
+
+##Model
+#Function of Site and Origin, with Genotype as a Random effect
+#Interaction between Site and Origin
+Tol_Chl.lme_TP2<-lmer(Chl.prop~Origin*Site+(1|Genotype), data=Therm_TP2)
+
+##Check residuals
+Tol_Chl.lme_res_TP2 <- simulateResiduals(fittedModel = Tol_Chl.lme_TP2, plot = F)
+plot(Tol_Chl.lme_res_TP2)
+
+##Model results
+summary(Tol_Chl.lme_TP2)
+
+eta_squared(Tol_Chl.lme_TP2)
+
+```
+
+
+Effect size of Origin for each Site
+```{r}
+##KL
+Tol_Chl.lme_TP2_KL<-lmer(Chl.prop~Origin+(1|Genotype), data=Therm_TP2[which(Therm_TP2$Site=="KL"),])
+summary(Tol_Chl.lme_TP2_KL)
+eta_squared(Tol_Chl.lme_TP2_KL)
+
+
+##SS
+Tol_Chl.lme_TP2_SS<-lmer(Chl.prop~Origin+(1|Genotype), data=Therm_TP2[which(Therm_TP2$Site=="SS"),])
+summary(Tol_Chl.lme_TP2_SS)
+eta_squared(Tol_Chl.lme_TP2_SS)
+
+```
+
+
+```{r Plot Chlorophyll Retention TP2}
+##Summary statistics by Site and Origin
+TP2_TolChl.sum<-summarySE(Therm_TP2, measurevar="Chl.prop", groupvars=c("Site", "Origin", "Site.Orig"), na.rm=TRUE)
+
+##Plot Average Retention across Treatments
+TP2_TolChl.plot<-ggplot(TP2_TolChl.sum, aes(x=Site, y=Chl.prop, colour=Site.Orig)) + 
+  scale_colour_manual(values=Orig.colors.o)+
+  geom_errorbar(aes(ymin=Chl.prop-se, ymax=Chl.prop+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
+  geom_point(size=point.sz, position=position_dodge(width=0.5))+
+  theme_classic()+
+  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"))+
+  labs(x="Site and Origin", y="Chlorophyll Retention", colour="Origin")+
+  ylim(0, 0.35); TP2_TolChl.plot
+```
+
+
+#### FvFm
+```{r}
+#Check normality
+hist(Therm_TP2$PAM.prop)
+shapiro.test(Therm_TP2$PAM.prop)
+#Not normal
+
+hist(log(Therm_TP2$PAM.prop+1))
+shapiro.test(log(Therm_TP2$PAM.prop+1))
+##Still not normal
+
+##Model
+#Function of Site and Origin, with Genotype as a Random effect
+#Interaction between Site and Origin
+Tol_PAM.lme_TP2<-lmer(PAM.prop~Origin*Site+(1|Genotype), data=Therm_TP2)
+
+##Check residuals
+Tol_PAM.lme_res_TP2 <- simulateResiduals(fittedModel = Tol_PAM.lme_TP2, plot = F)
+plot(Tol_PAM.lme_res_TP2)
+
+##Model results
+summary(Tol_PAM.lme_TP2)
+
+eta_squared(Tol_PAM.lme_TP2)
+
+```
+
+
+Effect size of Origin for each Site
+```{r}
+##KL
+Tol_PAM.lme_TP2_KL<-lmer(PAM.prop~Origin+(1|Genotype), data=Therm_TP2[which(Therm_TP2$Site=="KL"),])
+summary(Tol_PAM.lme_TP2_KL)
+eta_squared(Tol_PAM.lme_TP2_KL)
+
+
+##SS
+Tol_PAM.lme_TP2_SS<-lmer(PAM.prop~Origin+(1|Genotype), data=Therm_TP2[which(Therm_TP2$Site=="SS"),])
+summary(Tol_PAM.lme_TP2_SS)
+eta_squared(Tol_PAM.lme_TP2_SS)
+
+```
+
+
+```{r Plot FvFm Retention TP2}
+##Summary statistics by Site and Origin
+TP2_TolPAM.sum<-summarySE(Therm_TP2, measurevar="PAM.prop", groupvars=c("Site", "Origin", "Site.Orig"), na.rm=TRUE)
+
+##Plot Average Retention across Treatments
+TP2_TolPAM.plot<-ggplot(TP2_TolPAM.sum, aes(x=Site, y=PAM.prop, colour=Site.Orig)) + 
+  scale_colour_manual(values=Orig.colors.o)+
+  geom_errorbar(aes(ymin=PAM.prop-se, ymax=PAM.prop+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
+  geom_point(size=point.sz, position=position_dodge(width=0.5))+
+  theme_classic()+
+  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"))+
+  labs(x="Site and Origin", y="Photochemical Efficiency Retention", colour="Origin")+
+  ylim(0.6, 1)+
+  annotate("text", x=1, y=1, label="*", size=sig.sz, fontface="bold"); TP2_TolPAM.plot
+```
+
+
+### TP3
+```{r}
+##Subset Timepoint 3
+Therm_TP3<-subset(Therm_H, TimeP=="TP3")
+```
+
+
+#### Symbionts
+```{r}
+#Check normality
+hist(Therm_TP3$Sym.prop)
+shapiro.test(Therm_TP3$Sym.prop)
+#Not normal
+
+hist(log(Therm_TP3$Sym.prop+1))
+shapiro.test(log(Therm_TP3$Sym.prop+1))
+##Still not normal but less skewed
+
+##Model with log +1 transformation
+#Function of Site and Origin, with Genotype as a Random effect
+#Interaction between Site and Origin
+Tol_Sym.lme_TP3<-lmer(log(Sym.prop+1)~Origin*Site+(1|Genotype), data=Therm_TP3)
+
+##Check residuals
+Tol_Sym.lme_res_TP3 <- simulateResiduals(fittedModel = Tol_Sym.lme_TP3, plot = F)
+plot(Tol_Sym.lme_res_TP3)
+
+##Model results
+summary(Tol_Sym.lme_TP3)
+
+eta_squared(Tol_Sym.lme_TP3)
+
+```
+
+
+Effect size of Origin for each Site
+```{r}
+##KL
+Tol_Sym.lme_TP3_KL<-lmer(log(Sym.prop+1)~Origin+(1|Genotype), data=Therm_TP3[which(Therm_TP3$Site=="KL"),])
+summary(Tol_Sym.lme_TP3_KL)
+eta_squared(Tol_Sym.lme_TP3_KL)
+
+
+##SS
+Tol_Sym.lme_TP3_SS<-lmer(log(Sym.prop+1)~Origin+(1|Genotype), data=Therm_TP3[which(Therm_TP3$Site=="SS"),])
+summary(Tol_Sym.lme_TP3_SS)
+eta_squared(Tol_Sym.lme_TP3_SS)
+
+```
+
+
+```{r Plot Symbiont Retention TP3}
+##Summary statistics by Site and Origin
+TP3_TolSym.sum<-summarySE(Therm_TP3, measurevar="Sym.prop", groupvars=c("Site", "Origin", "Site.Orig"), na.rm=TRUE)
+
+##Plot Average Retention across Treatments
+TP3_TolSym.plot<-ggplot(TP3_TolSym.sum, aes(x=Site, y=Sym.prop, colour=Site.Orig)) + 
+  scale_colour_manual(values=Orig.colors.o)+
+  geom_errorbar(aes(ymin=Sym.prop-se, ymax=Sym.prop+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
+  geom_point(size=point.sz, position=position_dodge(width=0.5))+
+  theme_classic()+
+  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"))+
+  labs(x="Site and Origin", y="Symbiont Retention", colour="Origin")+
+  ylim(0, 1); TP3_TolSym.plot
+```
+
+
+#### Chlorophyll
+```{r}
+#Check normality
+hist(Therm_TP3$Chl.prop)
+shapiro.test(Therm_TP3$Chl.prop)
+#Not normal
+
+hist(log(Therm_TP3$Chl.prop+1))
+shapiro.test(log(Therm_TP3$Chl.prop+1))
+##Still not normal but less skewed
+
+##Model with log +1 transformation
+#Function of Site and Origin, with Genotype as a Random effect
+#Interaction between Site and Origin
+Tol_Chl.lme_TP3<-lmer(log(Chl.prop+1)~Origin*Site+(1|Genotype), data=Therm_TP3)
+
+##Check residuals
+Tol_Chl.lme_res_TP3 <- simulateResiduals(fittedModel = Tol_Chl.lme_TP3, plot = F)
+plot(Tol_Chl.lme_res_TP3)
+
+##Model results
+summary(Tol_Chl.lme_TP3)
+
+eta_squared(Tol_Chl.lme_TP3)
+
+```
+
+
+Effect size of Origin for each Site
+```{r}
+##KL
+Tol_Chl.lme_TP3_KL<-lmer(log(Chl.prop+1)~Origin+(1|Genotype), data=Therm_TP3[which(Therm_TP3$Site=="KL"),])
+summary(Tol_Chl.lme_TP3_KL)
+eta_squared(Tol_Chl.lme_TP3_KL)
+
+
+##SS
+Tol_Chl.lme_TP3_SS<-lmer(log(Chl.prop+1)~Origin+(1|Genotype), data=Therm_TP3[which(Therm_TP3$Site=="SS"),])
+summary(Tol_Chl.lme_TP3_SS)
+eta_squared(Tol_Chl.lme_TP3_SS)
+
+```
+
+
+```{r Plot Chlorophyll Retention TP3}
+##Summary statistics by Site and Origin
+TP3_TolChl.sum<-summarySE(Therm_TP3, measurevar="Chl.prop", groupvars=c("Site", "Origin", "Site.Orig"), na.rm=TRUE)
+
+##Plot Average Retention across Treatments
+TP3_TolChl.plot<-ggplot(TP3_TolChl.sum, aes(x=Site, y=Chl.prop, colour=Site.Orig)) + 
+  scale_colour_manual(values=Orig.colors.o)+
+  geom_errorbar(aes(ymin=Chl.prop-se, ymax=Chl.prop+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
+  geom_point(size=point.sz, position=position_dodge(width=0.5))+
+  theme_classic()+
+  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"))+
+  labs(x="Site and Origin", y="Chlorophyll Retention", colour="Origin")+
+  ylim(0, 1); TP3_TolChl.plot
+```
+
+
+#### FvFm
+```{r}
+#Check normality
+hist(Therm_TP3$PAM.prop)
+shapiro.test(Therm_TP3$PAM.prop)
+#Normal
+
+##Model
+#Function of Site and Origin, with Genotype as a Random effect
+#Interaction between Site and Origin
+Tol_PAM.lme_TP3<-lmer(PAM.prop~Origin*Site+(1|Genotype), data=Therm_TP3)
+
+##Check residuals
+Tol_PAM.lme_res_TP3 <- simulateResiduals(fittedModel = Tol_PAM.lme_TP3, plot = F)
+plot(Tol_PAM.lme_res_TP3)
+
+##Model results
+summary(Tol_PAM.lme_TP3)
+
+eta_squared(Tol_PAM.lme_TP3)
+
+```
+
+
+Effect size of Origin for each Site
+```{r}
+##KL
+Tol_PAM.lme_TP3_KL<-lmer(PAM.prop~Origin+(1|Genotype), data=Therm_TP3[which(Therm_TP3$Site=="KL"),])
+summary(Tol_PAM.lme_TP3_KL)
+eta_squared(Tol_PAM.lme_TP3_KL)
+
+
+##SS
+Tol_PAM.lme_TP3_SS<-lmer(PAM.prop~Origin+(1|Genotype), data=Therm_TP3[which(Therm_TP3$Site=="SS"),])
+summary(Tol_PAM.lme_TP3_SS)
+eta_squared(Tol_PAM.lme_TP3_SS)
+
+```
+
+
+```{r Plot FvFm Retention TP3}
+##Summary statistics by Site and Origin
+TP3_TolPAM.sum<-summarySE(Therm_TP3, measurevar="PAM.prop", groupvars=c("Site", "Origin", "Site.Orig"), na.rm=TRUE)
+
+##Plot Average Retention across Treatments
+TP3_TolPAM.plot<-ggplot(TP3_TolPAM.sum, aes(x=Site, y=PAM.prop, colour=Site.Orig)) + 
+  scale_colour_manual(values=Orig.colors.o)+
+  geom_errorbar(aes(ymin=PAM.prop-se, ymax=PAM.prop+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
+  geom_point(size=point.sz, position=position_dodge(width=0.5))+
+  theme_classic()+
+  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"))+
+  labs(x="Site and Origin", y="Photochemical Efficiency Retention", colour="Origin")+
+  ylim(0.7, 1); TP3_TolPAM.plot
+```
+
+
+### TP4
+```{r}
+##Subset Timepoint 4
+Therm_TP4<-subset(Therm_H, TimeP=="TP4")
+```
+
+
+#### Symbionts
+```{r}
+#Check normality
+hist(Therm_TP4$Sym.prop)
+shapiro.test(Therm_TP4$Sym.prop)
+#Not normal
+
+hist(log(Therm_TP4$Sym.prop+1))
+shapiro.test(log(Therm_TP4$Sym.prop+1))
+#Normal
+
+##Model with log +1 transformation
+#Function of Site and Origin, with Genotype as a Random effect
+#Interaction between Site and Origin
+Tol_Sym.lme_TP4<-lmer(log(Sym.prop+1)~Origin*Site+(1|Genotype), data=Therm_TP4)
+
+##Check residuals
+Tol_Sym.lme_res_TP4 <- simulateResiduals(fittedModel = Tol_Sym.lme_TP4, plot = F)
+plot(Tol_Sym.lme_res_TP4)
+
+##Model results
+summary(Tol_Sym.lme_TP4)
+
+eta_squared(Tol_Sym.lme_TP4)
+
+```
+
+
+Effect size of Origin for each Site
+```{r}
+##KL
+Tol_Sym.lme_TP4_KL<-lmer(log(Sym.prop+1)~Origin+(1|Genotype), data=Therm_TP4[which(Therm_TP4$Site=="KL"),])
+summary(Tol_Sym.lme_TP4_KL)
+eta_squared(Tol_Sym.lme_TP4_KL)
+
+
+##SS
+Tol_Sym.lme_TP4_SS<-lmer(log(Sym.prop+1)~Origin+(1|Genotype), data=Therm_TP4[which(Therm_TP4$Site=="SS"),])
+summary(Tol_Sym.lme_TP4_SS)
+eta_squared(Tol_Sym.lme_TP4_SS)
+
+```
+
+
+```{r Plot Symbiont Retention TP4}
+##Summary statistics by Site and Origin
+TP4_TolSym.sum<-summarySE(Therm_TP4, measurevar="Sym.prop", groupvars=c("Site", "Origin", "Site.Orig"), na.rm=TRUE)
+
+##Plot Average Retention across Treatments
+TP4_TolSym.plot<-ggplot(TP4_TolSym.sum, aes(x=Site, y=Sym.prop, colour=Site.Orig)) + 
+  scale_colour_manual(values=Orig.colors.o)+
+  geom_errorbar(aes(ymin=Sym.prop-se, ymax=Sym.prop+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
+  geom_point(size=point.sz, position=position_dodge(width=0.5))+
+  theme_classic()+
+  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"))+
+  labs(x="Site and Origin", y="Symbiont Retention", colour="Origin")+
+  ylim(0, 1); TP4_TolSym.plot
+```
+
+
+#### Chlorophyll
+```{r}
+#Check normality
+hist(Therm_TP4$Chl.prop)
+shapiro.test(Therm_TP4$Chl.prop)
+#Not normal
+
+hist(log(Therm_TP4$Chl.prop+1))
+shapiro.test(log(Therm_TP4$Chl.prop+1))
+##Nearly normal
+
+##Model with log +1 transformation
+#Function of Site and Origin, with Genotype as a Random effect
+#Interaction between Site and Origin
+Tol_Chl.lme_TP4<-lmer(log(Chl.prop+1)~Origin*Site+(1|Genotype), data=Therm_TP4)
+
+##Check residuals
+Tol_Chl.lme_res_TP4 <- simulateResiduals(fittedModel = Tol_Chl.lme_TP4, plot = F)
+plot(Tol_Chl.lme_res_TP4)
+
+##Model results
+summary(Tol_Chl.lme_TP4)
+
+eta_squared(Tol_Chl.lme_TP4)
+
+```
+
+
+Effect size of Origin for each Site
+```{r}
+##KL
+Tol_Chl.lme_TP4_KL<-lmer(log(Chl.prop+1)~Origin+(1|Genotype), data=Therm_TP4[which(Therm_TP4$Site=="KL"),])
+summary(Tol_Chl.lme_TP4_KL)
+eta_squared(Tol_Chl.lme_TP4_KL)
+
+
+##SS
+Tol_Chl.lme_TP4_SS<-lmer(log(Chl.prop+1)~Origin+(1|Genotype), data=Therm_TP4[which(Therm_TP4$Site=="SS"),])
+summary(Tol_Chl.lme_TP4_SS)
+eta_squared(Tol_Chl.lme_TP4_SS)
+
+```
+
+
+```{r Plot Chlorophyll Retention TP4}
+##Summary statistics by Site and Origin
+TP4_TolChl.sum<-summarySE(Therm_TP4, measurevar="Chl.prop", groupvars=c("Site", "Origin", "Site.Orig"), na.rm=TRUE)
+
+##Plot Average Retention across Treatments
+TP4_TolChl.plot<-ggplot(TP4_TolChl.sum, aes(x=Site, y=Chl.prop, colour=Site.Orig)) + 
+  scale_colour_manual(values=Orig.colors.o)+
+  geom_errorbar(aes(ymin=Chl.prop-se, ymax=Chl.prop+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
+  geom_point(size=point.sz, position=position_dodge(width=0.5))+
+  theme_classic()+
+  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"))+
+  labs(x="Site and Origin", y="Chlorophyll Retention", colour="Origin")+
+  ylim(0, 0.35); TP4_TolChl.plot
+```
+
+
+#### FvFm
+```{r}
+#Check normality
+hist(Therm_TP4$PAM.prop)
+shapiro.test(Therm_TP4$PAM.prop)
+#Not normal
+
+hist(log(Therm_TP4$PAM.prop+1))
+shapiro.test(log(Therm_TP4$PAM.prop+1))
+##Still not normal
+
+##Model
+#Function of Site and Origin, with Genotype as a Random effect
+#Interaction between Site and Origin
+Tol_PAM.lme_TP4<-lmer(PAM.prop~Origin*Site+(1|Genotype), data=Therm_TP4)
+
+##Check residuals
+Tol_PAM.lme_res_TP4 <- simulateResiduals(fittedModel = Tol_PAM.lme_TP4, plot = F)
+plot(Tol_PAM.lme_res_TP4)
+
+##Model results
+summary(Tol_PAM.lme_TP4)
+
+eta_squared(Tol_PAM.lme_TP4)
+
+```
+
+
+Effect size of Origin for each Site
+```{r}
+##KL
+Tol_PAM.lme_TP4_KL<-lmer(PAM.prop~Origin+(1|Genotype), data=Therm_TP4[which(Therm_TP4$Site=="KL"),])
+summary(Tol_PAM.lme_TP4_KL)
+eta_squared(Tol_PAM.lme_TP4_KL)
+
+
+##SS
+Tol_PAM.lme_TP4_SS<-lmer(PAM.prop~Origin+(1|Genotype), data=Therm_TP4[which(Therm_TP4$Site=="SS"),])
+summary(Tol_PAM.lme_TP4_SS)
+eta_squared(Tol_PAM.lme_TP4_SS)
+
+```
+
+
+```{r Plot FvFm Retention TP4}
+##Summary statistics by Site and Origin
+TP4_TolPAM.sum<-summarySE(Therm_TP4, measurevar="PAM.prop", groupvars=c("Site", "Origin", "Site.Orig"), na.rm=TRUE)
+
+##Plot Average Retention across Treatments
+TP4_TolPAM.plot<-ggplot(TP4_TolPAM.sum, aes(x=Site, y=PAM.prop, colour=Site.Orig)) + 
+  scale_colour_manual(values=Orig.colors.o)+
+  geom_errorbar(aes(ymin=PAM.prop-se, ymax=PAM.prop+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
+  geom_point(size=point.sz, position=position_dodge(width=0.5))+
+  theme_classic()+
+  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"))+
+  labs(x="Site and Origin", y="Photochemical Efficiency Retention", colour="Origin")+
+  ylim(0.6, 1); TP4_TolPAM.plot
+```
+
+
+### Effect Size over Time
+
+```{r}
+##Dataframe of effect size results
+Tol.ES<-data.frame(TimeP=c(rep("TP1",6), rep("TP2",6), rep("TP3",6), rep("TP4",6)), 
+                    Site=c(rep(c("KL", "SS"),12)),
+                    Metric=c(rep(c("Sym.prop", "Sym.prop", "Chl.prop", "Chl.prop", "PAM.prop", "PAM.prop"),4)),
+                    EtaSq=c(eta_squared(Tol_Sym.lme_TP1_KL)$Eta2_partial,
+                             eta_squared(Tol_Sym.lme_TP1_SS)$Eta2_partial,
+                             eta_squared(Tol_Chl.lme_TP1_KL)$Eta2_partial,
+                             eta_squared(Tol_Chl.lme_TP1_SS)$Eta2_partial,
+                             eta_squared(Tol_PAM.lme_TP1_KL)$Eta2_partial,
+                             eta_squared(Tol_PAM.lme_TP1_SS)$Eta2_partial, 
+                     eta_squared(Tol_Sym.lme_TP2_KL)$Eta2_partial,
+                             eta_squared(Tol_Sym.lme_TP2_SS)$Eta2_partial,
+                             eta_squared(Tol_Chl.lme_TP2_KL)$Eta2_partial,
+                             eta_squared(Tol_Chl.lme_TP2_SS)$Eta2_partial,
+                             eta_squared(Tol_PAM.lme_TP2_KL)$Eta2_partial,
+                             eta_squared(Tol_PAM.lme_TP2_SS)$Eta2_partial,
+                     eta_squared(Tol_Sym.lme_TP3_KL)$Eta2_partial,
+                             eta_squared(Tol_Sym.lme_TP3_SS)$Eta2_partial,
+                             eta_squared(Tol_Chl.lme_TP3_KL)$Eta2_partial,
+                             eta_squared(Tol_Chl.lme_TP3_SS)$Eta2_partial,
+                             eta_squared(Tol_PAM.lme_TP3_KL)$Eta2_partial,
+                             eta_squared(Tol_PAM.lme_TP3_SS)$Eta2_partial,
+                     eta_squared(Tol_Sym.lme_TP4_KL)$Eta2_partial,
+                             eta_squared(Tol_Sym.lme_TP4_SS)$Eta2_partial,
+                             eta_squared(Tol_Chl.lme_TP4_KL)$Eta2_partial,
+                             eta_squared(Tol_Chl.lme_TP4_SS)$Eta2_partial,
+                             eta_squared(Tol_PAM.lme_TP4_KL)$Eta2_partial,
+                             eta_squared(Tol_PAM.lme_TP4_SS)$Eta2_partial),
+                    Pvalue=c(summary(Tol_Sym.lme_TP1_KL)$coefficients[10],
+                             summary(Tol_Sym.lme_TP1_SS)$coefficients[10],
+                             summary(Tol_Chl.lme_TP1_KL)$coefficients[10],
+                             summary(Tol_Chl.lme_TP1_SS)$coefficients[10],
+                             summary(Tol_PAM.lme_TP1_KL)$coefficients[10],
+                             summary(Tol_PAM.lme_TP1_SS)$coefficients[10], 
+                     summary(Tol_Sym.lme_TP2_KL)$coefficients[10],
+                             summary(Tol_Sym.lme_TP2_SS)$coefficients[10],
+                             summary(Tol_Chl.lme_TP2_KL)$coefficients[10],
+                             summary(Tol_Chl.lme_TP2_SS)$coefficients[10],
+                             summary(Tol_PAM.lme_TP2_KL)$coefficients[10],
+                             summary(Tol_PAM.lme_TP2_SS)$coefficients[10],
+                     summary(Tol_Sym.lme_TP3_KL)$coefficients[10],
+                             summary(Tol_Sym.lme_TP3_SS)$coefficients[10],
+                             summary(Tol_Chl.lme_TP3_KL)$coefficients[10],
+                             summary(Tol_Chl.lme_TP3_SS)$coefficients[10],
+                             summary(Tol_PAM.lme_TP3_KL)$coefficients[10],
+                             summary(Tol_PAM.lme_TP3_SS)$coefficients[10],
+                     summary(Tol_Sym.lme_TP4_KL)$coefficients[10],
+                             summary(Tol_Sym.lme_TP4_SS)$coefficients[10],
+                             summary(Tol_Chl.lme_TP4_KL)$coefficients[10],
+                             summary(Tol_Chl.lme_TP4_SS)$coefficients[10],
+                             summary(Tol_PAM.lme_TP4_KL)$coefficients[10],
+                             summary(Tol_PAM.lme_TP4_SS)$coefficients[10]))
+
+
+Tol.ES$Sig<-ifelse(Tol.ES$Pvalue<0.001, "***", ifelse(Tol.ES$Pvalue<0.01, "**", ifelse(Tol.ES$Pvalue<0.05, "*", ifelse(Tol.ES$Pvalue<0.1, "-", NA))))
+```
+
+
+#### Symbionts
+```{r Plot Effect Size Symbiont Retention}
+Tol_Sym.ES.plot<-ggplot(Tol.ES[which(Tol.ES$Metric=="Sym.prop"),], aes(x=TimeP, y=EtaSq, fill=Site))+
+  geom_bar(stat="identity", position=position_dodge())+
+    scale_fill_manual(values=Site.colors.o)+
+theme_classic()+
+  ggtitle("Symbiont Retention")+
+  theme(plot.title = element_text(colour="black", size=panel.lab.sz, hjust=0.5), axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"))+
+   labs(x="Time Point", y=expression(paste("Effect Size (p", eta^2, ")")), colour="Site")+
+  ylim(0, 0.4)+
+  geom_text(aes(label=Sig), vjust=-0.02, color="black", position=position_dodge(0.9), size=levels.sz, fontface="bold"); Tol_Sym.ES.plot
+
+```
+
+
+#### Chlorophyll
+```{r Plot Effect Size Chlorophyll Retention}
+Tol_Chl.ES.plot<-ggplot(Tol.ES[which(Tol.ES$Metric=="Chl.prop"),], aes(x=TimeP, y=EtaSq, fill=Site))+
+  geom_bar(stat="identity", position=position_dodge())+
+    scale_fill_manual(values=Site.colors.o)+
+theme_classic()+
+  ggtitle("Chlorophyll Retention")+
+  theme(plot.title = element_text(colour="black", size=panel.lab.sz, hjust=0.5), axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"))+
+   labs(x="Time Point", y=expression(paste("Effect Size (p", eta^2, ")")), colour="Site")+
+  ylim(0, 0.4)+
+  geom_text(aes(label=Sig), vjust=-0.02, color="black", position=position_dodge(0.9), size=levels.sz, fontface="bold"); Tol_Chl.ES.plot
+
+```
+
+
+#### FvFm
+```{r Plot Effect Size FvFm Retention}
+Tol_PAM.ES.plot<-ggplot(Tol.ES[which(Tol.ES$Metric=="PAM.prop"),], aes(x=TimeP, y=EtaSq, fill=Site))+
+  geom_bar(stat="identity", position=position_dodge())+
+    scale_fill_manual(values=Site.colors.o)+
+theme_classic()+
+  ggtitle("Photochemical Efficiency Retention")+
+  theme(plot.title = element_text(colour="black", size=panel.lab.sz, hjust=0.5), axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"))+
+   labs(x="Time Point", y=expression(paste("Effect Size (p", eta^2, ")")), colour="Site")+
+  ylim(0, 0.4)+
+  geom_text(aes(label=Sig), vjust=-0.02, color="black", position=position_dodge(0.9), size=levels.sz, fontface="bold"); Tol_PAM.ES.plot
+
+```
+
+
+# Figures
+
+### Figure 3 Growth and Tolerance ES
+
+#### Adjust Figures for Panel
+```{r}
+##Growth
+TP1.2_Growth.plot.cut<-ggplot(TP1.2_Growth.sum, aes(x=Site, y=TLE_cm.day, colour=Site.Orig)) + 
+  scale_colour_manual(values=Orig.colors.o)+
+  geom_errorbar(aes(ymin=TLE_cm.day-se, ymax=TLE_cm.day+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
+  geom_point(size=point.sz, position=position_dodge(width=0.5))+
+  theme_classic()+
+  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"), legend.position=c(0.2, 0.8))+
+  labs(x="Site and Origin", y=expression(paste('Growth Rate (cm day'^-1*")")), colour="Origin")+
+  ylim(0, 0.3)
+
+##FvFm Retention
+Tol_PAM.ES.plot.cut<-ggplot(Tol.ES[which(Tol.ES$Metric=="PAM.prop"),], aes(x=TimeP, y=EtaSq, fill=Site))+
+  geom_bar(stat="identity", position=position_dodge())+
+  scale_fill_manual(values=Site.colors.o)+
+  theme_classic()+
+  ggtitle("Photochemical Efficiency")+
+  theme(plot.title = element_text(colour="black", size=panel.lab.sz, hjust=0.5), axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"), legend.position=c(0.8, 0.8))+
+  labs(x="Time Point", y=expression(paste("Effect Size (p", eta^2, ")")), colour="Site")+
+  ylim(0, 0.35)+
+  geom_text(aes(label=Sig), vjust=-0.02, color="black", position=position_dodge(0.9), size=levels.sz, fontface="bold")
+
+##Symbiont Retention
+Tol_Sym.ES.plot.cut<-ggplot(Tol.ES[which(Tol.ES$Metric=="Sym.prop"),], aes(x=TimeP, y=EtaSq, fill=Site))+
+  geom_bar(stat="identity", position=position_dodge())+
+  scale_fill_manual(values=Site.colors.o)+
+  theme_classic()+
+  ggtitle("Symbionts")+
+  theme(plot.title = element_text(colour="black", size=panel.lab.sz, hjust=0.5), axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), legend.position="none")+
+  labs(x="Time Point", y=expression(paste("Effect Size (p", eta^2, ")")), colour="Site")+
+  ylim(0, 0.35)+
+  geom_text(aes(label=Sig), vjust=-0.02, color="black", position=position_dodge(0.9), size=levels.sz, fontface="bold")
+
+
+##Chlorophyll Retention
+Tol_Chl.ES.plot.cut<-ggplot(Tol.ES[which(Tol.ES$Metric=="Chl.prop"),], aes(x=TimeP, y=EtaSq, fill=Site))+
+  geom_bar(stat="identity", position=position_dodge())+
+  scale_fill_manual(values=Site.colors.o)+
+  theme_classic()+
+  ggtitle("Chlorophyll")+
+  theme(plot.title = element_text(colour="black", size=panel.lab.sz, hjust=0.5), axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), legend.position="none")+
+  labs(x="Time Point", y=expression(paste("Effect Size (p", eta^2, ")")), colour="Site")+
+  ylim(0, 0.35)+
+  geom_text(aes(label=Sig), vjust=-0.02, color="black", position=position_dodge(0.9), size=levels.sz, fontface="bold")
+
+```
+
+
+#### Figure 3
+```{r}
+##Create Panel
+Performance_fig<-plot_grid(TP1.2_Growth.plot.cut, Tol_PAM.ES.plot.cut, 
+                      Tol_Sym.ES.plot.cut, Tol_Chl.ES.plot.cut,
+                    rel_widths=c(1, 1, 1, 1), 
+                    rel_heights = c(1, 1, 1, 1),
+                    nrow=2, ncol=2, byrow=T, labels = c("A", "B", "C", "D"))
+
+##Save Figure
+ggsave(filename="Figures/03_Performance/Fig3_Performance.png", plot=Performance_fig, dpi=300, width=10, height=8, units="in")
+
+```
+
+
+### Figure S4 Initial Heat Assay
+
+#### Adjust Figures for Panel
+```{r}
+##FvFm
+IN_PAM.plot.cut<-ggplot(IN_PAM.sum, aes(x=Site.Treat, y=Fv_Fm, colour=Site)) + 
+  scale_colour_manual(values=Site.colors.o)+
+  geom_errorbar(aes(ymin=Fv_Fm-se, ymax=Fv_Fm+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
+  geom_point(aes(shape=Treatment), size=point.sz, position=position_dodge(width=0.5))+
+  scale_shape_manual(values=c(1,16))+
+  theme_classic()+
+  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.position="none")+
+  labs(x="", y="Fv/Fm", colour="Site")+
+  ylim(0.5, 0.655)
+
+IN_TolPAM.plot.cut<-ggplot(IN_TolPAM.sum, aes(x=Site, y=PAM.prop, colour=Site)) + 
+  scale_colour_manual(values=Site.colors.o)+
+  geom_errorbar(aes(ymin=PAM.prop-se, ymax=PAM.prop+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
+  geom_point(size=point.sz, position=position_dodge(width=0.5))+
+  theme_classic()+
+  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.position="none")+
+  labs(x="", y="Retention", colour="Site")+
+  ylim(0.75, 1)+
+  annotate("text", x=1.5, y=0.95, label="*", size=sig.sz, fontface="bold")
+
+##Symbionts
+IN_Sym.plot.cut<-ggplot(IN_Sym.sum, aes(x=Site.Treat, y=Sym10.6_cm2, colour=Site)) + 
+  scale_colour_manual(values=Site.colors.o)+
+  geom_errorbar(aes(ymin=Sym10.6_cm2-se, ymax=Sym10.6_cm2+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
+  geom_point(aes(shape=Treatment), size=point.sz, position=position_dodge(width=0.5))+
+  scale_shape_manual(values=c(1,16))+
+  theme_classic()+
+  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.position="none")+
+  labs(x="", y=expression(paste('Symbionts ('*10^6,'cells cm'^-2*")")), colour="Site")+
+  ylim(0, 1)
+
+IN_TolSym.plot.cut<-ggplot(IN_TolSym.sum, aes(x=Site, y=Sym.prop, colour=Site)) + 
+  scale_colour_manual(values=Site.colors.o)+
+  geom_errorbar(aes(ymin=Sym.prop-se, ymax=Sym.prop+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
+  geom_point(size=point.sz, position=position_dodge(width=0.5))+
+  theme_classic()+
+  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.position="none")+
+  labs(x="", y="Retention", colour="Site")+
+  ylim(.25, .75)+
+  annotate("text", x=1.5, y=0.7, label="-", size=sig.sz, fontface="bold")
+
+##Chlorophyll
+IN_Chl.plot.cut<-ggplot(IN_Chl.sum, aes(x=Site.Treat, y=Chl_ug.cm2, colour=Site)) + 
+  scale_colour_manual(values=Site.colors.o)+
+  geom_errorbar(aes(ymin=Chl_ug.cm2-se, ymax=Chl_ug.cm2+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
+  geom_point(aes(shape=Treatment), size=point.sz, position=position_dodge(width=0.5))+
+  scale_shape_manual(values=c(1,16))+
+  theme_classic()+
+  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.position="none")+
+  labs(x="Site and Treatment", y=expression(paste('Chlorophyll (\u03BCg cm'^-2*")")), colour="Site")+
+  ylim(0, 1.25)
+
+IN_TolChl.plot.cut<-ggplot(IN_TolChl.sum, aes(x=Site, y=Chl.prop, colour=Site)) + 
+  scale_colour_manual(values=Site.colors.o)+
+  geom_errorbar(aes(ymin=Chl.prop-se, ymax=Chl.prop+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
+  geom_point(size=point.sz, position=position_dodge(width=0.5))+
+  theme_classic()+
+  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.position="none")+
+  labs(x="Site", y="Retention", colour="Site")+
+  ylim(0, 0.25)
+```
+
+
+#### Figure S4
+```{r}
+##Create Panel
+IN_HeatAssay_fig<-plot_grid(IN_PAM.plot.cut, IN_TolPAM.plot.cut, 
+                      IN_Sym.plot.cut, IN_TolSym.plot.cut,
+                      IN_Chl.plot.cut, IN_TolChl.plot.cut,
+                    rel_widths=c(1, 0.75), 
+                    rel_heights = c(1, 1, 1),
+                    nrow=3, ncol=2, byrow=T, labels = c("A", "B", "C", "D", "E", "F"))
+
+##Save Figure
+ggsave(filename="Figures/03_Performance/FigS4_InitialHeatAssay.png", plot=IN_HeatAssay_fig, dpi=300, width=8, height=11, units="in")
+
+```
+
+
+### Figure S5 Univariate Panels
+
+#### Adjust Figures for Panel
+```{r}
+
+##FvFm
+TP1_TolPAM.plot.cut<-ggplot(TP1_TolPAM.sum, aes(x=Site, y=PAM.prop, colour=Site.Orig)) + 
+  scale_colour_manual(values=Orig.colors.o)+
+  geom_errorbar(aes(ymin=PAM.prop-se, ymax=PAM.prop+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
+  geom_point(size=point.sz, position=position_dodge(width=0.5))+
+  theme_classic()+
+  ggtitle("TP1")+
+  theme(plot.title = element_text(colour="black", size=panel.lab.sz, face="bold", hjust=0.5),axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.position="none")+
+  labs(x="", y="Photo. Effic. Retention", colour="Origin")+
+  ylim(0.7, 1)+
+  annotate("text", x=1, y=1, label="**", size=sig.sz, fontface="bold")
+
+TP2_TolPAM.plot.cut<-ggplot(TP2_TolPAM.sum, aes(x=Site, y=PAM.prop, colour=Site.Orig)) + 
+  scale_colour_manual(values=Orig.colors.o)+
+  geom_errorbar(aes(ymin=PAM.prop-se, ymax=PAM.prop+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
+  geom_point(size=point.sz, position=position_dodge(width=0.5))+
+  theme_classic()+
+  ggtitle("TP2")+
+  theme(plot.title = element_text(colour="black", size=panel.lab.sz, face="bold", hjust=0.5),axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.position="none")+
+  labs(x="", y="", colour="Origin")+
+  ylim(0.7, 1)+
+  annotate("text", x=1, y=1, label="*", size=sig.sz, fontface="bold")
+
+TP3_TolPAM.plot.cut<-ggplot(TP3_TolPAM.sum, aes(x=Site, y=PAM.prop, colour=Site.Orig)) + 
+  scale_colour_manual(values=Orig.colors.o)+
+  geom_errorbar(aes(ymin=PAM.prop-se, ymax=PAM.prop+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
+  geom_point(size=point.sz, position=position_dodge(width=0.5))+
+  theme_classic()+
+  ggtitle("TP3")+
+  theme(plot.title = element_text(colour="black", size=panel.lab.sz, face="bold", hjust=0.5),axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.position="none")+
+  labs(x="", y="", colour="Origin")+
+  ylim(0.7, 1)
+
+TP4_TolPAM.plot.cut<-ggplot(TP4_TolPAM.sum, aes(x=Site, y=PAM.prop, colour=Site.Orig)) + 
+  scale_colour_manual(values=Orig.colors.o)+
+  geom_errorbar(aes(ymin=PAM.prop-se, ymax=PAM.prop+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
+  geom_point(size=point.sz, position=position_dodge(width=0.5))+
+  theme_classic()+
+  ggtitle("TP4")+
+  theme(plot.title = element_text(colour="black", size=panel.lab.sz, face="bold", hjust=0.5),axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"))+
+  labs(x="", y="", colour="Origin")+
+  ylim(0.7, 1)
+
+
+##Symbionts
+TP1_TolSym.plot.cut<-ggplot(TP1_TolSym.sum, aes(x=Site, y=Sym.prop, colour=Site.Orig)) + 
+  scale_colour_manual(values=Orig.colors.o)+
+  geom_errorbar(aes(ymin=Sym.prop-se, ymax=Sym.prop+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
+  geom_point(size=point.sz, position=position_dodge(width=0.5))+
+  theme_classic()+
+  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.position="none")+
+  labs(x="", y="Symbiont Retention", colour="Origin")+
+  ylim(0.2, 1)+
+  annotate("text", x=1, y=0.75, label="*", size=sig.sz, fontface="bold")
+
+TP2_TolSym.plot.cut<-ggplot(TP2_TolSym.sum, aes(x=Site, y=Sym.prop, colour=Site.Orig)) + 
+  scale_colour_manual(values=Orig.colors.o)+
+  geom_errorbar(aes(ymin=Sym.prop-se, ymax=Sym.prop+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
+  geom_point(size=point.sz, position=position_dodge(width=0.5))+
+  theme_classic()+
+  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.position="none")+
+  labs(x="", y="", colour="Origin")+
+  ylim(0.2, 1)
+
+TP3_TolSym.plot.cut<-ggplot(TP3_TolSym.sum, aes(x=Site, y=Sym.prop, colour=Site.Orig)) + 
+  scale_colour_manual(values=Orig.colors.o)+
+  geom_errorbar(aes(ymin=Sym.prop-se, ymax=Sym.prop+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
+  geom_point(size=point.sz, position=position_dodge(width=0.5))+
+  theme_classic()+
+  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.position="none")+
+  labs(x="", y="", colour="Origin")+
+  ylim(0.2, 1)
+
+TP4_TolSym.plot.cut<-ggplot(TP4_TolSym.sum, aes(x=Site, y=Sym.prop, colour=Site.Orig)) + 
+  scale_colour_manual(values=Orig.colors.o)+
+  geom_errorbar(aes(ymin=Sym.prop-se, ymax=Sym.prop+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
+  geom_point(size=point.sz, position=position_dodge(width=0.5))+
+  theme_classic()+
+  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"))+
+  labs(x="Site and Origin", y="Symbiont Retention", colour="Origin")+
+  ylim(0.2, 1)
+
+
+##Chlorophyll
+TP1_TolChl.plot.cut<-ggplot(TP1_TolChl.sum, aes(x=Site, y=Chl.prop, colour=Site.Orig)) + 
+  scale_colour_manual(values=Orig.colors.o)+
+  geom_errorbar(aes(ymin=Chl.prop-se, ymax=Chl.prop+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
+  geom_point(size=point.sz, position=position_dodge(width=0.5))+
+  theme_classic()+
+  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.position="none")+
+  labs(x="Site and Origin", y="Chlorophyll Retention", colour="Origin")+
+  ylim(0, .8)
+
+TP2_TolChl.plot.cut<-ggplot(TP2_TolChl.sum, aes(x=Site, y=Chl.prop, colour=Site.Orig)) + 
+  scale_colour_manual(values=Orig.colors.o)+
+  geom_errorbar(aes(ymin=Chl.prop-se, ymax=Chl.prop+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
+  geom_point(size=point.sz, position=position_dodge(width=0.5))+
+  theme_classic()+
+  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.position="none")+
+  labs(x="Site and Origin", y="Chlorophyll Retention", colour="Origin")+
+  ylim(0, .8)
+
+TP3_TolChl.plot.cut<-ggplot(TP3_TolChl.sum, aes(x=Site, y=Chl.prop, colour=Site.Orig)) + 
+  scale_colour_manual(values=Orig.colors.o)+
+  geom_errorbar(aes(ymin=Chl.prop-se, ymax=Chl.prop+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
+  geom_point(size=point.sz, position=position_dodge(width=0.5))+
+  theme_classic()+
+  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.position="none")+
+  labs(x="Site and Origin", y="", colour="Origin")+
+  ylim(0, .8)
+
+TP4_TolChl.plot.cut<-ggplot(TP4_TolChl.sum, aes(x=Site, y=Chl.prop, colour=Site.Orig)) + 
+  scale_colour_manual(values=Orig.colors.o)+
+  geom_errorbar(aes(ymin=Chl.prop-se, ymax=Chl.prop+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
+  geom_point(size=point.sz, position=position_dodge(width=0.5))+
+  theme_classic()+
+  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"))+
+  labs(x="Site and Origin", y="", colour="Origin")+
+  ylim(0, .8)
+
+```
+
+
+#### Figure S5
+```{r}
+##Create Panel
+Tol_fig<-plot_grid(
+  TP1_TolPAM.plot.cut,TP2_TolPAM.plot.cut,TP3_TolPAM.plot.cut,TP4_TolPAM.plot.cut,
+  TP1_TolSym.plot.cut,TP2_TolSym.plot.cut,TP3_TolSym.plot.cut,TP4_TolSym.plot.cut,
+  TP1_TolChl.plot.cut,TP2_TolChl.plot.cut,TP3_TolChl.plot.cut,TP4_TolChl.plot.cut,
+                    rel_widths=c(rep(c(0.7, 0.7, 0.7,1),3)), 
+                    rel_heights = c(1,0.85,0.85),
+                    nrow=3, ncol=4, byrow=T, labels = NULL)
+
+##Save Figure
+ggsave(filename="Figures/03_Performance/FigS5_ToleranceMetrics.png", plot=Tol_fig, dpi=300, width=12, height=10, units="in")
+
+```
+
+
+# Tables
+
+### Table S5
+
+```{r}
+##Dataframe of Performance Results 
+##Model Results
+TableS5<-data.frame(rbind(
+   summary(Growth.lme_TP1.2)$coefficients[-1,],summary(Growth.lme_TP1.2_KL)$coefficients[-1,],
+   summary(Growth.lme_TP1.2_SS)$coefficients[-1,],
+   
+   summary(Tol_PAM.lme_TP1)$coefficients[-1,],summary(Tol_PAM.lme_TP1_KL)$coefficients[-1,],
+   summary(Tol_PAM.lme_TP1_SS)$coefficients[-1,],
+   summary(Tol_Sym.lme_TP1)$coefficients[-1,],summary(Tol_Sym.lme_TP1_KL)$coefficients[-1,],
+   summary(Tol_Sym.lme_TP1_SS)$coefficients[-1,], 
+   summary(Tol_Chl.lme_TP1)$coefficients[-1,],summary(Tol_Chl.lme_TP1_KL)$coefficients[-1,],
+   summary(Tol_Chl.lme_TP1_SS)$coefficients[-1,], 
+   
+    summary(Tol_PAM.lme_TP2)$coefficients[-1,],summary(Tol_PAM.lme_TP2_KL)$coefficients[-1,],
+   summary(Tol_PAM.lme_TP2_SS)$coefficients[-1,],
+   summary(Tol_Sym.lme_TP2)$coefficients[-1,],summary(Tol_Sym.lme_TP2_KL)$coefficients[-1,],
+   summary(Tol_Sym.lme_TP2_SS)$coefficients[-1,], 
+   summary(Tol_Chl.lme_TP2)$coefficients[-1,],summary(Tol_Chl.lme_TP2_KL)$coefficients[-1,],
+   summary(Tol_Chl.lme_TP2_SS)$coefficients[-1,], 
+   
+      summary(Tol_PAM.lme_TP3)$coefficients[-1,],summary(Tol_PAM.lme_TP3_KL)$coefficients[-1,],
+   summary(Tol_PAM.lme_TP3_SS)$coefficients[-1,],
+   summary(Tol_Sym.lme_TP3)$coefficients[-1,],summary(Tol_Sym.lme_TP3_KL)$coefficients[-1,],
+   summary(Tol_Sym.lme_TP3_SS)$coefficients[-1,], 
+   summary(Tol_Chl.lme_TP3)$coefficients[-1,],summary(Tol_Chl.lme_TP3_KL)$coefficients[-1,],
+   summary(Tol_Chl.lme_TP3_SS)$coefficients[-1,], 
+   
+      summary(Tol_PAM.lme_TP4)$coefficients[-1,],summary(Tol_PAM.lme_TP4_KL)$coefficients[-1,],
+   summary(Tol_PAM.lme_TP4_SS)$coefficients[-1,],
+   summary(Tol_Sym.lme_TP4)$coefficients[-1,],summary(Tol_Sym.lme_TP4_KL)$coefficients[-1,],
+   summary(Tol_Sym.lme_TP4_SS)$coefficients[-1,], 
+   summary(Tol_Chl.lme_TP4)$coefficients[-1,],summary(Tol_Chl.lme_TP4_KL)$coefficients[-1,],
+   summary(Tol_Chl.lme_TP4_SS)$coefficients[-1,]))
+
+names(TableS5)<-c("Estimate", "SE", "DF", "t", "p") 
+
+##Metadata 
+TableS5$Type<-c(rep("Growth", 5), rep("Tolerance", 60))
+TableS5$Metric<-c(rep("Growth", 5), rep(c(rep("FvFm", 5), rep("Symbionts", 5), rep("Chlorophyll", 5)), 4))
+TableS5$TimeP<-c(rep("TP1.2", 5), rep("TP1",15), rep("TP2",15), rep("TP3",15), rep("TP4",15))
+TableS5$Predictor<-c(rep(c("Origin", "Site", "Origin x Site", "KL Origin", "SS Origin"), 13))
+
+##Effect Size  
+TableS5$EtaSq<-c(
+  eta_squared(Growth.lme_TP1.2)$Eta2_partial,eta_squared(Growth.lme_TP1.2_KL)$Eta2_partial,
+   eta_squared(Growth.lme_TP1.2_SS)$Eta2_partial,
+   
+   eta_squared(Tol_PAM.lme_TP1)$Eta2_partial,eta_squared(Tol_PAM.lme_TP1_KL)$Eta2_partial,
+   eta_squared(Tol_PAM.lme_TP1_SS)$Eta2_partial,
+   eta_squared(Tol_Sym.lme_TP1)$Eta2_partial,eta_squared(Tol_Sym.lme_TP1_KL)$Eta2_partial,
+   eta_squared(Tol_Sym.lme_TP1_SS)$Eta2_partial, 
+   eta_squared(Tol_Chl.lme_TP1)$Eta2_partial,eta_squared(Tol_Chl.lme_TP1_KL)$Eta2_partial,
+   eta_squared(Tol_Chl.lme_TP1_SS)$Eta2_partial, 
+   
+    eta_squared(Tol_PAM.lme_TP2)$Eta2_partial,eta_squared(Tol_PAM.lme_TP2_KL)$Eta2_partial,
+   eta_squared(Tol_PAM.lme_TP2_SS)$Eta2_partial,
+   eta_squared(Tol_Sym.lme_TP2)$Eta2_partial,eta_squared(Tol_Sym.lme_TP2_KL)$Eta2_partial,
+   eta_squared(Tol_Sym.lme_TP2_SS)$Eta2_partial, 
+   eta_squared(Tol_Chl.lme_TP2)$Eta2_partial,eta_squared(Tol_Chl.lme_TP2_KL)$Eta2_partial,
+   eta_squared(Tol_Chl.lme_TP2_SS)$Eta2_partial, 
+   
+      eta_squared(Tol_PAM.lme_TP3)$Eta2_partial,eta_squared(Tol_PAM.lme_TP3_KL)$Eta2_partial,
+   eta_squared(Tol_PAM.lme_TP3_SS)$Eta2_partial,
+   eta_squared(Tol_Sym.lme_TP3)$Eta2_partial,eta_squared(Tol_Sym.lme_TP3_KL)$Eta2_partial,
+   eta_squared(Tol_Sym.lme_TP3_SS)$Eta2_partial, 
+   eta_squared(Tol_Chl.lme_TP3)$Eta2_partial,eta_squared(Tol_Chl.lme_TP3_KL)$Eta2_partial,
+   eta_squared(Tol_Chl.lme_TP3_SS)$Eta2_partial, 
+   
+      eta_squared(Tol_PAM.lme_TP4)$Eta2_partial,eta_squared(Tol_PAM.lme_TP4_KL)$Eta2_partial,
+   eta_squared(Tol_PAM.lme_TP4_SS)$Eta2_partial,
+   eta_squared(Tol_Sym.lme_TP4)$Eta2_partial,eta_squared(Tol_Sym.lme_TP4_KL)$Eta2_partial,
+   eta_squared(Tol_Sym.lme_TP4_SS)$Eta2_partial, 
+   eta_squared(Tol_Chl.lme_TP4)$Eta2_partial,eta_squared(Tol_Chl.lme_TP4_KL)$Eta2_partial,
+   eta_squared(Tol_Chl.lme_TP4_SS)$Eta2_partial)
+
+TableS5<-TableS5[,c(6:9, 1:5, 10)]
+
+rownames(TableS5)<-NULL
+
+##Save Table
+write.csv(TableS5, "Outputs/TableS5.csv", row.names=FALSE)
+
+```
+
+
+### Table S6
+```{r}
+##Dataframe of Initial Thermal Tolerance Assay Results 
+##Model Results
+TableS6.model<-data.frame(rbind(
+  summary(PAM.lme_IN)$coefficients[-1,], summary(Sym.lme_IN)$coefficients[-1,], summary(Chl.lme_IN)$coefficients[-1,]))
+
+names(TableS6.model)<-c("Estimate", "SE", "DF", "t", "p") 
+
+TableS6.emmeans<-data.frame(rbind(
+data.frame(rbind(emmeans(PAM.lme_IN, pairwise ~ Site | Treatment)$contrasts[1], emmeans(PAM.lme_IN, pairwise ~ Site | Treatment)$contrasts[2], emmeans(PAM.lme_IN, pairwise ~ Treatment | Site)$contrasts[1], emmeans(PAM.lme_IN, pairwise ~ Treatment | Site)$contrasts[2]))[,-c(1:3)], 
+data.frame(rbind(emmeans(Sym.lme_IN, pairwise ~ Site | Treatment)$contrasts[1], emmeans(Sym.lme_IN, pairwise ~ Site | Treatment)$contrasts[2], emmeans(Sym.lme_IN, pairwise ~ Treatment | Site)$contrasts[1], emmeans(Sym.lme_IN, pairwise ~ Treatment | Site)$contrasts[2]))[,-c(1:3)],
+data.frame(rbind(emmeans(Chl.lme_IN, pairwise ~ Site | Treatment)$contrasts[1], emmeans(Chl.lme_IN, pairwise ~ Site | Treatment)$contrasts[2], emmeans(Chl.lme_IN, pairwise ~ Treatment | Site)$contrasts[1], emmeans(Chl.lme_IN, pairwise ~ Treatment | Site)$contrasts[2]))[,-c(1:3)]))
+
+names(TableS6.emmeans)<-c("Estimate", "SE", "DF", "t", "p") 
+
+TableS6<-rbind(TableS6.model[1:3,], TableS6.emmeans[1:4,], TableS6.model[4:6,], TableS6.emmeans[5:8,], TableS6.model[7:9,], TableS6.emmeans[9:12,])
+
+##Metadata 
+TableS6$Metric<-c(rep("FvFm", 7), rep("Symbionts", 7), rep("Chlorophyll", 7))
+TableS6$Predictor<-c(rep(c("Site", "Treatment", "Site x Treatment", "Control Site", "Heated Site", "KL Treatment", "SS Treatment"), 3))
+
+
+##Effect Size  
+TableS6$EtaSq<-c(eta_squared(PAM.lme_IN)$Eta2_partial, NA, NA, NA, NA, eta_squared(Sym.lme_IN)$Eta2_partial, NA, NA, NA, NA, eta_squared(Chl.lme_IN)$Eta2_partial, NA, NA, NA, NA)
+
+TableS6<-TableS6[,c(6:7, 1:5, 8)]
+
+rownames(TableS6)<-NULL
+
+##Save Table
+write.csv(TableS6, "Outputs/TableS6.csv", row.names=FALSE)
+  
+```
+
