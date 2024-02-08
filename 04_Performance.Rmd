@@ -22,23 +22,35 @@ knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 ```{r}
 ##Install Packages if Needed
 if (!require("ggplot2")) install.packages("ggplot2")
+if (!require("cowplot")) install.packages("cowplot")
+if (!require("lubridate")) install.packages("lubridate")
+if (!require("corrplot")) install.packages("corrplot")
+if (!require("lme4")) install.packages("lme4")
+if (!require("vegan")) install.packages("vegan")
+if (!require("DHARMa")) install.packages("DHARMa")
+if (!require("effectsize")) install.packages("effectsize")
+if (!require("emmeans")) install.packages("emmeans")
+if (!require("lmerTest")) install.packages("lmerTest")
+if (!require("tidyr")) install.packages("tidyr")
+if (!require("dplyr")) install.packages("dplyr")
+if (!require("plotrix")) install.packages("plotrix")
+if (!require("Rmisc")) install.packages("Rmisc")
 
 ##Load Packages
-library(ggplot2)
-library(lubridate)
-library(corrplot)
-library(cowplot)
-library(lme4)
-library(lmerTest)
-library(DHARMa)
-library(effectsize)
-library(jtools)
-library(tidyr)
-library(dplyr)
-library(emmeans)
-library(plotrix)
-
-library(Rmisc)
+library(ggplot2) #Required for ggplots
+library(cowplot) #Required for plotting panel figures
+library(lubridate) #Required for date and time formatting
+library(corrplot) #Required for correlation plot
+library(lme4) #Required for mixed effects modeling
+library(vegan) #Required for multivariate analysis PERM
+library(DHARMa) #Required to check residuals of mixed effects models
+library(effectsize) #Required for eta_squared effect sizes
+library(emmeans) #Required for pairwise comparisons 
+library(lmerTest) #Required for p values with lme4 model summaries
+library(tidyr) #Required for pivot_wider function
+library(dplyr) #Required for group_by function
+library(plotrix) #Required for Standard error function
+library(Rmisc) #Required for SummarySE function
 
 ```
 
@@ -53,8 +65,6 @@ library(Rmisc)
 
 ### Load and Organize Data
 ```{r}
-##Load Data
-
 ##Growth
 Length<-read.csv("Data/Length.csv", header=TRUE)
 Dates<-read.csv("Data/BonaireDates.csv", header=TRUE)
