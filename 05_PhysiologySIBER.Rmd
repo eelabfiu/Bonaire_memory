@@ -1,0 +1,76 @@
+---
+title: "SIBER Analysis of Coral Physiology"
+author: "Peter Flood and Serena Hackerott"
+date: "2/8/2024"
+output:
+  html_document:
+    toc: yes
+    df_print: paged
+  html_notebook:
+    toc: yes
+    toc_float: yes
+---
+
+# Setup
+
+```{r Setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+
+### Load Packages
+```{r}
+##Install Packages if Needed
+
+##Load Packages
+
+```
+
+
+# Sample Data and Metadata
+
+### Load and Organize Data
+```{r}
+##Load Data
+#Note: Physiological metrics calculated in 02_PhysiologyMetrics.R file
+Phys<-read.csv("Outputs/CoralData.csv", header=TRUE)
+
+##Set factor variables
+Phys$TimeP<-factor(Phys$TimeP, levels=c("TP1", "TP2", "TP3", "TP4"))
+Phys$Site<-factor(Phys$Site, levels=c("KL", "SS"))
+Phys$Genotype<-factor(Phys$Genotype, levels=c("AC8", "AC10", "AC12"))
+Phys$Orig<-factor(Phys$Orig, levels=c("N", "T"))
+Phys$Origin<-factor(Phys$Origin, levels=c("Native", "Transplant"))
+Phys$Site.Orig<-factor(Phys$Site.Orig, levels=c("KL.N", "KL.T", "SS.N", "SS.T"))
+
+```
+
+
+### Check Correlation
+```{r}
+##Remove NA's
+names(Phys)
+Phys.rm<-na.omit(Phys)
+
+##Log +1 transform 
+Phys.log<-Phys.rm
+Phys.log[,-c(1:10)]<-log(Phys.rm[,-c(1:10)]+1)
+  
+Phys.corr<-rcorr(as.matrix(Phys.log[,-c(1:10)]), type="pearson")
+Phys.corr
+
+diag(Phys.corr$P)<-0
+
+corrplot(Phys.corr$r, type="upper", order="hclust", 
+         p.mat = Phys.corr$P, sig.level = 0.01, insig = "blank")
+
+```
+
+
+# SIBER Ellipses
+
+
+# Ellipse Overlap
+
+
+# Figures

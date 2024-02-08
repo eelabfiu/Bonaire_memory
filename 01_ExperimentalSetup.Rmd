@@ -20,8 +20,6 @@ knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 
 ### Load Packages
 ```{r}
-#setwd("C:/Users/snhac/OneDrive/Documents/FIU/Bonaire Project/Year 2/Data Analysis/Bonaire Memory")
-
 ##Install Packages if Needed
 if (!require("viridis")) install.packages("viridis")
 if (!require("scales")) install.packages("scales")
@@ -34,24 +32,30 @@ if (!require("Rmisc")) install.packages("Rmisc")
 if (!require("png")) install.packages("png")
 if (!require("grid")) install.packages("grid")
 if (!require("plotrix")) install.packages("plotrix")
+if (!require("Hmisc")) install.packages("Hmisc")
+if (!require("corrplot")) install.packages("corrplot")
+if (!require("factoextra")) install.packages("factoextra")
+if (!require("vegan")) install.packages("vegan")
+if (!require("ggfortify")) install.packages("ggfortify")
 
 ##Load Packages
-library(viridis)
-library(scales)
-library(geodata)
-library(sf)
-library(ggplot2)
-library(cowplot)
-library(lubridate)
-library(Rmisc)
-library(png)
-library(grid)
-library(plotrix)
-library(Hmisc)
-library(corrplot)
-library(factoextra)
-library(vegan)
-library(ggtext)
+library(viridis) #Color-blind and grey-scale-friendly color palettes
+library(scales) #Required to view color scale options
+library(geodata) #Required for map of Bonaire
+library(sf) #Required for working with spatial data 
+library(ggplot2) #Required for ggplots
+library(cowplot) #Required for plotting panel figures
+library(lubridate) #Required for date and time formatting
+library(Rmisc) #Required for SummarySE function
+library(png) #Required for reading in png figures
+library(grid) #Required for plotting grids
+library(plotrix) #Required for Standard error function
+library(Hmisc) #Required for correlation matrix rcorr function
+library(corrplot) #Required for correlation plot
+library(factoextra) #Required for PCA analysis extras
+library(vegan) #Required for multivariate analysis PERM and PCA
+library(ggfortify) #Required for autoplot of PCA
+
 ```
 
 
@@ -73,7 +77,6 @@ Orig.colors.o<- c("#40498EFF", "#357BA2FF", "#5BCDADFF","#B1E4C2FF")
 show_col(viridis_pal(option = "turbo")(25))
 HC.colors.o<-c("#3BA0FDFF", "#BA1E02FF")
 #Heat Assay Treatments: Control, Heated
-
 
 
 ####Set Shapes for Genotypes
@@ -226,7 +229,7 @@ ggsave(filename="Figures/01_Design/Temperature.png", plot=Temp.plot, dpi=300, wi
 #### Plot Conductivity Profiles
 ```{r}
 Cond.plot<-ggplot()+
-  geom_line(data=na.omit(TempCond), aes(color=Site, x=Date.Time, y=Cond_mS.cm), linewidth=bar.sz-.25, alpha=0.7) +  
+  geom_line(data=na.omit(TempCond), aes(color=Site, x=Date.Time, y=Cond_uS.cm), linewidth=bar.sz-.25, alpha=0.7) +  
   theme_bw()+
   theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
         axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
@@ -324,12 +327,11 @@ PAR<-PAR[-c(which(PAR$Minute==5 | PAR$Minute==15 | PAR$Minute==25 | PAR$Minute==
 Light.plot<-ggplot()+
   geom_line(data=na.omit(PAR), aes(color=Site, x=Date.Time, y=PAR_umol.m2.s), linewidth=bar.sz-.25, alpha=0.7) +  
   theme_bw()+
-  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_markdown(size = axis.title.sz), 
+  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
         axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
         legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), legend.box.background = element_rect(color = "black"),  legend.direction = "horizontal", legend.position=c(0.5,0.9))+
   scale_color_manual(values = c(Site.colors.o))+
-    labs(x="Date", y="PAR (\u03BCmol/m^2/s)");Light.plot
-
+    labs(x="Date", y=expression(paste('PAR (\u03BCmol/cm'^-2*"/s)")));Light.plot
 
 ##Save Figure
 ggsave(filename="Figures/01_Design/Light.png", plot=Light.plot, dpi=300, width=12, height=4, units="in")
@@ -551,7 +553,6 @@ anova(betadisper(vegdist(EnvData.cut[,3:9], "euclidean"), EnvData.cut$Site))
 
 #### PCA
 ```{r}
-library(ggfortify)
 
 ##PCA
 Env.pca<-prcomp(EnvData.cut[,-c(1:2)], scale.=TRUE)
@@ -850,7 +851,7 @@ Temp.plot.cut<-ggplot()+
     labs(x=NULL, y="Temperature (\u00B0C)")
 
 Cond.plot.cut<-ggplot()+
-  geom_line(data=na.omit(TempCond), aes(color=Site, x=Date.Time, y=Cond_mS.cm), linewidth=bar.sz-.25, alpha=0.7) +  
+  geom_line(data=na.omit(TempCond), aes(color=Site, x=Date.Time, y=Cond_uS.cm), linewidth=bar.sz-.25, alpha=0.7) +  
   theme_bw()+
   theme(axis.title.x = element_blank(), axis.title.y = element_text(size = axis.txt.sz), 
         axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
