@@ -22,17 +22,25 @@ knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 ```{r}
 ##Install Packages if Needed
 if (!require("ggplot2")) install.packages("ggplot2")
+if (!require("cowplot")) install.packages("cowplot")
+if (!require("Rmisc")) install.packages("Rmisc")
+if (!require("lme4")) install.packages("lme4")
+if (!require("vegan")) install.packages("vegan")
+if (!require("corrplot")) install.packages("corrplot")
+if (!require("DHARMa")) install.packages("DHARMa")
+if (!require("effectsize")) install.packages("effectsize")
+if (!require("emmeans")) install.packages("emmeans")
 
 ##Load Packages
-library(ggplot2)
-library(vegan)
-library(corrplot)
-
-library(lme4)
-library(lmerTest)
-library(DHARMa)
-library(effectsize)
-library(emmeans)
+library(ggplot2) #Required for ggplots
+library(cowplot) #Required for plotting panel figures
+library(Rmisc) #Required for SummarySE function
+library(lme4) #Required for mixed effects modeling
+library(vegan) #Required for multivariate analysis PERM
+library(corrplot) #Required for correlation plot
+library(DHARMa) #Required to check residuals of mixed effects models
+library(effectsize) #Required for eta_squared effect sizes
+library(emmeans) #Required for pairwise comparisons 
 
 ```
 
