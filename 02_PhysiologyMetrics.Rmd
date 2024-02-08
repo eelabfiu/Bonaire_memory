@@ -25,8 +25,8 @@ if (!require("ggplot2")) install.packages("ggplot2")
 if (!require("plyr")) install.packages("plyr")
 
 ##Load Packages
-library(ggplot2)
-library(plyr)
+library(ggplot2) #Required for ggplots
+library(plyr) #Required for rename function
 ```
 
 
