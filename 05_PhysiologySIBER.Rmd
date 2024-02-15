@@ -23,11 +23,17 @@ knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 ##Install Packages if Needed
 if (!require("ggplot2")) install.packages("ggplot2")
 if (!require("cowplot")) install.packages("cowplot")
+if (!require("SIBER")) install.packages("SIBER")
+if (!require("vegan")) install.packages("vegan")
+if (!require("tidyverse")) install.packages("tidyverse")
+
 
 ##Load Packages
 library(ggplot2) #Required for ggplots
 library(cowplot) #Required for plotting panel figures
-
+library(SIBER) #Required for generating physiological ellipses and percent overlap calculations
+library(vegan) #Required for NMDS
+library(tidyverse) #Required for data manipulation
 ```
 
 
@@ -73,8 +79,127 @@ corrplot(Phys.corr$r, type="upper", order="hclust",
 
 # SIBER Ellipses
 
+## SIBER Prep
+
+### Ordination
+```{r}
+#SIBER runs on a two dimensional data set
+#So, first we need to reduce the dimensionality of the physiology data
+#We're going to do this via Non-Metric Multidimensional Scaling (NMDS) 
+
+#Select only the physiology columns (numbers only without covariates) to put into the NMDS
+phys.log.num <- Phys.log %>% select(SA_cm2:Chl_ug.cm2)
+
+#Run NMDS
+phys.nmds <- metaMDS(phys.log.num, distance = "bray", k = 2, autotransform = F)
+
+#Quick plot of NMDS output
+ordiplot(phys.nmds)
+```
+### Data Prep for SIBER
+```{r}
+#Prepare data to be input into SIBER
+phys.siber.input <- phys.nmds$points %>% #extract 2-D physiology axes from NMDS
+  bind_cols(#add back covariates from original phys data
+    select(Phys.log, ID:Site.Orig) #select those covariate columns
+  ) %>% 
+  #SIBER object needs four specific columns
+  #iso1, iso2, group, and community
+  #Need to manipulate the data to match that format
+  #create  group variable that combines site, genotype and origin
+  unite("group", c(Site, Genotype, Orig), sep = "_") %>% 
+  #rename variables to match names for SIBER
+  rename(community = TimeP, iso1 = MDS1, iso2 = MDS2) %>% 
+  #retain only columns for SIBER
+  select(iso1, iso2, group, community)
+
+```
+
+
 ### Run SIBER
 Grouping by each genotype at each site, timepoint, and from each origin
+```{r}
+# create SIBER object
+phys.siber.object <- createSiberObject(phys.siber.input)
+
+# sample sizes by group
+phys.siber.object[["sample.sizes"]]
+
+# visualize SIBER groups
+
+# Create lists of plotting arguments to be passed onwards to each 
+# of the three plotting functions.
+community.hulls.args <- list(col = 1, lty = 1, lwd = 1)
+group.ellipses.args  <- list(n = 100, p.interval = 0.95, 
+                             lty = 1, lwd = 2)
+group.hull.args      <- list(lty = 2, col = "grey20")
+
+
+# ellipses and group.hulls are set to TRUE or T for short to force
+# their plotting. 
+par(mfrow=c(1,1))
+plotSiberObject(phys.siber.object,
+                  ax.pad = 2, 
+                  hulls = F, community.hulls.args, 
+                  ellipses = T, group.ellipses.args,
+                  group.hulls = T, group.hull.args,
+                  bty = "L",
+                  iso.order = c(1,2),
+                  xlab = expression({delta}^13*C~'permille'),
+                  ylab = expression({delta}^15*N~'permille')
+                  )
+
+# You can add more ellipses by directly calling plot.group.ellipses()
+# Add an additional p.interval % prediction ellilpse
+plotGroupEllipses(phys.siber.object, n = 100, p.interval = 0.95,
+                    lty = 1, lwd = 2)
+
+# or you can add the XX% confidence interval around the bivariate means
+# by specifying ci.mean = T along with whatever p.interval you want.
+plotGroupEllipses(phys.siber.object, n = 100, p.interval = 0.95,
+                  ci.mean = T, lty = 1, lwd = 2)
+
+# Calculate sumamry statistics for each group: TA, SEA and SEAc
+group.ML <- groupMetricsML(phys.siber.object)
+print(group.ML)
+
+legend("topright", colnames(group.ML), 
+       pch = c(1,1,1,2,2,2), col = c(1:3, 1:3), lty = 1)
+```
+
+```{r}
+#set up the model parameters 
+# options for running jags
+parms <- list()
+parms$n.iter <- 2 * 10^6   # number of iterations to run the model for
+parms$n.burnin <- 1 * 10^4 # discard the first set of values
+parms$n.thin <- 100     # thin the posterior by this many
+parms$n.chains <- 2        # run this many chains
+parms$save.output = T
+parms$save.dir = getwd()
+
+# define the priors
+priors <- list()
+priors$R <- 1 * diag(2)
+priors$k <- 2
+priors$tau.mu <- 1.0E-3
+
+#SIBER generates a lot of jags output
+#changing working directory to where that output should go
+setwd("~/Bonaire_memory/Outputs/SIBER")
+#knitr::opts_knit$set(root.dir = "~/Bonaire_memory/Outputs/SIBER")
+
+# fit the ellipses which uses an Inverse Wishart prior
+# on the covariance matrix Sigma, and a vague normal prior on the 
+# means. Fitting is via the JAGS method.
+phys.ellipses.posterior <- siberMVN(phys.siber.object, parms, priors)
+
+#calculate posterior estimates of ellipses for all groups
+SEA.B<-siberEllipses(phys.ellipses.posterior)
+#set column names for SEA.B
+colnames(SEA.B)<-names(phys.ellipses.posterior)
+
+```
 
 ### Plot Ellipses over Time
 
@@ -89,6 +214,333 @@ Grouping by each genotype at each site, timepoint, and from each origin
 
 # Ellipse Overlap
 
-### Calculate Percent Overlap
+## Calculate Percent Overlap
+
+### KL_AC10_N
+```{r}
+#Timepoint 1 and 2 overlap
+overlap.kl.ac10.n.tp1.tp2 <- maxLikOverlap("TP1.KL_AC10_N", "TP2.KL_AC10_N", phys.siber.object,
+                                   p = 0.95, n = 360)
+p.overlap.kl.ac10.n.tp1.tp2 <- as.numeric(overlap.kl.ac10.n.tp1.tp2["overlap"] / 
+                            (overlap.kl.ac10.n.tp1.tp2["area.1"]+overlap.kl.ac10.n.tp1.tp2["area.2"]))
+
+#Timepoint 1 and 3 overlap
+overlap.kl.ac10.n.tp1.tp3 <- maxLikOverlap("TP1.KL_AC10_N", "TP3.KL_AC10_N", phys.siber.object,
+                                   p = 0.95, n = 360)
+p.overlap.kl.ac10.n.tp1.tp3 <- as.numeric(overlap.kl.ac10.n.tp1.tp3["overlap"] / 
+                          (overlap.kl.ac10.n.tp1.tp3["area.1"]+overlap.kl.ac10.n.tp1.tp3["area.2"]))
+
+#Timepoint 1 and 4 overlap
+overlap.kl.ac10.n.tp1.tp4 <- maxLikOverlap("TP1.KL_AC10_N", "TP4.KL_AC10_N", phys.siber.object,
+                                   p = 0.95, n = 360)
+p.overlap.kl.ac10.n.tp1.tp4 <- as.numeric(overlap.kl.ac10.n.tp1.tp4["overlap"] / 
+                           (overlap.kl.ac10.n.tp1.tp4["area.1"]+overlap.kl.ac10.n.tp1.tp4["area.2"]))
+
+```
+
+### KL_AC10_T
+```{r}
+#Timepoint 1 and 2 overlap
+overlap.kl.ac10.t.tp1.tp2 <- maxLikOverlap("TP1.KL_AC10_T", "TP2.KL_AC10_T", phys.siber.object,
+                                   p = 0.95, n = 360)
+p.overlap.kl.ac10.t.tp1.tp2 <- as.numeric(overlap.kl.ac10.t.tp1.tp2["overlap"] / 
+                           (overlap.kl.ac10.t.tp1.tp2["area.1"]+overlap.kl.ac10.t.tp1.tp2["area.2"]))
+
+#Timepoint 1 and 3 overlap
+overlap.kl.ac10.t.tp1.tp3 <- maxLikOverlap("TP1.KL_AC10_T", "TP3.KL_AC10_T", phys.siber.object,
+                                   p = 0.95, n = 360)
+p.overlap.kl.ac10.t.tp1.tp3 <- as.numeric(overlap.kl.ac10.t.tp1.tp3["overlap"] / 
+                           (overlap.kl.ac10.t.tp1.tp3["area.1"]+overlap.kl.ac10.t.tp1.tp3["area.2"]))
+
+#Timepoint 1 and 4 overlap
+overlap.kl.ac10.t.tp1.tp4 <- maxLikOverlap("TP1.KL_AC10_T", "TP4.KL_AC10_T", phys.siber.object,
+                                   p = 0.95, n = 360)
+p.overlap.kl.ac10.t.tp1.tp4 <- as.numeric(overlap.kl.ac10.t.tp1.tp4["overlap"] / 
+                           (overlap.kl.ac10.t.tp1.tp4["area.1"]+overlap.kl.ac10.t.tp1.tp4["area.2"]))
+
+```
+
+### KL_AC12_N
+```{r}
+#Timepoint 1 and 2 overlap
+overlap.kl.ac12.n.tp1.tp2 <- maxLikOverlap("TP1.KL_AC12_N", "TP2.KL_AC12_N", phys.siber.object,
+                                   p = 0.95, n = 360)
+p.overlap.kl.ac12.n.tp1.tp2 <- as.numeric(overlap.kl.ac12.n.tp1.tp2["overlap"] / 
+                           (overlap.kl.ac12.n.tp1.tp2["area.1"]+overlap.kl.ac12.n.tp1.tp2["area.2"]))
+
+#Timepoint 1 and 3 overlap
+overlap.kl.ac12.n.tp1.tp3 <- maxLikOverlap("TP1.KL_AC12_N", "TP3.KL_AC12_N", phys.siber.object,
+                                   p = 0.95, n = 360)
+p.overlap.kl.ac12.n.tp1.tp3 <- as.numeric(overlap.kl.ac12.n.tp1.tp3["overlap"] / 
+                           (overlap.kl.ac12.n.tp1.tp3["area.1"]+overlap.kl.ac12.n.tp1.tp3["area.2"]))
+
+#Timepoint 1 and 4 overlap
+overlap.kl.ac12.n.tp1.tp4 <- maxLikOverlap("TP1.KL_AC12_N", "TP4.KL_AC12_N", phys.siber.object,
+                                   p = 0.95, n = 360)
+p.overlap.kl.ac12.n.tp1.tp4 <- as.numeric(overlap.kl.ac12.n.tp1.tp4["overlap"] / 
+                            (overlap.kl.ac12.n.tp1.tp4["area.1"]+overlap.kl.ac12.n.tp1.tp4["area.2"]))
+
+```
+
+### KL_AC12_T
+```{r}
+#Timepoint 1 and 2 overlap
+overlap.kl.ac12.t.tp1.tp2 <- maxLikOverlap("TP1.KL_AC12_T", "TP2.KL_AC12_T", phys.siber.object,
+                                   p = 0.95, n = 360)
+p.overlap.kl.ac12.t.tp1.tp2 <- as.numeric(overlap.kl.ac12.t.tp1.tp2["overlap"] / 
+                            (overlap.kl.ac12.t.tp1.tp2["area.1"]+overlap.kl.ac12.t.tp1.tp2["area.2"]))
+
+#Timepoint 1 and 3 overlap
+overlap.kl.ac12.t.tp1.tp3 <- maxLikOverlap("TP1.KL_AC12_T", "TP3.KL_AC12_T", phys.siber.object,
+                                   p = 0.95, n = 360)
+p.overlap.kl.ac12.t.tp1.tp3 <- as.numeric(overlap.kl.ac12.t.tp1.tp3["overlap"] / 
+                            (overlap.kl.ac12.t.tp1.tp3["area.1"]+overlap.kl.ac12.t.tp1.tp3["area.2"]))
+
+#Timepoint 1 and 4 overlap
+overlap.kl.ac12.t.tp1.tp4 <- maxLikOverlap("TP1.KL_AC12_T", "TP4.KL_AC12_T", phys.siber.object,
+                                   p = 0.95, n = 360)
+p.overlap.kl.ac12.t.tp1.tp4 <- as.numeric(overlap.kl.ac12.t.tp1.tp4["overlap"] / 
+                           (overlap.kl.ac12.t.tp1.tp4["area.1"]+overlap.kl.ac12.t.tp1.tp4["area.2"]))
+
+```
+
+### KL_AC8_N
+```{r}
+#Timepoint 1 and 2 overlap
+overlap.kl.ac8.n.tp1.tp2 <- maxLikOverlap("TP1.KL_AC8_N", "TP2.KL_AC8_N", phys.siber.object,
+                                   p = 0.95, n = 360)
+p.overlap.kl.ac8.n.tp1.tp2 <- as.numeric(overlap.kl.ac8.n.tp1.tp2["overlap"] / 
+                            (overlap.kl.ac8.n.tp1.tp2["area.1"]+overlap.kl.ac8.n.tp1.tp2["area.2"]))
+
+#Timepoint 1 and 3 overlap
+overlap.kl.ac8.n.tp1.tp3 <- maxLikOverlap("TP1.KL_AC8_N", "TP3.KL_AC8_N", phys.siber.object,
+                                   p = 0.95, n = 360)
+p.overlap.kl.ac8.n.tp1.tp3 <- as.numeric(overlap.kl.ac8.n.tp1.tp3["overlap"] / 
+                          (overlap.kl.ac8.n.tp1.tp3["area.1"]+overlap.kl.ac8.n.tp1.tp3["area.2"]))
+
+#Timepoint 1 and 4 overlap
+overlap.kl.ac8.n.tp1.tp4 <- maxLikOverlap("TP1.KL_AC8_N", "TP4.KL_AC8_N", phys.siber.object,
+                                   p = 0.95, n = 360)
+p.overlap.kl.ac8.n.tp1.tp4 <- as.numeric(overlap.kl.ac8.n.tp1.tp4["overlap"] / 
+                           (overlap.kl.ac8.n.tp1.tp4["area.1"]+overlap.kl.ac8.n.tp1.tp4["area.2"]))
+
+```
+
+### KL_AC8_T
+```{r}
+#Timepoint 1 and 2 overlap
+overlap.kl.ac8.t.tp1.tp2 <- maxLikOverlap("TP1.KL_AC8_T", "TP2.KL_AC8_T", phys.siber.object,
+                                   p = 0.95, n = 360)
+p.overlap.kl.ac8.t.tp1.tp2 <- as.numeric(overlap.kl.ac8.t.tp1.tp2["overlap"] / 
+                           (overlap.kl.ac8.t.tp1.tp2["area.1"]+overlap.kl.ac8.t.tp1.tp2["area.2"]))
+
+#Timepoint 1 and 3 overlap
+overlap.kl.ac8.t.tp1.tp3 <- maxLikOverlap("TP1.KL_AC8_T", "TP3.KL_AC8_T", phys.siber.object,
+                                   p = 0.95, n = 360)
+p.overlap.kl.ac8.t.tp1.tp3 <- as.numeric(overlap.kl.ac8.t.tp1.tp3["overlap"] / 
+                           (overlap.kl.ac8.t.tp1.tp3["area.1"]+overlap.kl.ac8.t.tp1.tp3["area.2"]))
+
+#Timepoint 1 and 4 overlap
+overlap.kl.ac8.t.tp1.tp4 <- maxLikOverlap("TP1.KL_AC8_T", "TP4.KL_AC8_T", phys.siber.object,
+                                   p = 0.95, n = 360)
+p.overlap.kl.ac8.t.tp1.tp4 <- as.numeric(overlap.kl.ac8.t.tp1.tp4["overlap"] / 
+                           (overlap.kl.ac8.t.tp1.tp4["area.1"]+overlap.kl.ac8.t.tp1.tp4["area.2"]))
+
+```
+
+### SS_AC10_N
+```{r}
+#Timepoint 1 and 2 overlap
+overlap.ss.ac10.n.tp1.tp2 <- maxLikOverlap("TP1.SS_AC10_N", "TP2.SS_AC10_N", phys.siber.object,
+                                   p = 0.95, n = 360)
+p.overlap.ss.ac10.n.tp1.tp2 <- as.numeric(overlap.ss.ac10.n.tp1.tp2["overlap"] / 
+                            (overlap.ss.ac10.n.tp1.tp2["area.1"]+overlap.ss.ac10.n.tp1.tp2["area.2"]))
+
+#Timepoint 1 and 3 overlap
+overlap.ss.ac10.n.tp1.tp3 <- maxLikOverlap("TP1.SS_AC10_N", "TP3.SS_AC10_N", phys.siber.object,
+                                   p = 0.95, n = 360)
+p.overlap.ss.ac10.n.tp1.tp3 <- as.numeric(overlap.ss.ac10.n.tp1.tp3["overlap"] / 
+                          (overlap.ss.ac10.n.tp1.tp3["area.1"]+overlap.ss.ac10.n.tp1.tp3["area.2"]))
+
+#Timepoint 1 and 4 overlap
+overlap.ss.ac10.n.tp1.tp4 <- maxLikOverlap("TP1.SS_AC10_N", "TP4.SS_AC10_N", phys.siber.object,
+                                   p = 0.95, n = 360)
+p.overlap.ss.ac10.n.tp1.tp4 <- as.numeric(overlap.ss.ac10.n.tp1.tp4["overlap"] / 
+                           (overlap.ss.ac10.n.tp1.tp4["area.1"]+overlap.ss.ac10.n.tp1.tp4["area.2"]))
+
+```
+
+### SS_AC10_T
+```{r}
+#Timepoint 1 and 2 overlap
+overlap.ss.ac10.t.tp1.tp2 <- maxLikOverlap("TP1.SS_AC10_T", "TP2.SS_AC10_T", phys.siber.object,
+                                   p = 0.95, n = 360)
+p.overlap.ss.ac10.t.tp1.tp2 <- as.numeric(overlap.ss.ac10.t.tp1.tp2["overlap"] / 
+                           (overlap.ss.ac10.t.tp1.tp2["area.1"]+overlap.ss.ac10.t.tp1.tp2["area.2"]))
+
+#Timepoint 1 and 3 overlap
+overlap.ss.ac10.t.tp1.tp3 <- maxLikOverlap("TP1.SS_AC10_T", "TP3.SS_AC10_T", phys.siber.object,
+                                   p = 0.95, n = 360)
+p.overlap.ss.ac10.t.tp1.tp3 <- as.numeric(overlap.ss.ac10.t.tp1.tp3["overlap"] / 
+                           (overlap.ss.ac10.t.tp1.tp3["area.1"]+overlap.ss.ac10.t.tp1.tp3["area.2"]))
+
+#Timepoint 1 and 4 overlap
+overlap.ss.ac10.t.tp1.tp4 <- maxLikOverlap("TP1.SS_AC10_T", "TP4.SS_AC10_T", phys.siber.object,
+                                   p = 0.95, n = 360)
+p.overlap.ss.ac10.t.tp1.tp4 <- as.numeric(overlap.ss.ac10.t.tp1.tp4["overlap"] / 
+                           (overlap.ss.ac10.t.tp1.tp4["area.1"]+overlap.ss.ac10.t.tp1.tp4["area.2"]))
+
+```
+
+### SS_AC12_N
+```{r}
+#Timepoint 1 and 2 overlap
+overlap.ss.ac12.n.tp1.tp2 <- maxLikOverlap("TP1.SS_AC12_N", "TP2.SS_AC12_N", phys.siber.object,
+                                   p = 0.95, n = 360)
+p.overlap.ss.ac12.n.tp1.tp2 <- as.numeric(overlap.ss.ac12.n.tp1.tp2["overlap"] / 
+                           (overlap.ss.ac12.n.tp1.tp2["area.1"]+overlap.ss.ac12.n.tp1.tp2["area.2"]))
+
+#Timepoint 1 and 3 overlap
+overlap.ss.ac12.n.tp1.tp3 <- maxLikOverlap("TP1.SS_AC12_N", "TP3.SS_AC12_N", phys.siber.object,
+                                   p = 0.95, n = 360)
+p.overlap.ss.ac12.n.tp1.tp3 <- as.numeric(overlap.ss.ac12.n.tp1.tp3["overlap"] / 
+                           (overlap.ss.ac12.n.tp1.tp3["area.1"]+overlap.ss.ac12.n.tp1.tp3["area.2"]))
+
+#Timepoint 1 and 4 overlap
+overlap.ss.ac12.n.tp1.tp4 <- maxLikOverlap("TP1.SS_AC12_N", "TP4.SS_AC12_N", phys.siber.object,
+                                   p = 0.95, n = 360)
+p.overlap.ss.ac12.n.tp1.tp4 <- as.numeric(overlap.ss.ac12.n.tp1.tp4["overlap"] / 
+                            (overlap.ss.ac12.n.tp1.tp4["area.1"]+overlap.ss.ac12.n.tp1.tp4["area.2"]))
+
+```
+
+### SS_AC12_T
+```{r}
+#Timepoint 1 and 2 overlap
+overlap.ss.ac12.t.tp1.tp2 <- maxLikOverlap("TP1.SS_AC12_T", "TP2.SS_AC12_T", phys.siber.object,
+                                   p = 0.95, n = 360)
+p.overlap.ss.ac12.t.tp1.tp2 <- as.numeric(overlap.ss.ac12.t.tp1.tp2["overlap"] / 
+                            (overlap.ss.ac12.t.tp1.tp2["area.1"]+overlap.ss.ac12.t.tp1.tp2["area.2"]))
+
+#Timepoint 1 and 3 overlap
+overlap.ss.ac12.t.tp1.tp3 <- maxLikOverlap("TP1.SS_AC12_T", "TP3.SS_AC12_T", phys.siber.object,
+                                   p = 0.95, n = 360)
+p.overlap.ss.ac12.t.tp1.tp3 <- as.numeric(overlap.ss.ac12.t.tp1.tp3["overlap"] / 
+                            (overlap.ss.ac12.t.tp1.tp3["area.1"]+overlap.ss.ac12.t.tp1.tp3["area.2"]))
+
+#Timepoint 1 and 4 overlap
+overlap.ss.ac12.t.tp1.tp4 <- maxLikOverlap("TP1.SS_AC12_T", "TP4.SS_AC12_T", phys.siber.object,
+                                   p = 0.95, n = 360)
+p.overlap.ss.ac12.t.tp1.tp4 <- as.numeric(overlap.ss.ac12.t.tp1.tp4["overlap"] / 
+                           (overlap.ss.ac12.t.tp1.tp4["area.1"]+overlap.ss.ac12.t.tp1.tp4["area.2"]))
+
+```
+
+### SS_AC8_N
+```{r}
+#Timepoint 1 and 2 overlap
+overlap.ss.ac8.n.tp1.tp2 <- maxLikOverlap("TP1.SS_AC8_N", "TP2.SS_AC8_N", phys.siber.object,
+                                   p = 0.95, n = 360)
+p.overlap.ss.ac8.n.tp1.tp2 <- as.numeric(overlap.ss.ac8.n.tp1.tp2["overlap"] / 
+                            (overlap.ss.ac8.n.tp1.tp2["area.1"]+overlap.ss.ac8.n.tp1.tp2["area.2"]))
+
+#Timepoint 1 and 3 overlap
+overlap.ss.ac8.n.tp1.tp3 <- maxLikOverlap("TP1.SS_AC8_N", "TP3.SS_AC8_N", phys.siber.object,
+                                   p = 0.95, n = 360)
+p.overlap.ss.ac8.n.tp1.tp3 <- as.numeric(overlap.ss.ac8.n.tp1.tp3["overlap"] / 
+                          (overlap.ss.ac8.n.tp1.tp3["area.1"]+overlap.ss.ac8.n.tp1.tp3["area.2"]))
+
+#Timepoint 1 and 4 overlap
+overlap.ss.ac8.n.tp1.tp4 <- maxLikOverlap("TP1.SS_AC8_N", "TP4.SS_AC8_N", phys.siber.object,
+                                   p = 0.95, n = 360)
+p.overlap.ss.ac8.n.tp1.tp4 <- as.numeric(overlap.ss.ac8.n.tp1.tp4["overlap"] / 
+                           (overlap.ss.ac8.n.tp1.tp4["area.1"]+overlap.ss.ac8.n.tp1.tp4["area.2"]))
+
+```
+
+### SS_AC8_T
+```{r}
+#Timepoint 1 and 2 overlap
+overlap.ss.ac8.t.tp1.tp2 <- maxLikOverlap("TP1.SS_AC8_T", "TP2.SS_AC8_T", phys.siber.object,
+                                   p = 0.95, n = 360)
+p.overlap.ss.ac8.t.tp1.tp2 <- as.numeric(overlap.ss.ac8.t.tp1.tp2["overlap"] / 
+                           (overlap.ss.ac8.t.tp1.tp2["area.1"]+overlap.ss.ac8.t.tp1.tp2["area.2"]))
+
+#Timepoint 1 and 3 overlap
+overlap.ss.ac8.t.tp1.tp3 <- maxLikOverlap("TP1.SS_AC8_T", "TP3.SS_AC8_T", phys.siber.object,
+                                   p = 0.95, n = 360)
+p.overlap.ss.ac8.t.tp1.tp3 <- as.numeric(overlap.ss.ac8.t.tp1.tp3["overlap"] / 
+                           (overlap.ss.ac8.t.tp1.tp3["area.1"]+overlap.ss.ac8.t.tp1.tp3["area.2"]))
+
+#Timepoint 1 and 4 overlap
+overlap.ss.ac8.t.tp1.tp4 <- maxLikOverlap("TP1.SS_AC8_T", "TP4.SS_AC8_T", phys.siber.object,
+                                   p = 0.95, n = 360)
+p.overlap.ss.ac8.t.tp1.tp4 <- as.numeric(overlap.ss.ac8.t.tp1.tp4["overlap"] / 
+                           (overlap.ss.ac8.t.tp1.tp4["area.1"]+overlap.ss.ac8.t.tp1.tp4["area.2"]))
+
+```
+
+### Create Percent Overlap Dataframe
+```{r}
+#create vector of all overlaps
+p.overlap <- c(
+  p.overlap.kl.ac10.n.tp1.tp2, p.overlap.kl.ac10.n.tp1.tp3, p.overlap.kl.ac10.n.tp1.tp4,
+  p.overlap.kl.ac10.t.tp1.tp2, p.overlap.kl.ac10.t.tp1.tp3, p.overlap.kl.ac10.t.tp1.tp4,
+  p.overlap.kl.ac12.n.tp1.tp2, p.overlap.kl.ac12.n.tp1.tp3, p.overlap.kl.ac12.n.tp1.tp4,
+  p.overlap.kl.ac12.t.tp1.tp2, p.overlap.kl.ac12.t.tp1.tp3, p.overlap.kl.ac12.t.tp1.tp4,
+  p.overlap.kl.ac8.n.tp1.tp2, p.overlap.kl.ac8.n.tp1.tp3, p.overlap.kl.ac8.n.tp1.tp4,
+  p.overlap.kl.ac8.t.tp1.tp2, p.overlap.kl.ac8.t.tp1.tp3, p.overlap.kl.ac8.t.tp1.tp4,
+  p.overlap.ss.ac10.n.tp1.tp2, p.overlap.ss.ac10.n.tp1.tp3, p.overlap.ss.ac10.n.tp1.tp4,
+  p.overlap.ss.ac10.t.tp1.tp2, p.overlap.ss.ac10.t.tp1.tp3, p.overlap.ss.ac10.t.tp1.tp4,
+  p.overlap.ss.ac12.n.tp1.tp2, p.overlap.ss.ac12.n.tp1.tp3, p.overlap.ss.ac12.n.tp1.tp4,
+  p.overlap.ss.ac12.t.tp1.tp2, p.overlap.ss.ac12.t.tp1.tp3, p.overlap.ss.ac12.t.tp1.tp4,
+  p.overlap.ss.ac8.n.tp1.tp2, p.overlap.ss.ac8.n.tp1.tp3, p.overlap.ss.ac8.n.tp1.tp4,
+  p.overlap.ss.ac8.t.tp1.tp2, p.overlap.ss.ac8.t.tp1.tp3, p.overlap.ss.ac8.t.tp1.tp4
+)
+
+#create vector of names for all overlaps
+p.overlap.names <- c(
+  "kl.ac10.n.tp1.tp2", "kl.ac10.n.tp1.tp3", "kl.ac10.n.tp1.tp4",
+  "kl.ac10.t.tp1.tp2", "kl.ac10.t.tp1.tp3", "kl.ac10.t.tp1.tp4",
+  "kl.ac12.n.tp1.tp2", "kl.ac12.n.tp1.tp3", "kl.ac12.n.tp1.tp4",
+  "kl.ac12.t.tp1.tp2", "kl.ac12.t.tp1.tp3", "kl.ac12.t.tp1.tp4",
+  "kl.ac8.n.tp1.tp2", "kl.ac8.n.tp1.tp3", "kl.ac8.n.tp1.tp4",
+  "kl.ac8.t.tp1.tp2", "kl.ac8.t.tp1.tp3", "kl.ac8.t.tp1.tp4",
+  "ss.ac10.n.tp1.tp2", "ss.ac10.n.tp1.tp3", "ss.ac10.n.tp1.tp4",
+  "ss.ac10.t.tp1.tp2", "ss.ac10.t.tp1.tp3", "ss.ac10.t.tp1.tp4",
+  "ss.ac12.n.tp1.tp2", "ss.ac12.n.tp1.tp3", "ss.ac12.n.tp1.tp4",
+  "ss.ac12.t.tp1.tp2", "ss.ac12.t.tp1.tp3", "ss.ac12.t.tp1.tp4",
+  "ss.ac8.n.tp1.tp2", "ss.ac8.n.tp1.tp3", "ss.ac8.n.tp1.tp4",
+  "ss.ac8.t.tp1.tp2", "ss.ac8.t.tp1.tp3", "ss.ac8.t.tp1.tp4"
+)
+#bind into one data frame and prep for other uses
+p.overlap.df <- bind_cols(p.overlap, p.overlap.names) %>% #bind p.overlap and names together
+  rename(p_overlap = "...1", names = "...2") %>% #rename columns
+  #separate the names column into its pieces
+  separate(names, into = c("Site", "Genotype", "Orig", "Start", "End"), sep = "[//.]") %>% 
+  #edit contents of the columns we just created to match other tables and figures
+  #need to capitalize letters
+  mutate(across(c(Site:End), toupper)) %>% 
+  #create new column that is a numeric time period that represents "End"
+  mutate(`Time Period` = case_when(
+    End == "TP2" ~ 2,
+    End == "TP3" ~ 3,
+    End == "TP4" ~ 4
+  ))
+
+```
 
 # Figures
+
+## Percent Overlap Through Time
+```{r}
+(p.overlap.tp.plot <- ggplot(data = p.overlap.df, 
+                             aes(x = `Time Period`, y = p.overlap, color = Orig))+
+   geom_line()+
+   #geom_boxplot()
+   facet_grid(Site ~ Genotype)+
+   scale_x_continuous(breaks = c(2, 3, 4))+
+   labs(y = "Percent Overlap (Relative to Time Period 1)")+
+   theme_bw()
+)
+```
