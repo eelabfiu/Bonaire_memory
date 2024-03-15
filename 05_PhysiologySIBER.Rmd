@@ -33,6 +33,8 @@ library(ggplot2) #Required for ggplots
 library(cowplot) #Required for plotting panel figures
 library(SIBER) #Required for generating physiological ellipses and percent overlap calculations
 library(vegan) #Required for NMDS
+library(Hmisc) #Required for correlations
+library(corrplot) #Required for correlation plot
 library(tidyverse) #Required for data manipulation
 ```
 
@@ -214,319 +216,296 @@ colnames(SEA.B)<-names(phys.ellipses.posterior)
 
 # Ellipse Overlap
 
-## Calculate Percent Overlap
+### Calculate Percent Overlap
+Do native and transplant fragments become more similar over time
+within each genotype at each site
 
-### KL_AC10_N
+######KL_AC10
+
+Native and transplant overlap at time 1
 ```{r}
-#Timepoint 1 and 2 overlap
-overlap.kl.ac10.n.tp1.tp2 <- maxLikOverlap("TP1.KL_AC10_N", "TP2.KL_AC10_N", phys.siber.object,
+overlap.kl.ac10.tp1.n.t <- maxLikOverlap("TP1.KL_AC10_N", "TP1.KL_AC10_T", phys.siber.object,
                                    p = 0.95, n = 360)
-p.overlap.kl.ac10.n.tp1.tp2 <- as.numeric(overlap.kl.ac10.n.tp1.tp2["overlap"] / 
-                            (overlap.kl.ac10.n.tp1.tp2["area.1"]+overlap.kl.ac10.n.tp1.tp2["area.2"]))
-
-#Timepoint 1 and 3 overlap
-overlap.kl.ac10.n.tp1.tp3 <- maxLikOverlap("TP1.KL_AC10_N", "TP3.KL_AC10_N", phys.siber.object,
-                                   p = 0.95, n = 360)
-p.overlap.kl.ac10.n.tp1.tp3 <- as.numeric(overlap.kl.ac10.n.tp1.tp3["overlap"] / 
-                          (overlap.kl.ac10.n.tp1.tp3["area.1"]+overlap.kl.ac10.n.tp1.tp3["area.2"]))
-
-#Timepoint 1 and 4 overlap
-overlap.kl.ac10.n.tp1.tp4 <- maxLikOverlap("TP1.KL_AC10_N", "TP4.KL_AC10_N", phys.siber.object,
-                                   p = 0.95, n = 360)
-p.overlap.kl.ac10.n.tp1.tp4 <- as.numeric(overlap.kl.ac10.n.tp1.tp4["overlap"] / 
-                           (overlap.kl.ac10.n.tp1.tp4["area.1"]+overlap.kl.ac10.n.tp1.tp4["area.2"]))
-
+p.overlap.kl.ac10.tp1.n.t <- as.numeric(overlap.kl.ac10.tp1.n.t["overlap"] / 
+                            (overlap.kl.ac10.tp1.n.t["area.1"]+
+                               overlap.kl.ac10.tp1.n.t["area.2"]-
+                               overlap.kl.ac10.tp1.n.t["overlap"])) #overlap is shared area between area.1 and area.2, if we don't subtract the overlap it would get counted twice into the total area of area.1 union area.2
 ```
 
-### KL_AC10_T
+Native and transplant overlap at time 2
 ```{r}
-#Timepoint 1 and 2 overlap
-overlap.kl.ac10.t.tp1.tp2 <- maxLikOverlap("TP1.KL_AC10_T", "TP2.KL_AC10_T", phys.siber.object,
+overlap.kl.ac10.tp2.n.t <- maxLikOverlap("TP2.KL_AC10_N", "TP2.KL_AC10_T", phys.siber.object,
                                    p = 0.95, n = 360)
-p.overlap.kl.ac10.t.tp1.tp2 <- as.numeric(overlap.kl.ac10.t.tp1.tp2["overlap"] / 
-                           (overlap.kl.ac10.t.tp1.tp2["area.1"]+overlap.kl.ac10.t.tp1.tp2["area.2"]))
-
-#Timepoint 1 and 3 overlap
-overlap.kl.ac10.t.tp1.tp3 <- maxLikOverlap("TP1.KL_AC10_T", "TP3.KL_AC10_T", phys.siber.object,
-                                   p = 0.95, n = 360)
-p.overlap.kl.ac10.t.tp1.tp3 <- as.numeric(overlap.kl.ac10.t.tp1.tp3["overlap"] / 
-                           (overlap.kl.ac10.t.tp1.tp3["area.1"]+overlap.kl.ac10.t.tp1.tp3["area.2"]))
-
-#Timepoint 1 and 4 overlap
-overlap.kl.ac10.t.tp1.tp4 <- maxLikOverlap("TP1.KL_AC10_T", "TP4.KL_AC10_T", phys.siber.object,
-                                   p = 0.95, n = 360)
-p.overlap.kl.ac10.t.tp1.tp4 <- as.numeric(overlap.kl.ac10.t.tp1.tp4["overlap"] / 
-                           (overlap.kl.ac10.t.tp1.tp4["area.1"]+overlap.kl.ac10.t.tp1.tp4["area.2"]))
-
+p.overlap.kl.ac10.tp2.n.t <- as.numeric(overlap.kl.ac10.tp2.n.t["overlap"] / 
+                            (overlap.kl.ac10.tp2.n.t["area.1"]+
+                               overlap.kl.ac10.tp2.n.t["area.2"]-
+                               overlap.kl.ac10.tp2.n.t["overlap"]))
 ```
 
-### KL_AC12_N
+Native and transplant overlap at time 3
 ```{r}
-#Timepoint 1 and 2 overlap
-overlap.kl.ac12.n.tp1.tp2 <- maxLikOverlap("TP1.KL_AC12_N", "TP2.KL_AC12_N", phys.siber.object,
+overlap.kl.ac10.tp3.n.t <- maxLikOverlap("TP3.KL_AC10_N", "TP3.KL_AC10_T", phys.siber.object,
                                    p = 0.95, n = 360)
-p.overlap.kl.ac12.n.tp1.tp2 <- as.numeric(overlap.kl.ac12.n.tp1.tp2["overlap"] / 
-                           (overlap.kl.ac12.n.tp1.tp2["area.1"]+overlap.kl.ac12.n.tp1.tp2["area.2"]))
-
-#Timepoint 1 and 3 overlap
-overlap.kl.ac12.n.tp1.tp3 <- maxLikOverlap("TP1.KL_AC12_N", "TP3.KL_AC12_N", phys.siber.object,
-                                   p = 0.95, n = 360)
-p.overlap.kl.ac12.n.tp1.tp3 <- as.numeric(overlap.kl.ac12.n.tp1.tp3["overlap"] / 
-                           (overlap.kl.ac12.n.tp1.tp3["area.1"]+overlap.kl.ac12.n.tp1.tp3["area.2"]))
-
-#Timepoint 1 and 4 overlap
-overlap.kl.ac12.n.tp1.tp4 <- maxLikOverlap("TP1.KL_AC12_N", "TP4.KL_AC12_N", phys.siber.object,
-                                   p = 0.95, n = 360)
-p.overlap.kl.ac12.n.tp1.tp4 <- as.numeric(overlap.kl.ac12.n.tp1.tp4["overlap"] / 
-                            (overlap.kl.ac12.n.tp1.tp4["area.1"]+overlap.kl.ac12.n.tp1.tp4["area.2"]))
-
+p.overlap.kl.ac10.tp3.n.t <- as.numeric(overlap.kl.ac10.tp3.n.t["overlap"] / 
+                            (overlap.kl.ac10.tp3.n.t["area.1"]+
+                               overlap.kl.ac10.tp3.n.t["area.2"]-
+                               overlap.kl.ac10.tp3.n.t["overlap"]))
 ```
 
-### KL_AC12_T
+Native and transplant overlap at time 4
 ```{r}
-#Timepoint 1 and 2 overlap
-overlap.kl.ac12.t.tp1.tp2 <- maxLikOverlap("TP1.KL_AC12_T", "TP2.KL_AC12_T", phys.siber.object,
+overlap.kl.ac10.tp4.n.t <- maxLikOverlap("TP4.KL_AC10_N", "TP4.KL_AC10_T", phys.siber.object,
                                    p = 0.95, n = 360)
-p.overlap.kl.ac12.t.tp1.tp2 <- as.numeric(overlap.kl.ac12.t.tp1.tp2["overlap"] / 
-                            (overlap.kl.ac12.t.tp1.tp2["area.1"]+overlap.kl.ac12.t.tp1.tp2["area.2"]))
-
-#Timepoint 1 and 3 overlap
-overlap.kl.ac12.t.tp1.tp3 <- maxLikOverlap("TP1.KL_AC12_T", "TP3.KL_AC12_T", phys.siber.object,
-                                   p = 0.95, n = 360)
-p.overlap.kl.ac12.t.tp1.tp3 <- as.numeric(overlap.kl.ac12.t.tp1.tp3["overlap"] / 
-                            (overlap.kl.ac12.t.tp1.tp3["area.1"]+overlap.kl.ac12.t.tp1.tp3["area.2"]))
-
-#Timepoint 1 and 4 overlap
-overlap.kl.ac12.t.tp1.tp4 <- maxLikOverlap("TP1.KL_AC12_T", "TP4.KL_AC12_T", phys.siber.object,
-                                   p = 0.95, n = 360)
-p.overlap.kl.ac12.t.tp1.tp4 <- as.numeric(overlap.kl.ac12.t.tp1.tp4["overlap"] / 
-                           (overlap.kl.ac12.t.tp1.tp4["area.1"]+overlap.kl.ac12.t.tp1.tp4["area.2"]))
-
+p.overlap.kl.ac10.tp4.n.t <- as.numeric(overlap.kl.ac10.tp4.n.t["overlap"] / 
+                            (overlap.kl.ac10.tp4.n.t["area.1"]+
+                               overlap.kl.ac10.tp4.n.t["area.2"]-
+                               overlap.kl.ac10.tp4.n.t["overlap"]))
 ```
 
-### KL_AC8_N
+######KL_AC8
+
+Native and transplant overlap at time 1
 ```{r}
-#Timepoint 1 and 2 overlap
-overlap.kl.ac8.n.tp1.tp2 <- maxLikOverlap("TP1.KL_AC8_N", "TP2.KL_AC8_N", phys.siber.object,
+overlap.kl.ac8.tp1.n.t <- maxLikOverlap("TP1.KL_AC8_N", "TP1.KL_AC8_T", phys.siber.object,
                                    p = 0.95, n = 360)
-p.overlap.kl.ac8.n.tp1.tp2 <- as.numeric(overlap.kl.ac8.n.tp1.tp2["overlap"] / 
-                            (overlap.kl.ac8.n.tp1.tp2["area.1"]+overlap.kl.ac8.n.tp1.tp2["area.2"]))
-
-#Timepoint 1 and 3 overlap
-overlap.kl.ac8.n.tp1.tp3 <- maxLikOverlap("TP1.KL_AC8_N", "TP3.KL_AC8_N", phys.siber.object,
-                                   p = 0.95, n = 360)
-p.overlap.kl.ac8.n.tp1.tp3 <- as.numeric(overlap.kl.ac8.n.tp1.tp3["overlap"] / 
-                          (overlap.kl.ac8.n.tp1.tp3["area.1"]+overlap.kl.ac8.n.tp1.tp3["area.2"]))
-
-#Timepoint 1 and 4 overlap
-overlap.kl.ac8.n.tp1.tp4 <- maxLikOverlap("TP1.KL_AC8_N", "TP4.KL_AC8_N", phys.siber.object,
-                                   p = 0.95, n = 360)
-p.overlap.kl.ac8.n.tp1.tp4 <- as.numeric(overlap.kl.ac8.n.tp1.tp4["overlap"] / 
-                           (overlap.kl.ac8.n.tp1.tp4["area.1"]+overlap.kl.ac8.n.tp1.tp4["area.2"]))
-
+p.overlap.kl.ac8.tp1.n.t <- as.numeric(overlap.kl.ac8.tp1.n.t["overlap"] / 
+                            (overlap.kl.ac8.tp1.n.t["area.1"]+
+                               overlap.kl.ac8.tp1.n.t["area.2"]-
+                               overlap.kl.ac8.tp1.n.t["overlap"])) #overlap is shared area between area.1 and area.2, if we don't subtract the overlap it would get counted twice into the total area of area.1 union area.2
 ```
 
-### KL_AC8_T
+Native and transplant overlap at time 2
 ```{r}
-#Timepoint 1 and 2 overlap
-overlap.kl.ac8.t.tp1.tp2 <- maxLikOverlap("TP1.KL_AC8_T", "TP2.KL_AC8_T", phys.siber.object,
+overlap.kl.ac8.tp2.n.t <- maxLikOverlap("TP2.KL_AC8_N", "TP2.KL_AC8_T", phys.siber.object,
                                    p = 0.95, n = 360)
-p.overlap.kl.ac8.t.tp1.tp2 <- as.numeric(overlap.kl.ac8.t.tp1.tp2["overlap"] / 
-                           (overlap.kl.ac8.t.tp1.tp2["area.1"]+overlap.kl.ac8.t.tp1.tp2["area.2"]))
-
-#Timepoint 1 and 3 overlap
-overlap.kl.ac8.t.tp1.tp3 <- maxLikOverlap("TP1.KL_AC8_T", "TP3.KL_AC8_T", phys.siber.object,
-                                   p = 0.95, n = 360)
-p.overlap.kl.ac8.t.tp1.tp3 <- as.numeric(overlap.kl.ac8.t.tp1.tp3["overlap"] / 
-                           (overlap.kl.ac8.t.tp1.tp3["area.1"]+overlap.kl.ac8.t.tp1.tp3["area.2"]))
-
-#Timepoint 1 and 4 overlap
-overlap.kl.ac8.t.tp1.tp4 <- maxLikOverlap("TP1.KL_AC8_T", "TP4.KL_AC8_T", phys.siber.object,
-                                   p = 0.95, n = 360)
-p.overlap.kl.ac8.t.tp1.tp4 <- as.numeric(overlap.kl.ac8.t.tp1.tp4["overlap"] / 
-                           (overlap.kl.ac8.t.tp1.tp4["area.1"]+overlap.kl.ac8.t.tp1.tp4["area.2"]))
-
+p.overlap.kl.ac8.tp2.n.t <- as.numeric(overlap.kl.ac8.tp2.n.t["overlap"] / 
+                            (overlap.kl.ac8.tp2.n.t["area.1"]+
+                               overlap.kl.ac8.tp2.n.t["area.2"]-
+                               overlap.kl.ac8.tp2.n.t["overlap"]))
 ```
 
-### SS_AC10_N
+Native and transplant overlap at time 3
 ```{r}
-#Timepoint 1 and 2 overlap
-overlap.ss.ac10.n.tp1.tp2 <- maxLikOverlap("TP1.SS_AC10_N", "TP2.SS_AC10_N", phys.siber.object,
+overlap.kl.ac8.tp3.n.t <- maxLikOverlap("TP3.KL_AC8_N", "TP3.KL_AC8_T", phys.siber.object,
                                    p = 0.95, n = 360)
-p.overlap.ss.ac10.n.tp1.tp2 <- as.numeric(overlap.ss.ac10.n.tp1.tp2["overlap"] / 
-                            (overlap.ss.ac10.n.tp1.tp2["area.1"]+overlap.ss.ac10.n.tp1.tp2["area.2"]))
-
-#Timepoint 1 and 3 overlap
-overlap.ss.ac10.n.tp1.tp3 <- maxLikOverlap("TP1.SS_AC10_N", "TP3.SS_AC10_N", phys.siber.object,
-                                   p = 0.95, n = 360)
-p.overlap.ss.ac10.n.tp1.tp3 <- as.numeric(overlap.ss.ac10.n.tp1.tp3["overlap"] / 
-                          (overlap.ss.ac10.n.tp1.tp3["area.1"]+overlap.ss.ac10.n.tp1.tp3["area.2"]))
-
-#Timepoint 1 and 4 overlap
-overlap.ss.ac10.n.tp1.tp4 <- maxLikOverlap("TP1.SS_AC10_N", "TP4.SS_AC10_N", phys.siber.object,
-                                   p = 0.95, n = 360)
-p.overlap.ss.ac10.n.tp1.tp4 <- as.numeric(overlap.ss.ac10.n.tp1.tp4["overlap"] / 
-                           (overlap.ss.ac10.n.tp1.tp4["area.1"]+overlap.ss.ac10.n.tp1.tp4["area.2"]))
-
+p.overlap.kl.ac8.tp3.n.t <- as.numeric(overlap.kl.ac8.tp3.n.t["overlap"] / 
+                            (overlap.kl.ac8.tp3.n.t["area.1"]+
+                               overlap.kl.ac8.tp3.n.t["area.2"]-
+                               overlap.kl.ac8.tp3.n.t["overlap"]))
 ```
 
-### SS_AC10_T
+Native and transplant overlap at time 4
 ```{r}
-#Timepoint 1 and 2 overlap
-overlap.ss.ac10.t.tp1.tp2 <- maxLikOverlap("TP1.SS_AC10_T", "TP2.SS_AC10_T", phys.siber.object,
+overlap.kl.ac8.tp4.n.t <- maxLikOverlap("TP4.KL_AC8_N", "TP4.KL_AC8_T", phys.siber.object,
                                    p = 0.95, n = 360)
-p.overlap.ss.ac10.t.tp1.tp2 <- as.numeric(overlap.ss.ac10.t.tp1.tp2["overlap"] / 
-                           (overlap.ss.ac10.t.tp1.tp2["area.1"]+overlap.ss.ac10.t.tp1.tp2["area.2"]))
+p.overlap.kl.ac8.tp4.n.t <- as.numeric(overlap.kl.ac8.tp4.n.t["overlap"] / 
+                            (overlap.kl.ac8.tp4.n.t["area.1"]+
+                               overlap.kl.ac8.tp4.n.t["area.2"]-
+                               overlap.kl.ac8.tp4.n.t["overlap"]))
+```
+######KL_AC12
 
-#Timepoint 1 and 3 overlap
-overlap.ss.ac10.t.tp1.tp3 <- maxLikOverlap("TP1.SS_AC10_T", "TP3.SS_AC10_T", phys.siber.object,
+Native and transplant overlap at time 1
+```{r}
+overlap.kl.ac12.tp1.n.t <- maxLikOverlap("TP1.KL_AC12_N", "TP1.KL_AC12_T", phys.siber.object,
                                    p = 0.95, n = 360)
-p.overlap.ss.ac10.t.tp1.tp3 <- as.numeric(overlap.ss.ac10.t.tp1.tp3["overlap"] / 
-                           (overlap.ss.ac10.t.tp1.tp3["area.1"]+overlap.ss.ac10.t.tp1.tp3["area.2"]))
-
-#Timepoint 1 and 4 overlap
-overlap.ss.ac10.t.tp1.tp4 <- maxLikOverlap("TP1.SS_AC10_T", "TP4.SS_AC10_T", phys.siber.object,
-                                   p = 0.95, n = 360)
-p.overlap.ss.ac10.t.tp1.tp4 <- as.numeric(overlap.ss.ac10.t.tp1.tp4["overlap"] / 
-                           (overlap.ss.ac10.t.tp1.tp4["area.1"]+overlap.ss.ac10.t.tp1.tp4["area.2"]))
-
+p.overlap.kl.ac12.tp1.n.t <- as.numeric(overlap.kl.ac12.tp1.n.t["overlap"] / 
+                            (overlap.kl.ac12.tp1.n.t["area.1"]+
+                               overlap.kl.ac12.tp1.n.t["area.2"]-
+                               overlap.kl.ac12.tp1.n.t["overlap"])) #overlap is shared area between area.1 and area.2, if we don't subtract the overlap it would get counted twice into the total area of area.1 union area.2
 ```
 
-### SS_AC12_N
+Native and transplant overlap at time 2
 ```{r}
-#Timepoint 1 and 2 overlap
-overlap.ss.ac12.n.tp1.tp2 <- maxLikOverlap("TP1.SS_AC12_N", "TP2.SS_AC12_N", phys.siber.object,
+overlap.kl.ac12.tp2.n.t <- maxLikOverlap("TP2.KL_AC12_N", "TP2.KL_AC12_T", phys.siber.object,
                                    p = 0.95, n = 360)
-p.overlap.ss.ac12.n.tp1.tp2 <- as.numeric(overlap.ss.ac12.n.tp1.tp2["overlap"] / 
-                           (overlap.ss.ac12.n.tp1.tp2["area.1"]+overlap.ss.ac12.n.tp1.tp2["area.2"]))
-
-#Timepoint 1 and 3 overlap
-overlap.ss.ac12.n.tp1.tp3 <- maxLikOverlap("TP1.SS_AC12_N", "TP3.SS_AC12_N", phys.siber.object,
-                                   p = 0.95, n = 360)
-p.overlap.ss.ac12.n.tp1.tp3 <- as.numeric(overlap.ss.ac12.n.tp1.tp3["overlap"] / 
-                           (overlap.ss.ac12.n.tp1.tp3["area.1"]+overlap.ss.ac12.n.tp1.tp3["area.2"]))
-
-#Timepoint 1 and 4 overlap
-overlap.ss.ac12.n.tp1.tp4 <- maxLikOverlap("TP1.SS_AC12_N", "TP4.SS_AC12_N", phys.siber.object,
-                                   p = 0.95, n = 360)
-p.overlap.ss.ac12.n.tp1.tp4 <- as.numeric(overlap.ss.ac12.n.tp1.tp4["overlap"] / 
-                            (overlap.ss.ac12.n.tp1.tp4["area.1"]+overlap.ss.ac12.n.tp1.tp4["area.2"]))
-
+p.overlap.kl.ac12.tp2.n.t <- as.numeric(overlap.kl.ac12.tp2.n.t["overlap"] / 
+                            (overlap.kl.ac12.tp2.n.t["area.1"]+
+                               overlap.kl.ac12.tp2.n.t["area.2"]-
+                               overlap.kl.ac12.tp2.n.t["overlap"]))
 ```
 
-### SS_AC12_T
+Native and transplant overlap at time 3
 ```{r}
-#Timepoint 1 and 2 overlap
-overlap.ss.ac12.t.tp1.tp2 <- maxLikOverlap("TP1.SS_AC12_T", "TP2.SS_AC12_T", phys.siber.object,
+overlap.kl.ac12.tp3.n.t <- maxLikOverlap("TP3.KL_AC12_N", "TP3.KL_AC12_T", phys.siber.object,
                                    p = 0.95, n = 360)
-p.overlap.ss.ac12.t.tp1.tp2 <- as.numeric(overlap.ss.ac12.t.tp1.tp2["overlap"] / 
-                            (overlap.ss.ac12.t.tp1.tp2["area.1"]+overlap.ss.ac12.t.tp1.tp2["area.2"]))
-
-#Timepoint 1 and 3 overlap
-overlap.ss.ac12.t.tp1.tp3 <- maxLikOverlap("TP1.SS_AC12_T", "TP3.SS_AC12_T", phys.siber.object,
-                                   p = 0.95, n = 360)
-p.overlap.ss.ac12.t.tp1.tp3 <- as.numeric(overlap.ss.ac12.t.tp1.tp3["overlap"] / 
-                            (overlap.ss.ac12.t.tp1.tp3["area.1"]+overlap.ss.ac12.t.tp1.tp3["area.2"]))
-
-#Timepoint 1 and 4 overlap
-overlap.ss.ac12.t.tp1.tp4 <- maxLikOverlap("TP1.SS_AC12_T", "TP4.SS_AC12_T", phys.siber.object,
-                                   p = 0.95, n = 360)
-p.overlap.ss.ac12.t.tp1.tp4 <- as.numeric(overlap.ss.ac12.t.tp1.tp4["overlap"] / 
-                           (overlap.ss.ac12.t.tp1.tp4["area.1"]+overlap.ss.ac12.t.tp1.tp4["area.2"]))
-
+p.overlap.kl.ac12.tp3.n.t <- as.numeric(overlap.kl.ac12.tp3.n.t["overlap"] / 
+                            (overlap.kl.ac12.tp3.n.t["area.1"]+
+                               overlap.kl.ac12.tp3.n.t["area.2"]-
+                               overlap.kl.ac12.tp3.n.t["overlap"]))
 ```
 
-### SS_AC8_N
+Native and transplant overlap at time 4
 ```{r}
-#Timepoint 1 and 2 overlap
-overlap.ss.ac8.n.tp1.tp2 <- maxLikOverlap("TP1.SS_AC8_N", "TP2.SS_AC8_N", phys.siber.object,
+overlap.kl.ac12.tp4.n.t <- maxLikOverlap("TP4.KL_AC12_N", "TP4.KL_AC12_T", phys.siber.object,
                                    p = 0.95, n = 360)
-p.overlap.ss.ac8.n.tp1.tp2 <- as.numeric(overlap.ss.ac8.n.tp1.tp2["overlap"] / 
-                            (overlap.ss.ac8.n.tp1.tp2["area.1"]+overlap.ss.ac8.n.tp1.tp2["area.2"]))
-
-#Timepoint 1 and 3 overlap
-overlap.ss.ac8.n.tp1.tp3 <- maxLikOverlap("TP1.SS_AC8_N", "TP3.SS_AC8_N", phys.siber.object,
-                                   p = 0.95, n = 360)
-p.overlap.ss.ac8.n.tp1.tp3 <- as.numeric(overlap.ss.ac8.n.tp1.tp3["overlap"] / 
-                          (overlap.ss.ac8.n.tp1.tp3["area.1"]+overlap.ss.ac8.n.tp1.tp3["area.2"]))
-
-#Timepoint 1 and 4 overlap
-overlap.ss.ac8.n.tp1.tp4 <- maxLikOverlap("TP1.SS_AC8_N", "TP4.SS_AC8_N", phys.siber.object,
-                                   p = 0.95, n = 360)
-p.overlap.ss.ac8.n.tp1.tp4 <- as.numeric(overlap.ss.ac8.n.tp1.tp4["overlap"] / 
-                           (overlap.ss.ac8.n.tp1.tp4["area.1"]+overlap.ss.ac8.n.tp1.tp4["area.2"]))
-
+p.overlap.kl.ac12.tp4.n.t <- as.numeric(overlap.kl.ac12.tp4.n.t["overlap"] / 
+                            (overlap.kl.ac12.tp4.n.t["area.1"]+
+                               overlap.kl.ac12.tp4.n.t["area.2"]-
+                               overlap.kl.ac12.tp4.n.t["overlap"]))
 ```
 
-### SS_AC8_T
+######SS_AC10
+
+Native and transplant overlap at time 1
 ```{r}
-#Timepoint 1 and 2 overlap
-overlap.ss.ac8.t.tp1.tp2 <- maxLikOverlap("TP1.SS_AC8_T", "TP2.SS_AC8_T", phys.siber.object,
+overlap.ss.ac10.tp1.n.t <- maxLikOverlap("TP1.SS_AC10_N", "TP1.SS_AC10_T", phys.siber.object,
                                    p = 0.95, n = 360)
-p.overlap.ss.ac8.t.tp1.tp2 <- as.numeric(overlap.ss.ac8.t.tp1.tp2["overlap"] / 
-                           (overlap.ss.ac8.t.tp1.tp2["area.1"]+overlap.ss.ac8.t.tp1.tp2["area.2"]))
-
-#Timepoint 1 and 3 overlap
-overlap.ss.ac8.t.tp1.tp3 <- maxLikOverlap("TP1.SS_AC8_T", "TP3.SS_AC8_T", phys.siber.object,
-                                   p = 0.95, n = 360)
-p.overlap.ss.ac8.t.tp1.tp3 <- as.numeric(overlap.ss.ac8.t.tp1.tp3["overlap"] / 
-                           (overlap.ss.ac8.t.tp1.tp3["area.1"]+overlap.ss.ac8.t.tp1.tp3["area.2"]))
-
-#Timepoint 1 and 4 overlap
-overlap.ss.ac8.t.tp1.tp4 <- maxLikOverlap("TP1.SS_AC8_T", "TP4.SS_AC8_T", phys.siber.object,
-                                   p = 0.95, n = 360)
-p.overlap.ss.ac8.t.tp1.tp4 <- as.numeric(overlap.ss.ac8.t.tp1.tp4["overlap"] / 
-                           (overlap.ss.ac8.t.tp1.tp4["area.1"]+overlap.ss.ac8.t.tp1.tp4["area.2"]))
-
+p.overlap.ss.ac10.tp1.n.t <- as.numeric(overlap.ss.ac10.tp1.n.t["overlap"] / 
+                            (overlap.ss.ac10.tp1.n.t["area.1"]+
+                               overlap.ss.ac10.tp1.n.t["area.2"]-
+                               overlap.ss.ac10.tp1.n.t["overlap"])) #overlap is shared area between area.1 and area.2, if we don't subtract the overlap it would get counted twice into the total area of area.1 union area.2
 ```
 
+Native and transplant overlap at time 2
+```{r}
+overlap.ss.ac10.tp2.n.t <- maxLikOverlap("TP2.SS_AC10_N", "TP2.SS_AC10_T", phys.siber.object,
+                                   p = 0.95, n = 360)
+p.overlap.ss.ac10.tp2.n.t <- as.numeric(overlap.ss.ac10.tp2.n.t["overlap"] / 
+                            (overlap.ss.ac10.tp2.n.t["area.1"]+
+                               overlap.ss.ac10.tp2.n.t["area.2"]-
+                               overlap.ss.ac10.tp2.n.t["overlap"]))
+```
+
+Native and transplant overlap at time 3
+```{r}
+overlap.ss.ac10.tp3.n.t <- maxLikOverlap("TP3.SS_AC10_N", "TP3.SS_AC10_T", phys.siber.object,
+                                   p = 0.95, n = 360)
+p.overlap.ss.ac10.tp3.n.t <- as.numeric(overlap.ss.ac10.tp3.n.t["overlap"] / 
+                            (overlap.ss.ac10.tp3.n.t["area.1"]+
+                               overlap.ss.ac10.tp3.n.t["area.2"]-
+                               overlap.ss.ac10.tp3.n.t["overlap"]))
+```
+
+Native and transplant overlap at time 4
+```{r}
+overlap.ss.ac10.tp4.n.t <- maxLikOverlap("TP4.SS_AC10_N", "TP4.SS_AC10_T", phys.siber.object,
+                                   p = 0.95, n = 360)
+p.overlap.ss.ac10.tp4.n.t <- as.numeric(overlap.ss.ac10.tp4.n.t["overlap"] / 
+                            (overlap.ss.ac10.tp4.n.t["area.1"]+
+                               overlap.ss.ac10.tp4.n.t["area.2"]-
+                               overlap.ss.ac10.tp4.n.t["overlap"]))
+```
+
+######SS_AC8
+
+Native and transplant overlap at time 1
+```{r}
+overlap.ss.ac8.tp1.n.t <- maxLikOverlap("TP1.SS_AC8_N", "TP1.SS_AC8_T", phys.siber.object,
+                                   p = 0.95, n = 360)
+p.overlap.ss.ac8.tp1.n.t <- as.numeric(overlap.ss.ac8.tp1.n.t["overlap"] / 
+                            (overlap.ss.ac8.tp1.n.t["area.1"]+
+                               overlap.ss.ac8.tp1.n.t["area.2"]-
+                               overlap.ss.ac8.tp1.n.t["overlap"])) #overlap is shared area between area.1 and area.2, if we don't subtract the overlap it would get counted twice into the total area of area.1 union area.2
+```
+
+Native and transplant overlap at time 2
+```{r}
+overlap.ss.ac8.tp2.n.t <- maxLikOverlap("TP2.SS_AC8_N", "TP2.SS_AC8_T", phys.siber.object,
+                                   p = 0.95, n = 360)
+p.overlap.ss.ac8.tp2.n.t <- as.numeric(overlap.ss.ac8.tp2.n.t["overlap"] / 
+                            (overlap.ss.ac8.tp2.n.t["area.1"]+
+                               overlap.ss.ac8.tp2.n.t["area.2"]-
+                               overlap.ss.ac8.tp2.n.t["overlap"]))
+```
+
+Native and transplant overlap at time 3
+```{r}
+overlap.ss.ac8.tp3.n.t <- maxLikOverlap("TP3.SS_AC8_N", "TP3.SS_AC8_T", phys.siber.object,
+                                   p = 0.95, n = 360)
+p.overlap.ss.ac8.tp3.n.t <- as.numeric(overlap.ss.ac8.tp3.n.t["overlap"] / 
+                            (overlap.ss.ac8.tp3.n.t["area.1"]+
+                               overlap.ss.ac8.tp3.n.t["area.2"]-
+                               overlap.ss.ac8.tp3.n.t["overlap"]))
+```
+
+Native and transplant overlap at time 4
+```{r}
+overlap.ss.ac8.tp4.n.t <- maxLikOverlap("TP4.SS_AC8_N", "TP4.SS_AC8_T", phys.siber.object,
+                                   p = 0.95, n = 360)
+p.overlap.ss.ac8.tp4.n.t <- as.numeric(overlap.ss.ac8.tp4.n.t["overlap"] / 
+                            (overlap.ss.ac8.tp4.n.t["area.1"]+
+                               overlap.ss.ac8.tp4.n.t["area.2"]-
+                               overlap.ss.ac8.tp4.n.t["overlap"]))
+```
+######SS_AC12
+
+Native and transplant overlap at time 1
+```{r}
+overlap.ss.ac12.tp1.n.t <- maxLikOverlap("TP1.SS_AC12_N", "TP1.SS_AC12_T", phys.siber.object,
+                                   p = 0.95, n = 360)
+p.overlap.ss.ac12.tp1.n.t <- as.numeric(overlap.ss.ac12.tp1.n.t["overlap"] / 
+                            (overlap.ss.ac12.tp1.n.t["area.1"]+
+                               overlap.ss.ac12.tp1.n.t["area.2"]-
+                               overlap.ss.ac12.tp1.n.t["overlap"])) #overlap is shared area between area.1 and area.2, if we don't subtract the overlap it would get counted twice into the total area of area.1 union area.2
+```
+
+Native and transplant overlap at time 2
+```{r}
+overlap.ss.ac12.tp2.n.t <- maxLikOverlap("TP2.SS_AC12_N", "TP2.SS_AC12_T", phys.siber.object,
+                                   p = 0.95, n = 360)
+p.overlap.ss.ac12.tp2.n.t <- as.numeric(overlap.ss.ac12.tp2.n.t["overlap"] / 
+                            (overlap.ss.ac12.tp2.n.t["area.1"]+
+                               overlap.ss.ac12.tp2.n.t["area.2"]-
+                               overlap.ss.ac12.tp2.n.t["overlap"]))
+```
+
+Native and transplant overlap at time 3
+```{r}
+overlap.ss.ac12.tp3.n.t <- maxLikOverlap("TP3.SS_AC12_N", "TP3.SS_AC12_T", phys.siber.object,
+                                   p = 0.95, n = 360)
+p.overlap.ss.ac12.tp3.n.t <- as.numeric(overlap.ss.ac12.tp3.n.t["overlap"] / 
+                            (overlap.ss.ac12.tp3.n.t["area.1"]+
+                               overlap.ss.ac12.tp3.n.t["area.2"]-
+                               overlap.ss.ac12.tp3.n.t["overlap"]))
+```
+
+Native and transplant overlap at time 4
+```{r}
+overlap.ss.ac12.tp4.n.t <- maxLikOverlap("TP4.SS_AC12_N", "TP4.SS_AC12_T", phys.siber.object,
+                                   p = 0.95, n = 360)
+p.overlap.ss.ac12.tp4.n.t <- as.numeric(overlap.ss.ac12.tp4.n.t["overlap"] / 
+                            (overlap.ss.ac12.tp4.n.t["area.1"]+
+                               overlap.ss.ac12.tp4.n.t["area.2"]-
+                               overlap.ss.ac12.tp4.n.t["overlap"]))
+```
 ### Create Percent Overlap Dataframe
 ```{r}
 #create vector of all overlaps
 p.overlap <- c(
-  p.overlap.kl.ac10.n.tp1.tp2, p.overlap.kl.ac10.n.tp1.tp3, p.overlap.kl.ac10.n.tp1.tp4,
-  p.overlap.kl.ac10.t.tp1.tp2, p.overlap.kl.ac10.t.tp1.tp3, p.overlap.kl.ac10.t.tp1.tp4,
-  p.overlap.kl.ac12.n.tp1.tp2, p.overlap.kl.ac12.n.tp1.tp3, p.overlap.kl.ac12.n.tp1.tp4,
-  p.overlap.kl.ac12.t.tp1.tp2, p.overlap.kl.ac12.t.tp1.tp3, p.overlap.kl.ac12.t.tp1.tp4,
-  p.overlap.kl.ac8.n.tp1.tp2, p.overlap.kl.ac8.n.tp1.tp3, p.overlap.kl.ac8.n.tp1.tp4,
-  p.overlap.kl.ac8.t.tp1.tp2, p.overlap.kl.ac8.t.tp1.tp3, p.overlap.kl.ac8.t.tp1.tp4,
-  p.overlap.ss.ac10.n.tp1.tp2, p.overlap.ss.ac10.n.tp1.tp3, p.overlap.ss.ac10.n.tp1.tp4,
-  p.overlap.ss.ac10.t.tp1.tp2, p.overlap.ss.ac10.t.tp1.tp3, p.overlap.ss.ac10.t.tp1.tp4,
-  p.overlap.ss.ac12.n.tp1.tp2, p.overlap.ss.ac12.n.tp1.tp3, p.overlap.ss.ac12.n.tp1.tp4,
-  p.overlap.ss.ac12.t.tp1.tp2, p.overlap.ss.ac12.t.tp1.tp3, p.overlap.ss.ac12.t.tp1.tp4,
-  p.overlap.ss.ac8.n.tp1.tp2, p.overlap.ss.ac8.n.tp1.tp3, p.overlap.ss.ac8.n.tp1.tp4,
-  p.overlap.ss.ac8.t.tp1.tp2, p.overlap.ss.ac8.t.tp1.tp3, p.overlap.ss.ac8.t.tp1.tp4
+  p.overlap.kl.ac10.tp1.n.t, p.overlap.kl.ac10.tp2.n.t, p.overlap.kl.ac10.tp3.n.t, p.overlap.kl.ac10.tp4.n.t,
+  p.overlap.kl.ac8.tp1.n.t, p.overlap.kl.ac8.tp2.n.t, p.overlap.kl.ac8.tp3.n.t, p.overlap.kl.ac8.tp4.n.t,
+  p.overlap.kl.ac12.tp1.n.t, p.overlap.kl.ac12.tp2.n.t, p.overlap.kl.ac12.tp3.n.t, p.overlap.kl.ac12.tp4.n.t,
+  p.overlap.ss.ac10.tp1.n.t, p.overlap.ss.ac10.tp2.n.t, p.overlap.ss.ac10.tp3.n.t, p.overlap.ss.ac10.tp4.n.t,
+  p.overlap.ss.ac8.tp1.n.t, p.overlap.ss.ac8.tp2.n.t, p.overlap.ss.ac8.tp3.n.t, p.overlap.ss.ac8.tp4.n.t,
+  p.overlap.ss.ac12.tp1.n.t, p.overlap.ss.ac12.tp2.n.t, p.overlap.ss.ac12.tp3.n.t, p.overlap.ss.ac12.tp4.n.t
 )
 
 #create vector of names for all overlaps
 p.overlap.names <- c(
-  "kl.ac10.n.tp1.tp2", "kl.ac10.n.tp1.tp3", "kl.ac10.n.tp1.tp4",
-  "kl.ac10.t.tp1.tp2", "kl.ac10.t.tp1.tp3", "kl.ac10.t.tp1.tp4",
-  "kl.ac12.n.tp1.tp2", "kl.ac12.n.tp1.tp3", "kl.ac12.n.tp1.tp4",
-  "kl.ac12.t.tp1.tp2", "kl.ac12.t.tp1.tp3", "kl.ac12.t.tp1.tp4",
-  "kl.ac8.n.tp1.tp2", "kl.ac8.n.tp1.tp3", "kl.ac8.n.tp1.tp4",
-  "kl.ac8.t.tp1.tp2", "kl.ac8.t.tp1.tp3", "kl.ac8.t.tp1.tp4",
-  "ss.ac10.n.tp1.tp2", "ss.ac10.n.tp1.tp3", "ss.ac10.n.tp1.tp4",
-  "ss.ac10.t.tp1.tp2", "ss.ac10.t.tp1.tp3", "ss.ac10.t.tp1.tp4",
-  "ss.ac12.n.tp1.tp2", "ss.ac12.n.tp1.tp3", "ss.ac12.n.tp1.tp4",
-  "ss.ac12.t.tp1.tp2", "ss.ac12.t.tp1.tp3", "ss.ac12.t.tp1.tp4",
-  "ss.ac8.n.tp1.tp2", "ss.ac8.n.tp1.tp3", "ss.ac8.n.tp1.tp4",
-  "ss.ac8.t.tp1.tp2", "ss.ac8.t.tp1.tp3", "ss.ac8.t.tp1.tp4"
+  "kl.ac10.tp1.n.t", "kl.ac10.tp2.n.t", "kl.ac10.tp3.n.t", "kl.ac10.tp4.n.t",
+  "kl.ac8.tp1.n.t", "kl.ac8.tp2.n.t", "kl.ac8.tp3.n.t", "kl.ac8.tp4.n.t",
+  "kl.ac12.tp1.n.t", "kl.ac12.tp2.n.t", "kl.ac12.tp3.n.t", "kl.ac12.tp4.n.t",
+  "ss.ac10.tp1.n.t", "ss.ac10.tp2.n.t", "ss.ac10.tp3.n.t", "ss.ac10.tp4.n.t",
+  "ss.ac8.tp1.n.t", "ss.ac8.tp2.n.t", "ss.ac8.tp3.n.t", "ss.ac8.tp4.n.t",
+  "ss.ac12.tp1.n.t", "ss.ac12.tp2.n.t", "ss.ac12.tp3.n.t", "ss.ac12.tp4.n.t"
 )
 #bind into one data frame and prep for other uses
 p.overlap.df <- bind_cols(p.overlap, p.overlap.names) %>% #bind p.overlap and names together
   rename(p_overlap = "...1", names = "...2") %>% #rename columns
   #separate the names column into its pieces
-  separate(names, into = c("Site", "Genotype", "Orig", "Start", "End"), sep = "[//.]") %>% 
+  separate(names, into = c("Site", "Genotype", "Time Period", "Comparison"), sep = "[//.]") %>% 
   #edit contents of the columns we just created to match other tables and figures
   #need to capitalize letters
-  mutate(across(c(Site:End), toupper)) %>% 
+  mutate(across(c(Site:Comparison), toupper)) %>% 
   #create new column that is a numeric time period that represents "End"
   mutate(`Time Period` = case_when(
-    End == "TP2" ~ 2,
-    End == "TP3" ~ 3,
-    End == "TP4" ~ 4
-  ))
+    `Time Period` == "TP1" ~ 1,
+    `Time Period` == "TP2" ~ 2,
+    `Time Period` == "TP3" ~ 3,
+    `Time Period` == "TP4" ~ 4
+  ),
+  Comparison = gsub("N", "Native vs Transplant", Comparison))
 
 ```
 
@@ -535,12 +514,12 @@ p.overlap.df <- bind_cols(p.overlap, p.overlap.names) %>% #bind p.overlap and na
 ## Percent Overlap Through Time
 ```{r}
 (p.overlap.tp.plot <- ggplot(data = p.overlap.df, 
-                             aes(x = `Time Period`, y = p.overlap, color = Orig))+
+                             aes(x = `Time Period`, y = p.overlap, color = Genotype))+
    geom_line()+
    #geom_boxplot()
-   facet_grid(Site ~ Genotype)+
-   scale_x_continuous(breaks = c(2, 3, 4))+
-   labs(y = "Percent Overlap (Relative to Time Period 1)")+
+   facet_wrap(~Site)+
+   #scale_x_continuous(breaks = c(2, 3, 4))+
+   labs(y = "Percent Overlap (Native vs Transplant)")+
    theme_bw()
 )
 ```
