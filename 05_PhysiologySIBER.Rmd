@@ -3,12 +3,12 @@ title: "SIBER Analysis of Coral Physiology"
 author: "Peter Flood and Serena Hackerott"
 date: "2/8/2024"
 output:
-  html_document:
-    toc: yes
-    df_print: paged
   html_notebook:
     toc: yes
     toc_float: yes
+  html_document:
+    toc: yes
+    df_print: paged
 ---
 
 # Setup
@@ -93,7 +93,7 @@ corrplot(Phys.corr$r, type="upper", order="hclust",
 phys.log.num <- Phys.log %>% select(SA_cm2:Chl_ug.cm2)
 
 #Run NMDS
-phys.nmds <- metaMDS(phys.log.num, distance = "bray", k = 2, autotransform = F)
+phys.nmds <- metaMDS(phys.log.num, distance = "euclidean", k = 2, autotransform = F)
 
 #Quick plot of NMDS output
 ordiplot(phys.nmds)
@@ -170,8 +170,8 @@ legend("topright", colnames(group.ML),
 ```
 
 ```{r}
-#set up the model parameters 
-# options for running jags
+set up the model parameters
+options for running jags
 parms <- list()
 parms$n.iter <- 2 * 10^6   # number of iterations to run the model for
 parms$n.burnin <- 1 * 10^4 # discard the first set of values
@@ -192,7 +192,7 @@ setwd("~/Bonaire_memory/Outputs/SIBER")
 #knitr::opts_knit$set(root.dir = "~/Bonaire_memory/Outputs/SIBER")
 
 # fit the ellipses which uses an Inverse Wishart prior
-# on the covariance matrix Sigma, and a vague normal prior on the 
+# on the covariance matrix Sigma, and a vague normal prior on the
 # means. Fitting is via the JAGS method.
 phys.ellipses.posterior <- siberMVN(phys.siber.object, parms, priors)
 
@@ -514,7 +514,7 @@ p.overlap.df <- bind_cols(p.overlap, p.overlap.names) %>% #bind p.overlap and na
 ## Percent Overlap Through Time
 ```{r}
 (p.overlap.tp.plot <- ggplot(data = p.overlap.df, 
-                             aes(x = `Time Period`, y = p.overlap, color = Genotype))+
+                             aes(x = `Time Period`, y = p_overlap, color = Genotype))+
    geom_line()+
    #geom_boxplot()
    facet_wrap(~Site)+
@@ -522,4 +522,102 @@ p.overlap.df <- bind_cols(p.overlap, p.overlap.names) %>% #bind p.overlap and na
    labs(y = "Percent Overlap (Native vs Transplant)")+
    theme_bw()
 )
+```
+```{r}
+p.overlap.mean <- p.overlap.df %>% 
+                               group_by(Site, `Time Period`) %>% 
+                               summarise(mean = mean(p_overlap), sd = sd(p_overlap))
+
+(p.overlap.tp.plot <- ggplot(data = p.overlap.mean, 
+                             aes(x = `Time Period`, y = mean, color = Site))+
+   geom_line()+
+   geom_errorbar(aes(ymin = mean - sd, ymax = mean + sd), width = 0.2)+
+   #geom_boxplot()
+   #facet_wrap(~Site)+
+   #scale_x_continuous(breaks = c(2, 3, 4))+
+   scale_color_manual(values = c(Site.colors.o))+
+   labs(y = "Percent Overlap (Native vs Transplant)")+
+   theme_bw()
+)
+```
+##Ellipses
+```{r}
+# how many of the posterior draws do you want?
+n.posts <- 100
+
+# decide how big an ellipse you want to draw
+p.ell <- 0.99
+
+# for a standard ellipse use
+# p.ell <- pchisq(1,2)
+
+
+
+
+# a list to store the results
+all_ellipses <- list()
+
+# loop over groups
+for (i in 1:length(phys.ellipses.posterior)){
+  
+  # a dummy variable to build in the loop
+  ell <- NULL
+  post.id <- NULL
+  
+  for ( j in 1:n.posts){
+    
+    # covariance matrix
+    Sigma  <- matrix(phys.ellipses.posterior[[i]][j,1:4], 2, 2)
+    
+    # mean
+    mu     <- phys.ellipses.posterior[[i]][j,5:6]
+    
+    # ellipse points
+    
+    out <- ellipse::ellipse(Sigma, centre = mu , level = p.ell)
+    
+    
+    ell <- rbind(ell, out)
+    post.id <- c(post.id, rep(j, nrow(out)))
+    
+  }
+  ell <- as.data.frame(ell)
+  ell$rep <- post.id
+  all_ellipses[[i]] <- ell
+}
+
+ellipse_df <- bind_rows(all_ellipses, .id = "id")
+
+# now we need the group and community names
+
+# extract them from the global.ellipses.posterior list
+group_comm_names <- names(phys.ellipses.posterior)[as.numeric(ellipse_df$id)]
+
+# split them and convert to a matrix, NB byrow = T
+split_group_comm <- matrix(
+  #unlist(strsplit(group_comm_names, "[.]")),
+         unlist(regmatches(group_comm_names, regexpr("[.]", group_comm_names), invert = TRUE)),
+                           nrow(ellipse_df), 2, byrow = TRUE)
+
+ellipse_df$community <- split_group_comm[,1]
+ellipse_df$group     <- split_group_comm[,2]
+
+ellipse_df <- dplyr::rename(ellipse_df, iso1 = x, iso2 = y)
+
+plot.ellipse.df <- ellipse_df %>% 
+  separate(group, into = c("Site", "Genotype", "Origin"), sep = "_") %>% 
+  rename(`Time Period` = community, MDS1 = iso1, MDS2 = iso2)
+
+#example niche ellipse plots 
+(phys.niche.ellipse.plot <- ggplot(plot.ellipse.df,
+                                  aes(x = MDS1, y = MDS2, color = Origin, fill = Genotype))+
+    stat_conf_ellipse(geom = "polygon")+
+    facet_grid(Site ~ `Time Period`, scales = "free")+
+    scale_fill_viridis_d(end = 0.8)+
+    scale_color_viridis_d(end = 0.8, option = "A")+
+    theme_bw()
+)
+
+ggsave(filename = "iso_niche_ellipse_plot.tiff", plot = iso.niche.ellipse.plot,
+       height = 150, width = 200, units = "mm", dpi = 300)
 ```
