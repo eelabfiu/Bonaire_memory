@@ -3,18 +3,19 @@ title: "SIBER Analysis of Coral Physiology"
 author: "Peter Flood and Serena Hackerott"
 date: "2/8/2024"
 output:
-  html_notebook:
-    toc: yes
-    toc_float: yes
   html_document:
     toc: yes
     df_print: paged
+  html_notebook:
+    toc: yes
+    toc_float: yes
 ---
 
 # Setup
 
 ```{r Setup, include = FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+getwd()
 ```
 
 
@@ -25,8 +26,11 @@ if (!require("ggplot2")) install.packages("ggplot2")
 if (!require("cowplot")) install.packages("cowplot")
 if (!require("SIBER")) install.packages("SIBER")
 if (!require("vegan")) install.packages("vegan")
+if (!require("Hmisc")) install.packages("Hmisc")
+if (!require("corrplot")) install.packages("corrplot")
 if (!require("tidyverse")) install.packages("tidyverse")
-
+if (!require("Rmisc")) install.packages("Rmisc")
+if (!require("ggpubr")) install.packages("ggpubr")
 
 ##Load Packages
 library(ggplot2) #Required for ggplots
@@ -36,6 +40,8 @@ library(vegan) #Required for NMDS
 library(Hmisc) #Required for correlations
 library(corrplot) #Required for correlation plot
 library(tidyverse) #Required for data manipulation
+library(Rmisc) #Required for data summary
+library(ggpubr) #Required for stat_conf_ellipse
 ```
 
 
@@ -77,20 +83,19 @@ corrplot(Phys.corr$r, type="upper", order="hclust",
          p.mat = Phys.corr$P, sig.level = 0.01, insig = "blank")
 
 ```
+Physiological variables of interest: Protein (Coral and Symbiont), Biomass (Coral and Symbiont), and Chlorophyll.
 
 
 # SIBER Ellipses
 
-## SIBER Prep
+## Prepare Input Data
 
-### Ordination
+### NMDS Ordination
+SIBER runs on a two dimensional data set. So first, we need to reduce the dimensionality of the physiology data. We're going to do this via Non-Metric Multidimensional Scaling (NMDS) on log+1 transformed physiological metrics of interest.
 ```{r}
-#SIBER runs on a two dimensional data set
-#So, first we need to reduce the dimensionality of the physiology data
-#We're going to do this via Non-Metric Multidimensional Scaling (NMDS) 
-
-#Select only the physiology columns (numbers only without covariates) to put into the NMDS
-phys.log.num <- Phys.log %>% select(SA_cm2:Chl_ug.cm2)
+#Select only the physiology columns of interest (without covariates) to put into the NMDS
+names(Phys.log)
+phys.log.num <- Phys.log[,c(11:14, 16)]
 
 #Run NMDS
 phys.nmds <- metaMDS(phys.log.num, distance = "euclidean", k = 2, autotransform = F)
@@ -98,6 +103,8 @@ phys.nmds <- metaMDS(phys.log.num, distance = "euclidean", k = 2, autotransform 
 #Quick plot of NMDS output
 ordiplot(phys.nmds)
 ```
+
+
 ### Data Prep for SIBER
 ```{r}
 #Prepare data to be input into SIBER
@@ -111,14 +118,14 @@ phys.siber.input <- phys.nmds$points %>% #extract 2-D physiology axes from NMDS
   #create  group variable that combines site, genotype and origin
   unite("group", c(Site, Genotype, Orig), sep = "_") %>% 
   #rename variables to match names for SIBER
-  rename(community = TimeP, iso1 = MDS1, iso2 = MDS2) %>% 
+  dplyr::rename(community = TimeP, iso1 = MDS1, iso2 = MDS2) %>% 
   #retain only columns for SIBER
   select(iso1, iso2, group, community)
 
 ```
 
 
-### Run SIBER
+## Run SIBER
 Grouping by each genotype at each site, timepoint, and from each origin
 ```{r}
 # create SIBER object
@@ -167,60 +174,23 @@ print(group.ML)
 
 legend("topright", colnames(group.ML), 
        pch = c(1,1,1,2,2,2), col = c(1:3, 1:3), lty = 1)
+
+##Save SIBER Object in Outputs
+save(phys.siber.object, file="Outputs/SIBER/Phys.SIBER.Object.RData")
 ```
-
-```{r}
-set up the model parameters
-options for running jags
-parms <- list()
-parms$n.iter <- 2 * 10^6   # number of iterations to run the model for
-parms$n.burnin <- 1 * 10^4 # discard the first set of values
-parms$n.thin <- 100     # thin the posterior by this many
-parms$n.chains <- 2        # run this many chains
-parms$save.output = T
-parms$save.dir = getwd()
-
-# define the priors
-priors <- list()
-priors$R <- 1 * diag(2)
-priors$k <- 2
-priors$tau.mu <- 1.0E-3
-
-#SIBER generates a lot of jags output
-#changing working directory to where that output should go
-setwd("~/Bonaire_memory/Outputs/SIBER")
-#knitr::opts_knit$set(root.dir = "~/Bonaire_memory/Outputs/SIBER")
-
-# fit the ellipses which uses an Inverse Wishart prior
-# on the covariance matrix Sigma, and a vague normal prior on the
-# means. Fitting is via the JAGS method.
-phys.ellipses.posterior <- siberMVN(phys.siber.object, parms, priors)
-
-#calculate posterior estimates of ellipses for all groups
-SEA.B<-siberEllipses(phys.ellipses.posterior)
-#set column names for SEA.B
-colnames(SEA.B)<-names(phys.ellipses.posterior)
-
-```
-
-### Plot Ellipses over Time
-
-#### TP1
-
-#### TP2
-
-#### TP3
-
-#### TP4
 
 
 # Ellipse Overlap
 
-### Calculate Percent Overlap
-Do native and transplant fragments become more similar over time
-within each genotype at each site
+## Calculate Percent Overlap
+Calculating the overlap between corals of the same genotype, at the same site and timepoint.
+Do native and transplant fragments become more similar over time within each genotype at each site?
+Note: overlap is shared area between area.1 and area.2, if we don't subtract the overlap it would get counted twice into the total area of area.1 union area.2
 
-######KL_AC10
+
+### Klein
+
+#### KL_AC10
 
 Native and transplant overlap at time 1
 ```{r}
@@ -229,7 +199,7 @@ overlap.kl.ac10.tp1.n.t <- maxLikOverlap("TP1.KL_AC10_N", "TP1.KL_AC10_T", phys.
 p.overlap.kl.ac10.tp1.n.t <- as.numeric(overlap.kl.ac10.tp1.n.t["overlap"] / 
                             (overlap.kl.ac10.tp1.n.t["area.1"]+
                                overlap.kl.ac10.tp1.n.t["area.2"]-
-                               overlap.kl.ac10.tp1.n.t["overlap"])) #overlap is shared area between area.1 and area.2, if we don't subtract the overlap it would get counted twice into the total area of area.1 union area.2
+                               overlap.kl.ac10.tp1.n.t["overlap"])) #subtract overlap 
 ```
 
 Native and transplant overlap at time 2
@@ -262,7 +232,8 @@ p.overlap.kl.ac10.tp4.n.t <- as.numeric(overlap.kl.ac10.tp4.n.t["overlap"] /
                                overlap.kl.ac10.tp4.n.t["overlap"]))
 ```
 
-######KL_AC8
+
+#### KL_AC8
 
 Native and transplant overlap at time 1
 ```{r}
@@ -271,7 +242,7 @@ overlap.kl.ac8.tp1.n.t <- maxLikOverlap("TP1.KL_AC8_N", "TP1.KL_AC8_T", phys.sib
 p.overlap.kl.ac8.tp1.n.t <- as.numeric(overlap.kl.ac8.tp1.n.t["overlap"] / 
                             (overlap.kl.ac8.tp1.n.t["area.1"]+
                                overlap.kl.ac8.tp1.n.t["area.2"]-
-                               overlap.kl.ac8.tp1.n.t["overlap"])) #overlap is shared area between area.1 and area.2, if we don't subtract the overlap it would get counted twice into the total area of area.1 union area.2
+                               overlap.kl.ac8.tp1.n.t["overlap"])) #subtract overlap 
 ```
 
 Native and transplant overlap at time 2
@@ -303,7 +274,9 @@ p.overlap.kl.ac8.tp4.n.t <- as.numeric(overlap.kl.ac8.tp4.n.t["overlap"] /
                                overlap.kl.ac8.tp4.n.t["area.2"]-
                                overlap.kl.ac8.tp4.n.t["overlap"]))
 ```
-######KL_AC12
+
+
+#### KL_AC12
 
 Native and transplant overlap at time 1
 ```{r}
@@ -312,7 +285,7 @@ overlap.kl.ac12.tp1.n.t <- maxLikOverlap("TP1.KL_AC12_N", "TP1.KL_AC12_T", phys.
 p.overlap.kl.ac12.tp1.n.t <- as.numeric(overlap.kl.ac12.tp1.n.t["overlap"] / 
                             (overlap.kl.ac12.tp1.n.t["area.1"]+
                                overlap.kl.ac12.tp1.n.t["area.2"]-
-                               overlap.kl.ac12.tp1.n.t["overlap"])) #overlap is shared area between area.1 and area.2, if we don't subtract the overlap it would get counted twice into the total area of area.1 union area.2
+                               overlap.kl.ac12.tp1.n.t["overlap"])) #subtract overlap 
 ```
 
 Native and transplant overlap at time 2
@@ -345,7 +318,10 @@ p.overlap.kl.ac12.tp4.n.t <- as.numeric(overlap.kl.ac12.tp4.n.t["overlap"] /
                                overlap.kl.ac12.tp4.n.t["overlap"]))
 ```
 
-######SS_AC10
+
+### Something Special
+
+#### SS_AC10
 
 Native and transplant overlap at time 1
 ```{r}
@@ -354,7 +330,7 @@ overlap.ss.ac10.tp1.n.t <- maxLikOverlap("TP1.SS_AC10_N", "TP1.SS_AC10_T", phys.
 p.overlap.ss.ac10.tp1.n.t <- as.numeric(overlap.ss.ac10.tp1.n.t["overlap"] / 
                             (overlap.ss.ac10.tp1.n.t["area.1"]+
                                overlap.ss.ac10.tp1.n.t["area.2"]-
-                               overlap.ss.ac10.tp1.n.t["overlap"])) #overlap is shared area between area.1 and area.2, if we don't subtract the overlap it would get counted twice into the total area of area.1 union area.2
+                               overlap.ss.ac10.tp1.n.t["overlap"])) #subtract overlap 
 ```
 
 Native and transplant overlap at time 2
@@ -387,7 +363,8 @@ p.overlap.ss.ac10.tp4.n.t <- as.numeric(overlap.ss.ac10.tp4.n.t["overlap"] /
                                overlap.ss.ac10.tp4.n.t["overlap"]))
 ```
 
-######SS_AC8
+
+#### SS_AC8
 
 Native and transplant overlap at time 1
 ```{r}
@@ -396,7 +373,7 @@ overlap.ss.ac8.tp1.n.t <- maxLikOverlap("TP1.SS_AC8_N", "TP1.SS_AC8_T", phys.sib
 p.overlap.ss.ac8.tp1.n.t <- as.numeric(overlap.ss.ac8.tp1.n.t["overlap"] / 
                             (overlap.ss.ac8.tp1.n.t["area.1"]+
                                overlap.ss.ac8.tp1.n.t["area.2"]-
-                               overlap.ss.ac8.tp1.n.t["overlap"])) #overlap is shared area between area.1 and area.2, if we don't subtract the overlap it would get counted twice into the total area of area.1 union area.2
+                               overlap.ss.ac8.tp1.n.t["overlap"])) #subtract overlap 
 ```
 
 Native and transplant overlap at time 2
@@ -428,7 +405,9 @@ p.overlap.ss.ac8.tp4.n.t <- as.numeric(overlap.ss.ac8.tp4.n.t["overlap"] /
                                overlap.ss.ac8.tp4.n.t["area.2"]-
                                overlap.ss.ac8.tp4.n.t["overlap"]))
 ```
-######SS_AC12
+
+
+#### SS_AC12
 
 Native and transplant overlap at time 1
 ```{r}
@@ -437,7 +416,7 @@ overlap.ss.ac12.tp1.n.t <- maxLikOverlap("TP1.SS_AC12_N", "TP1.SS_AC12_T", phys.
 p.overlap.ss.ac12.tp1.n.t <- as.numeric(overlap.ss.ac12.tp1.n.t["overlap"] / 
                             (overlap.ss.ac12.tp1.n.t["area.1"]+
                                overlap.ss.ac12.tp1.n.t["area.2"]-
-                               overlap.ss.ac12.tp1.n.t["overlap"])) #overlap is shared area between area.1 and area.2, if we don't subtract the overlap it would get counted twice into the total area of area.1 union area.2
+                               overlap.ss.ac12.tp1.n.t["overlap"])) #subtract overlap 
 ```
 
 Native and transplant overlap at time 2
@@ -469,6 +448,8 @@ p.overlap.ss.ac12.tp4.n.t <- as.numeric(overlap.ss.ac12.tp4.n.t["overlap"] /
                                overlap.ss.ac12.tp4.n.t["area.2"]-
                                overlap.ss.ac12.tp4.n.t["overlap"]))
 ```
+
+
 ### Create Percent Overlap Dataframe
 ```{r}
 #create vector of all overlaps
@@ -483,65 +464,90 @@ p.overlap <- c(
 
 #create vector of names for all overlaps
 p.overlap.names <- c(
-  "kl.ac10.tp1.n.t", "kl.ac10.tp2.n.t", "kl.ac10.tp3.n.t", "kl.ac10.tp4.n.t",
-  "kl.ac8.tp1.n.t", "kl.ac8.tp2.n.t", "kl.ac8.tp3.n.t", "kl.ac8.tp4.n.t",
-  "kl.ac12.tp1.n.t", "kl.ac12.tp2.n.t", "kl.ac12.tp3.n.t", "kl.ac12.tp4.n.t",
-  "ss.ac10.tp1.n.t", "ss.ac10.tp2.n.t", "ss.ac10.tp3.n.t", "ss.ac10.tp4.n.t",
-  "ss.ac8.tp1.n.t", "ss.ac8.tp2.n.t", "ss.ac8.tp3.n.t", "ss.ac8.tp4.n.t",
-  "ss.ac12.tp1.n.t", "ss.ac12.tp2.n.t", "ss.ac12.tp3.n.t", "ss.ac12.tp4.n.t"
+  "KL.AC10.TP1", "KL.AC10.TP2", "KL.AC10.TP3", "KL.AC10.TP4",
+  "KL.AC8.TP1", "KL.AC8.TP2", "KL.AC8.TP3", "KL.AC8.TP4",
+  "KL.AC12.TP1", "KL.AC12.TP2", "KL.AC12.TP3", "KL.AC12.TP4",
+  "SS.AC10.TP1", "SS.AC10.TP2", "SS.AC10.TP3", "SS.AC10.TP4",
+  "SS.AC8.TP1", "SS.AC8.TP2", "SS.AC8.TP3", "SS.AC8.TP4",
+  "SS.AC12.TP1", "SS.AC12.TP2", "SS.AC12.TP3", "SS.AC12.TP4"
 )
-#bind into one data frame and prep for other uses
-p.overlap.df <- bind_cols(p.overlap, p.overlap.names) %>% #bind p.overlap and names together
-  rename(p_overlap = "...1", names = "...2") %>% #rename columns
-  #separate the names column into its pieces
-  separate(names, into = c("Site", "Genotype", "Time Period", "Comparison"), sep = "[//.]") %>% 
-  #edit contents of the columns we just created to match other tables and figures
-  #need to capitalize letters
-  mutate(across(c(Site:Comparison), toupper)) %>% 
-  #create new column that is a numeric time period that represents "End"
-  mutate(`Time Period` = case_when(
-    `Time Period` == "TP1" ~ 1,
-    `Time Period` == "TP2" ~ 2,
-    `Time Period` == "TP3" ~ 3,
-    `Time Period` == "TP4" ~ 4
-  ),
-  Comparison = gsub("N", "Native vs Transplant", Comparison))
+#bind into one data frame
+p.overlap.df <- data.frame(Set=p.overlap.names, Overlap=p.overlap)
+p.overlap.df<- p.overlap.df %>% tidyr::separate_wider_delim(cols="Set", names = c("Site", "Genotype", "TimeP"), delim = ".") #separate the names column into its pieces
+
+##Write out dataframe
+write.csv(p.overlap.df, "Outputs/SIBER_p.Overlap.csv", row.names=FALSE)
+
+##Set factor variables
+p.overlap.df$TimeP<-factor(p.overlap.df$TimeP, levels=c("TP1", "TP2", "TP3", "TP4"), ordered=TRUE)
+p.overlap.df$Site<-factor(p.overlap.df$Site, levels=c("KL", "SS"))
+p.overlap.df$Genotype<-factor(p.overlap.df$Genotype, levels=c("AC8", "AC10", "AC12"))
 
 ```
 
-# Figures
 
-## Percent Overlap Through Time
-```{r}
-(p.overlap.tp.plot <- ggplot(data = p.overlap.df, 
-                             aes(x = `Time Period`, y = p_overlap, color = Genotype))+
-   geom_line()+
-   #geom_boxplot()
-   facet_wrap(~Site)+
-   #scale_x_continuous(breaks = c(2, 3, 4))+
-   labs(y = "Percent Overlap (Native vs Transplant)")+
-   theme_bw()
-)
-```
-```{r}
-p.overlap.mean <- p.overlap.df %>% 
-                               group_by(Site, `Time Period`) %>% 
-                               summarise(mean = mean(p_overlap), sd = sd(p_overlap))
+## Visualize Overlap over Time
 
-(p.overlap.tp.plot <- ggplot(data = p.overlap.mean, 
-                             aes(x = `Time Period`, y = mean, color = Site))+
-   geom_line()+
-   geom_errorbar(aes(ymin = mean - sd, ymax = mean + sd), width = 0.2)+
-   #geom_boxplot()
-   #facet_wrap(~Site)+
-   #scale_x_continuous(breaks = c(2, 3, 4))+
-   scale_color_manual(values = c(Site.colors.o))+
-   labs(y = "Percent Overlap (Native vs Transplant)")+
-   theme_bw()
-)
+### By Genotype
+```{r Plot Overlap over Time}
+##Plot Niche Overlap across Timepoints
+Overlap.plot<-ggplot(p.overlap.df, aes(x=TimeP, y=Overlap, colour=Genotype, group=Genotype)) + 
+  geom_line(linewidth=bar.sz)+
+  geom_point(size=point.sz)+
+  theme_classic()+
+  theme(axis.title.x = element_text(size = axis.title.sz), 
+        axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
+        axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.txt.sz), 
+        legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"), 
+        strip.text=element_text(size=axis.title.sz))+
+  labs(x="Timepoint", y="Physiological Niche Overlap")+
+  facet_wrap(~Site); Overlap.plot
+
+##Save Figure
+ggsave(filename="Figures/04_SIBER/NicheOverlap.png", plot=Overlap.plot, dpi=300, width=8, height=5, units="in")
+
 ```
-##Ellipses
+
+
+
+### Across Genotypes
+```{r Plot Average Overlap over Time}
+##Summary statistics by Site and Origin
+p.overlap.sum<-summarySE(p.overlap.df, measurevar="Overlap", groupvars=c("Site", "TimeP"), na.rm=TRUE)
+
+##Plot Average Niche Overlap across Timepoints
+Overlap_Avg.plot<-ggplot(p.overlap.sum, aes(x=TimeP, y=Overlap, colour=Site, group=1)) + 
+  scale_colour_manual(values=Site.colors.o)+
+  geom_errorbar(aes(ymin=Overlap-se, ymax=Overlap+se), width=cap.sz, linewidth=bar.sz) +
+  geom_line(linewidth=bar.sz)+
+  geom_point(size=point.sz)+
+  theme_classic()+
+  theme(axis.title.x = element_text(size = axis.title.sz), 
+        axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
+        axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.position="none",
+        strip.text=element_text(size=axis.title.sz))+
+  labs(x="Timepoint", y="Physiological Niche Overlap")+
+  facet_wrap(~Site); Overlap_Avg.plot
+
+##Save Figure
+ggsave(filename="Figures/04_SIBER/AvgNicheOverlap.png", plot=Overlap_Avg.plot, dpi=300, width=6, height=5, units="in")
+```
+
+
+## Ellipses
+Note: to Create SIBER Ellipses, run SIBER_Ellipse.R in Outputs/SIBER
+Requires phys.ellipses.posterior created in SIBER_Ellipse.R in Outputs/SIBER
+
+### Organize Ellipse Data
 ```{r}
+##Load Ellipse Data
+load("Outputs/SIBER/Phys.SIBER.Ellipses.RData")
+
 # how many of the posterior draws do you want?
 n.posts <- 100
 
@@ -550,9 +556,6 @@ p.ell <- 0.99
 
 # for a standard ellipse use
 # p.ell <- pchisq(1,2)
-
-
-
 
 # a list to store the results
 all_ellipses <- list()
@@ -573,9 +576,7 @@ for (i in 1:length(phys.ellipses.posterior)){
     mu     <- phys.ellipses.posterior[[i]][j,5:6]
     
     # ellipse points
-    
     out <- ellipse::ellipse(Sigma, centre = mu , level = p.ell)
-    
     
     ell <- rbind(ell, out)
     post.id <- c(post.id, rep(j, nrow(out)))
@@ -593,9 +594,8 @@ ellipse_df <- bind_rows(all_ellipses, .id = "id")
 # extract them from the global.ellipses.posterior list
 group_comm_names <- names(phys.ellipses.posterior)[as.numeric(ellipse_df$id)]
 
-# split them and convert to a matrix, NB byrow = T
+# split them and convert to a matrix
 split_group_comm <- matrix(
-  #unlist(strsplit(group_comm_names, "[.]")),
          unlist(regmatches(group_comm_names, regexpr("[.]", group_comm_names), invert = TRUE)),
                            nrow(ellipse_df), 2, byrow = TRUE)
 
@@ -605,19 +605,31 @@ ellipse_df$group     <- split_group_comm[,2]
 ellipse_df <- dplyr::rename(ellipse_df, iso1 = x, iso2 = y)
 
 plot.ellipse.df <- ellipse_df %>% 
-  separate(group, into = c("Site", "Genotype", "Origin"), sep = "_") %>% 
-  rename(`Time Period` = community, MDS1 = iso1, MDS2 = iso2)
+  separate_wider_delim(cols="group", names = c("Site", "Genotype", "Origin"), delim = "_") %>% 
+  dplyr::rename(TimeP = community, MDS1 = iso1, MDS2 = iso2)
 
+##Write out dataframe
+write.csv(plot.ellipse.df, "Outputs/SIBER_Ellipse.csv", row.names=FALSE)
+
+```
+
+
+### Plot Niche Ellipses
+
+```{r Plot Ellipses over Time}
 #example niche ellipse plots 
-(phys.niche.ellipse.plot <- ggplot(plot.ellipse.df,
+phys.niche.ellipse.plot <- ggplot(plot.ellipse.df,
                                   aes(x = MDS1, y = MDS2, color = Origin, fill = Genotype))+
     stat_conf_ellipse(geom = "polygon")+
-    facet_grid(Site ~ `Time Period`, scales = "free")+
+    facet_grid(Site ~ TimeP, scales = "free")+
     scale_fill_viridis_d(end = 0.8)+
     scale_color_viridis_d(end = 0.8, option = "A")+
-    theme_bw()
-)
+    theme_bw();phys.niche.ellipse.plot
 
-ggsave(filename = "iso_niche_ellipse_plot.tiff", plot = iso.niche.ellipse.plot,
-       height = 150, width = 200, units = "mm", dpi = 300)
+##Save Figure
+ggsave(filename="Figures/04_SIBER/NicheEllipse.png", plot=phys.niche.ellipse.plot, dpi=300, width=10, height=8, units="in")
 ```
+
+
+# Figures
+Need to decide on final figure panels
