@@ -3,12 +3,12 @@ title: "SIBER Analysis of Coral Physiology"
 author: "Peter Flood and Serena Hackerott"
 date: "2/8/2024"
 output:
-  html_document:
-    toc: yes
-    df_print: paged
   html_notebook:
     toc: yes
     toc_float: yes
+  html_document:
+    toc: yes
+    df_print: paged
 ---
 
 # Setup
@@ -543,93 +543,46 @@ ggsave(filename="Figures/04_SIBER/AvgNicheOverlap.png", plot=Overlap_Avg.plot, d
 Note: to Create SIBER Ellipses, run SIBER_Ellipse.R in Outputs/SIBER
 Requires phys.ellipses.posterior created in SIBER_Ellipse.R in Outputs/SIBER
 
-### Organize Ellipse Data
+### Plot Niche Ellipses
+Format data to plot
 ```{r}
-##Load Ellipse Data
-load("Outputs/SIBER/Phys.SIBER.Ellipses.RData")
-
-# how many of the posterior draws do you want?
-n.posts <- 100
-
-# decide how big an ellipse you want to draw
-p.ell <- 0.99
-
-# for a standard ellipse use
-# p.ell <- pchisq(1,2)
-
-# a list to store the results
-all_ellipses <- list()
-
-# loop over groups
-for (i in 1:length(phys.ellipses.posterior)){
-  
-  # a dummy variable to build in the loop
-  ell <- NULL
-  post.id <- NULL
-  
-  for ( j in 1:n.posts){
-    
-    # covariance matrix
-    Sigma  <- matrix(phys.ellipses.posterior[[i]][j,1:4], 2, 2)
-    
-    # mean
-    mu     <- phys.ellipses.posterior[[i]][j,5:6]
-    
-    # ellipse points
-    out <- ellipse::ellipse(Sigma, centre = mu , level = p.ell)
-    
-    ell <- rbind(ell, out)
-    post.id <- c(post.id, rep(j, nrow(out)))
-    
-  }
-  ell <- as.data.frame(ell)
-  ell$rep <- post.id
-  all_ellipses[[i]] <- ell
-}
-
-ellipse_df <- bind_rows(all_ellipses, .id = "id")
-
-# now we need the group and community names
-
-# extract them from the global.ellipses.posterior list
-group_comm_names <- names(phys.ellipses.posterior)[as.numeric(ellipse_df$id)]
-
-# split them and convert to a matrix
-split_group_comm <- matrix(
-         unlist(regmatches(group_comm_names, regexpr("[.]", group_comm_names), invert = TRUE)),
-                           nrow(ellipse_df), 2, byrow = TRUE)
-
-ellipse_df$community <- split_group_comm[,1]
-ellipse_df$group     <- split_group_comm[,2]
-
-ellipse_df <- dplyr::rename(ellipse_df, iso1 = x, iso2 = y)
-
-plot.ellipse.df <- ellipse_df %>% 
-  separate_wider_delim(cols="group", names = c("Site", "Genotype", "Origin"), delim = "_") %>% 
-  dplyr::rename(TimeP = community, MDS1 = iso1, MDS2 = iso2)
-
-##Write out dataframe
-write.csv(plot.ellipse.df, "Outputs/SIBER_Ellipse.csv", row.names=FALSE)
-
+phys.nmds.plot.data <- phys.siber.input %>% 
+  separate(group, into = c("Site", "Genotype", "Origin"), sep = "_") %>% 
+  mutate(Origin = case_when(
+    Origin == "N" ~ "Native",
+    Origin == "T" ~ "Transplant"
+  )) %>% 
+  dplyr::rename(`Time Period`= community, MDS1 = iso1, MDS2 = iso2)
 ```
 
-
-### Plot Niche Ellipses
-
-```{r Plot Ellipses over Time}
-#example niche ellipse plots 
-phys.niche.ellipse.plot <- ggplot(plot.ellipse.df,
-                                  aes(x = MDS1, y = MDS2, color = Origin, fill = Genotype))+
-    stat_conf_ellipse(geom = "polygon")+
-    facet_grid(Site ~ TimeP, scales = "free")+
+Plot by genotype and origin
+```{r}
+(phys.nmds.ellipses.geno <- ggplot(phys.nmds.plot.data, 
+                              aes(x = MDS1, y = MDS2, color = Origin, fill = Genotype))+
+    stat_conf_ellipse(geom = "polygon", level = 0.95, alpha = 0.5)+
+    facet_grid(Site ~ `Time Period`, scales = "free")+
     scale_fill_viridis_d(end = 0.8)+
     scale_color_viridis_d(end = 0.8, option = "A")+
-    theme_bw();phys.niche.ellipse.plot
+    theme_bw()
+  
+)
 
-##Save Figure
-ggsave(filename="Figures/04_SIBER/NicheEllipse.png", plot=phys.niche.ellipse.plot, dpi=300, width=10, height=8, units="in")
+ggsave(filename="Figures/04_SIBER/NicheEllipseGeno.png", plot=phys.nmds.ellipses.geno, dpi=300, width=10, height=8, units="in")
 ```
 
+Plot by origin
+```{r}
+(phys.nmds.ellipses.origin <- ggplot(phys.nmds.plot.data, 
+                              aes(x = MDS1, y = MDS2, fill = Origin))+
+    stat_conf_ellipse(geom = "polygon", level = 0.95, alpha = 0.5)+
+    facet_grid(Site ~ `Time Period`, scales = "free")+
+    scale_fill_viridis_d(end = 0.8, option = "A")+
+    theme_bw()
+  
+)
+
+ggsave(filename="Figures/04_SIBER/NicheEllipseOrigin.png", plot=phys.nmds.ellipses.origin, dpi=300, width=10, height=8, units="in")
+```
 
 # Figures
 Need to decide on final figure panels
