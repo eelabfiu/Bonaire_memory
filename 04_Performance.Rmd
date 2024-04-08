@@ -35,6 +35,7 @@ if (!require("tidyr")) install.packages("tidyr")
 if (!require("dplyr")) install.packages("dplyr")
 if (!require("plotrix")) install.packages("plotrix")
 if (!require("Rmisc")) install.packages("Rmisc")
+if (!require("ggpubr")) install.packages("ggpubr")
 
 ##Load Packages
 library(ggplot2) #Required for ggplots
@@ -51,6 +52,7 @@ library(tidyr) #Required for pivot_wider function
 library(dplyr) #Required for group_by function
 library(plotrix) #Required for Standard error function
 library(Rmisc) #Required for SummarySE function
+library(ggpubr) #Required for stat brackets
 
 ```
 
@@ -150,76 +152,99 @@ ggplot(Growth, aes(x=Set, y=TLE_cm.day)) +
   geom_jitter(shape=16, position=position_jitter(0.1))+
   theme(axis.text.x = element_text(angle = 90))
 
-##Potential Outliers to Check
-Growth$ID[which(Growth$TLE_cm.day>0.4 & Growth$Set=="KL.AC8.N")]
-Growth$ID[which(Growth$TLE_cm.day>0.3 & Growth$Set=="KL.AC8.T")]
-Growth$ID[which(Growth$TLE_cm.day>0.2 & Growth$Set=="SS.AC10.T")]
-Growth$ID[which(Growth$TLE_cm.day>0.5 & Growth$Set=="SS.AC8.N")]
-
-##Temporarily Remove Outliers
-Growth.o<-Growth[-c(which(Growth$TLE_cm.day>0.4 & Growth$Set=="KL.AC8.N"),
-                    which(Growth$TLE_cm.day>0.3 & Growth$Set=="KL.AC8.T"),
-                    which(Growth$TLE_cm.day>0.2 & Growth$Set=="SS.AC10.T"),
-                    which(Growth$TLE_cm.day>0.5 & Growth$Set=="SS.AC8.N")),]
-
-##Visual Check
-ggplot(Growth.o, aes(x=Set, y=TLE_cm.day)) + 
-  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
-  geom_jitter(shape=16, position=position_jitter(0.1))+
-  theme(axis.text.x = element_text(angle = 90))
-
 ```
 
-Need to add one sample from SS.AC12.T for n=10. Need to re-measure 4 potential outliers.
+Potential outliers have been re-measured and therefore will be retained.
 
 
 ### Compare Growth Rate
 ```{r}
 #Check normality
-hist(Growth.o$TLE_cm.day)
-shapiro.test(Growth.o$TLE_cm.day)
+hist(Growth$TLE_cm.day)
+shapiro.test(Growth$TLE_cm.day)
 #Not normal
 
-hist(log(Growth.o$TLE_cm.day+1))
-shapiro.test(log(Growth.o$TLE_cm.day+1))
-##Still not normal but less skewed
+hist(log(Growth$TLE_cm.day+1))
+shapiro.test(log(Growth$TLE_cm.day+1))
+##Still not normal
 
+##Compare generalized linear mixed effects models
+TLE.glmr.gaus<-glmer(TLE_cm.day~Origin*Site+(1|Genotype), data=Growth, family=gaussian(link="identity"))
+TLE.glmr.gaus.l<-glmer(TLE_cm.day~Origin*Site+(1|Genotype), data=Growth, family=gaussian(link="log"))
+TLE.glmr.gaus.i<-glmer(TLE_cm.day~Origin*Site+(1|Genotype), data=Growth, family=gaussian(link="inverse"))
+
+TLE.glmr.gam.l<-glmer(TLE_cm.day~Origin*Site+(1|Genotype), data=Growth, family=Gamma(link="log"))
+TLE.glmr.gam.i<-glmer(TLE_cm.day~Origin*Site+(1|Genotype), data=Growth, family=Gamma(link="inverse"))
+
+TLE.glmr.inv<-glmer(TLE_cm.day~Origin*Site+(1|Genotype), data=Growth, family=inverse.gaussian(link="1/mu^2"))
+TLE.glmr.inv.l<-glmer(TLE_cm.day~Origin*Site+(1|Genotype), data=Growth, family=inverse.gaussian(link="log"))
+TLE.glmr.inv.i<-glmer(TLE_cm.day~Origin*Site+(1|Genotype), data=Growth, family=inverse.gaussian(link="inverse"))
+
+AIC(TLE.glmr.gaus, TLE.glmr.gaus.l, TLE.glmr.gaus.i, TLE.glmr.gam.l, TLE.glmr.gam.i, TLE.glmr.inv, TLE.glmr.inv.l, TLE.glmr.inv.i)
+```
+
+Gamma distribution with log-link has the lowest AIC.
+
+
+```{r}
+##Check residuals
+TLE.glmr.gam.l_res <- simulateResiduals(fittedModel = TLE.glmr.gam.l, plot = F)
+plot(TLE.glmr.gam.l_res)
+
+```
+
+
+Compare residuals across models
+
+```{r}
+##Check residuals
+TLE.glmr.gaus.l_res <- simulateResiduals(fittedModel = TLE.glmr.gaus.l, plot = F)
+plot(TLE.glmr.gaus.l_res)
+
+```
+
+Compare with log+1 transformed lmer model
+
+```{r}
 ##Model with log +1 transformation
 #Function of Site and Origin, with Genotype as a Random effect
 #Interaction between Site and Origin
-Growth.lme_TP1.2<-lmer(log(TLE_cm.day+1)~Origin*Site+(1|Genotype), data=Growth.o)
+TLE.lme<-lmer(log(TLE_cm.day+1)~Origin*Site+(1|Genotype), data=Growth)
 
 ##Check residuals
-Growth.lme_res_TP1.2 <- simulateResiduals(fittedModel = Growth.lme_TP1.2, plot = F)
-plot(Growth.lme_res_TP1.2)
+TLE.lme_res <- simulateResiduals(fittedModel = TLE.lme, plot = F)
+plot(TLE.lme_res)
+```
+Better residuals with the log+1 transformed lmer model.
 
+
+```{r}
 ##Model results
-summary(Growth.lme_TP1.2)
+summary(TLE.lme)
 
-eta_squared(Growth.lme_TP1.2)
-
+eta_squared(TLE.lme)
 ```
 
 
 Effect size of Origin for each Site
 ```{r}
 ##KL
-Growth.lme_TP1.2_KL<-lmer(log(TLE_cm.day+1)~Origin+(1|Genotype), data=Growth.o[which(Growth.o$Site=="KL"),])
-summary(Growth.lme_TP1.2_KL)
-eta_squared(Growth.lme_TP1.2_KL)
+TLE.lme_KL<-lmer(log(TLE_cm.day+1)~Origin+(1|Genotype), data=Growth[which(Growth$Site=="KL"),])
+summary(TLE.lme_KL)
+eta_squared(TLE.lme_KL)
 
 
 ##SS
-Growth.lme_TP1.2_SS<-lmer(log(TLE_cm.day+1)~Origin+(1|Genotype), data=Growth.o[which(Growth.o$Site=="SS"),])
-summary(Growth.lme_TP1.2_SS)
-eta_squared(Growth.lme_TP1.2_SS)
+TLE.lme_SS<-lmer(log(TLE_cm.day+1)~Origin+(1|Genotype), data=Growth[which(Growth$Site=="SS"),])
+summary(TLE.lme_SS)
+eta_squared(TLE.lme_SS)
 
 ```
 
 
 ```{r Plot Growth Rate TP1 to 2}
 ##Summary statistics by Site and Origin
-TP1.2_Growth.sum<-summarySE(Growth.o, measurevar="TLE_cm.day", groupvars=c("Site", "Origin", "Site.Orig"), na.rm=TRUE)
+TP1.2_Growth.sum<-summarySE(Growth, measurevar="TLE_cm.day", groupvars=c("Site", "Origin", "Site.Orig"), na.rm=TRUE)
 
 ##Plot Average Growth Rate across Treatments
 TP1.2_Growth.plot<-ggplot(TP1.2_Growth.sum, aes(x=Site, y=TLE_cm.day, colour=Site.Orig)) + 
@@ -232,14 +257,15 @@ TP1.2_Growth.plot<-ggplot(TP1.2_Growth.sum, aes(x=Site, y=TLE_cm.day, colour=Sit
         legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
         legend.box.background = element_rect(color = "black"))+
   labs(x="Site and Origin", y=expression(paste('Growth Rate (cm day'^-1*")")), colour="Origin")+
-  ylim(0, 0.3); TP1.2_Growth.plot
+  ylim(0, 0.25)+
+  geom_bracket(xmin=1, xmax=2, y.position=0.01, label.size=levels.sz, label="**", inherit.aes = FALSE); TP1.2_Growth.plot
 ```
 
 
 ### Average Growth Rates by Genotype
 ```{r}
 ##Summary statistics by Genotype and Origin
-TP1.2_Growth.sum.SS<-summarySE(subset(Growth.o, Site=="SS"), measurevar="TLE_cm.day", groupvars=c("Genotype", "Origin"), na.rm=TRUE)
+TP1.2_Growth.sum.SS<-summarySE(subset(Growth, Site=="SS"), measurevar="TLE_cm.day", groupvars=c("Genotype", "Origin"), na.rm=TRUE)
 
 TP1.2_Growth.sum.SS
 
@@ -445,6 +471,7 @@ emmeans(PAM.lme_IN, pairwise ~ Site | Treatment)
 emmeans(PAM.lme_IN, pairwise ~ Treatment | Site)
 
 ```
+Not normal, but model residuals are OK.
 
 
 ```{r Plot FvFm Initial}
@@ -579,6 +606,7 @@ summary(Tol_PAM.lme_IN)
 eta_squared(Tol_PAM.lme_IN)
 
 ```
+Not normal, but model residuals are OK.
 
 
 ```{r Plot FvFm Retention Initial}
@@ -637,6 +665,7 @@ summary(Tol_Sym.lme_TP1)
 eta_squared(Tol_Sym.lme_TP1)
 
 ```
+Not normal, but model residuals are OK.
 
 
 Effect size of Origin for each Site
@@ -764,6 +793,7 @@ summary(Tol_PAM.lme_TP1)
 eta_squared(Tol_PAM.lme_TP1)
 
 ```
+Not normal, but model residuals are OK.
 
 
 Effect size of Origin for each Site
@@ -835,6 +865,7 @@ summary(Tol_Sym.lme_TP2)
 eta_squared(Tol_Sym.lme_TP2)
 
 ```
+Not normal, but model residuals are OK.
 
 
 Effect size of Origin for each Site
@@ -957,6 +988,7 @@ summary(Tol_PAM.lme_TP2)
 eta_squared(Tol_PAM.lme_TP2)
 
 ```
+Not normal, but model residuals are OK.
 
 
 Effect size of Origin for each Site
@@ -1028,6 +1060,7 @@ summary(Tol_Sym.lme_TP3)
 eta_squared(Tol_Sym.lme_TP3)
 
 ```
+Not normal, but model residuals are OK.
 
 
 Effect size of Origin for each Site
@@ -1091,6 +1124,7 @@ summary(Tol_Chl.lme_TP3)
 eta_squared(Tol_Chl.lme_TP3)
 
 ```
+Not normal, but model residuals are OK.
 
 
 Effect size of Origin for each Site
@@ -1503,12 +1537,12 @@ Calculating the average of Growth (TP1 to TP2) and Thermal Tolerance (Retention 
 #### Growth
 ```{r}
 ##Average
-names(Growth.o)
-Growth_Set<-aggregate(Growth.o$TLE_cm.day, list(Growth.o$Site, Growth.o$Genotype, Growth.o$Orig), mean)
+names(Growth)
+Growth_Set<-aggregate(Growth$TLE_cm.day, list(Growth$Site, Growth$Genotype, Growth$Orig), mean)
 names(Growth_Set)<-c("Site", "Genotype", "Orig", "TLE_cm.day")
 
 ##Add Standard Error
-Growth_Set$TLE_se<-aggregate(Growth.o$TLE_cm.day, list(Growth.o$Site, Growth.o$Genotype, Growth.o$Orig), std.error)[,4]
+Growth_Set$TLE_se<-aggregate(Growth$TLE_cm.day, list(Growth$Site, Growth$Genotype, Growth$Orig), std.error)[,4]
 ```
 
 
@@ -1571,7 +1605,7 @@ TLE_Sym.plot<-ggplot(Perf_Set, aes(x=TLE_cm.day, y=Sym.prop)) +
   labs(x=expression(paste('Growth Rate (cm day'^-1*")")), 
        y="Symbiont Retention", 
        colour="Site Origin")+
-   annotate("text", x = 0.07, y = 0, label=expression(bolditalic(paste(r[S], " = -0.643, p = 0.028"))), size=sig.sz, hjust = 0); TLE_Sym.plot
+   annotate("text", x = 0.07, y = 0, label=expression(bolditalic(paste(r[S], " = -0.615, p = 0.037"))), size=sig.sz, hjust = 0); TLE_Sym.plot
 ```
 
 
@@ -1595,7 +1629,7 @@ TLE_Chl.plot<-ggplot(Perf_Set, aes(x=TLE_cm.day, y=Chl.prop)) +
   labs(x=expression(paste('Growth Rate (cm day'^-1*")")), 
        y="Chlorophyll Retention", 
        colour="Site Origin")+
-   annotate("text", x = 0.07, y = 0, label=expression(bolditalic(paste(r[S], " = -0.629, p = 0.032"))), size=sig.sz, hjust = 0); TLE_Chl.plot
+   annotate("text", x = 0.07, y = 0, label=expression(bolditalic(paste(r[S], " = -0.587, p = 0.049"))), size=sig.sz, hjust = 0); TLE_Chl.plot
 ```
 
 
@@ -1619,7 +1653,7 @@ TLE_PAM.plot<-ggplot(Perf_Set, aes(x=TLE_cm.day, y=PAM.prop)) +
   labs(x=expression(paste('Growth Rate (cm day'^-1*")")), 
        y="Photo. Effic. Retention", 
        colour="Site Origin")+
-   annotate("text", x = 0.07, y = 0.74, label=expression(bolditalic(paste(r[S], " = -0.657, p = 0.024"))), size=sig.sz, hjust = 0); TLE_PAM.plot
+   annotate("text", x = 0.07, y = 0.74, label=expression(bolditalic(paste(r[S], " = -0.678, p = 0.019"))), size=sig.sz, hjust = 0); TLE_PAM.plot
 ```
 
 
@@ -1640,7 +1674,8 @@ TP1.2_Growth.plot.cut<-ggplot(TP1.2_Growth.sum, aes(x=Site, y=TLE_cm.day, colour
         legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
         legend.box.background = element_rect(color = "black"), legend.position=c(0.2, 0.8))+
   labs(x="Site and Origin", y=expression(paste('Growth Rate (cm day'^-1*")")), colour="Origin")+
-  ylim(0, 0.3)
+  ylim(0, 0.3)+
+  geom_bracket(xmin=1, xmax=2, y.position=0.01, label.size=levels.sz, label="**", inherit.aes = FALSE)
 
 ##FvFm Retention
 Tol_PAM.ES.plot.cut<-ggplot(Tol.ES[which(Tol.ES$Metric=="PAM.prop"),], aes(x=TimeP, y=EtaSq, fill=Site))+
@@ -1714,7 +1749,7 @@ TLE_PAM.plot.cut<-ggplot(Perf_Set, aes(x=TLE_cm.day, y=PAM.prop)) +
   labs(x=expression(paste('Growth Rate (cm day'^-1*")")), 
        y="Photo. Effic. Retention", 
        colour="Site Origin")+
-   annotate("text", x = 0.07, y = 0.74, label=expression(bolditalic(paste(r[S], " = -0.657, p = 0.024"))), size=sig.sz, hjust = 0)
+   annotate("text", x = 0.07, y = 0.75, label=expression(bolditalic(paste(r[S], " = -0.678, p = 0.019"))), size=sig.sz, hjust = 0)
 
 ##Growth vs Symbiont Retention
 TLE_Sym.plot.cut<-ggplot(Perf_Set, aes(x=TLE_cm.day, y=Sym.prop)) + 
@@ -1727,7 +1762,7 @@ TLE_Sym.plot.cut<-ggplot(Perf_Set, aes(x=TLE_cm.day, y=Sym.prop)) +
   labs(x=expression(paste('Growth Rate (cm day'^-1*")")), 
        y="Symbiont Retention", 
        colour="Site Origin")+
-   annotate("text", x = 0.07, y = 0, label=expression(bolditalic(paste(r[S], " = -0.643, p = 0.028"))), size=sig.sz, hjust = 0)
+   annotate("text", x = 0.07, y = 0, label=expression(bolditalic(paste(r[S], " = -0.615, p = 0.037"))), size=sig.sz, hjust = 0)
 ```
 
 
