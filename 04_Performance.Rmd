@@ -154,7 +154,7 @@ ggplot(Growth, aes(x=Set, y=TLE_cm.day)) +
 
 ```
 
-Potential outliers have been re-measured and therefore will be retained.
+Potential outliers have been re-measured and therefore will be retained. Need to add two more of SS AC8 T for n=10
 
 
 ### Compare Growth Rate
@@ -2057,8 +2057,8 @@ ggsave(filename="Figures/03_Performance/FigS5_ToleranceMetrics.png", plot=Tol_fi
 ##Dataframe of Performance Results 
 ##Model Results
 TableS5<-data.frame(rbind(
-   summary(Growth.lme_TP1.2)$coefficients[-1,],summary(Growth.lme_TP1.2_KL)$coefficients[-1,],
-   summary(Growth.lme_TP1.2_SS)$coefficients[-1,],
+   summary(TLE.lme)$coefficients[-1,],summary(TLE.lme_KL)$coefficients[-1,],
+   summary(TLE.lme_SS)$coefficients[-1,],
    
    summary(Tol_PAM.lme_TP1)$coefficients[-1,],summary(Tol_PAM.lme_TP1_KL)$coefficients[-1,],
    summary(Tol_PAM.lme_TP1_SS)$coefficients[-1,],
@@ -2098,8 +2098,8 @@ TableS5$Predictor<-c(rep(c("Origin", "Site", "Origin x Site", "KL Origin", "SS O
 
 ##Effect Size  
 TableS5$EtaSq<-c(
-  eta_squared(Growth.lme_TP1.2)$Eta2_partial,eta_squared(Growth.lme_TP1.2_KL)$Eta2_partial,
-   eta_squared(Growth.lme_TP1.2_SS)$Eta2_partial,
+  eta_squared(TLE.lme)$Eta2_partial,eta_squared(TLE.lme_KL)$Eta2_partial,
+   eta_squared(TLE.lme_SS)$Eta2_partial,
    
    eta_squared(Tol_PAM.lme_TP1)$Eta2_partial,eta_squared(Tol_PAM.lme_TP1_KL)$Eta2_partial,
    eta_squared(Tol_PAM.lme_TP1_SS)$Eta2_partial,
