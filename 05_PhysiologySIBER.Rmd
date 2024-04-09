@@ -31,7 +31,8 @@ if (!require("corrplot")) install.packages("corrplot")
 if (!require("tidyverse")) install.packages("tidyverse")
 if (!require("Rmisc")) install.packages("Rmisc")
 if (!require("ggpubr")) install.packages("ggpubr")
-if (!require("ggrepel")) install.packages("ggrepel")
+if (!require("DHARMa")) install.packages("DHARMa")
+if (!require("emmeans")) install.packages("emmeans")
 
 ##Load Packages
 library(ggplot2) #Required for ggplots
@@ -43,7 +44,9 @@ library(corrplot) #Required for correlation plot
 library(tidyverse) #Required for data manipulation
 library(Rmisc) #Required for data summary
 library(ggpubr) #Required for stat_conf_ellipse
-library(ggrepel) #Required for geom_label_repel
+library(DHARMa) #Required to check residuals of mixed effects models
+library(emmeans) #Required for pairwise comparisons 
+
 
 ```
 
@@ -173,7 +176,6 @@ phys.nmds.plot<-ggplot(data = phys.nmds.samples.plot.data, aes(x = MDS1, y = MDS
   geom_segment(aes(x = 0, y = 0, xend = MDS1, yend = MDS2), 
                data = phys.nmds.covariates.plot.data, linewidth =bar.sz, alpha = 0.8, colour = "grey30") +
   geom_text(data=phys.nmds.covariates.plot.data, aes(x=MDS1, y=MDS2, label=Metric, fontface = "bold", hjust=0.15*(1-sign(MDS1)),vjust=0.6*(1-sign(MDS2))), colour = "grey20", size=sig.sz)+
-  #geom_label_repel(data = phys.nmds.covariates.plot.data, aes(x = MDS1, y = MDS2, label = Covariate))+
   labs(x=paste0('NMDS 1 (',NMDS1,"%)"), y=paste0('NMDS 2 (',NMDS2,"%)"), color="Site.Origin")+
   annotate("text", x = .6, y = -1.1, label = NMDS.stress, hjust=0, size=sig.sz); phys.nmds.plot
 ```
@@ -209,49 +211,36 @@ phys.siber.object <- createSiberObject(phys.siber.input)
 # sample sizes by group
 phys.siber.object[["sample.sizes"]]
 
-# visualize SIBER groups
-
-# Create lists of plotting arguments to be passed onwards to each 
-# of the three plotting functions.
-community.hulls.args <- list(col = 1, lty = 1, lwd = 1)
-group.ellipses.args  <- list(n = 100, p.interval = 0.95, 
-                             lty = 1, lwd = 2)
-group.hull.args      <- list(lty = 2, col = "grey20")
-
-
-# ellipses and group.hulls are set to TRUE or T for short to force
-# their plotting. 
-par(mfrow=c(1,1))
-plotSiberObject(phys.siber.object,
-                  ax.pad = 2, 
-                  hulls = F, community.hulls.args, 
-                  ellipses = T, group.ellipses.args,
-                  group.hulls = T, group.hull.args,
-                  bty = "L",
-                  iso.order = c(1,2),
-                  xlab = expression({delta}^13*C~'permille'),
-                  ylab = expression({delta}^15*N~'permille')
-                  )
-
-# You can add more ellipses by directly calling plot.group.ellipses()
-# Add an additional p.interval % prediction ellilpse
-plotGroupEllipses(phys.siber.object, n = 100, p.interval = 0.95,
-                    lty = 1, lwd = 2)
-
-# or you can add the XX% confidence interval around the bivariate means
-# by specifying ci.mean = T along with whatever p.interval you want.
-plotGroupEllipses(phys.siber.object, n = 100, p.interval = 0.95,
-                  ci.mean = T, lty = 1, lwd = 2)
-
 # Calculate sumamry statistics for each group: TA, SEA and SEAc
 group.ML <- groupMetricsML(phys.siber.object)
 print(group.ML)
 
-legend("topright", colnames(group.ML), 
-       pch = c(1,1,1,2,2,2), col = c(1:3, 1:3), lty = 1)
-
 ##Save SIBER Object in Outputs
 save(phys.siber.object, file="Outputs/SIBER/Phys.SIBER.Object.RData")
+```
+
+### Visualize SIBER Ellipses
+
+```{r}
+##Load SIBER Object
+load("Outputs/SIBER/Phys.SIBER.Object.RData")
+
+
+#Create lists of plotting arguments for ellipses
+group.ellipses.args  <- list(n = 100, p.interval = 0.95, lty = 1, lwd = 2)
+
+#Plot SIBER groups
+plotSiberObject(phys.siber.object,
+                  ax.pad = 2, 
+                  hulls = F, community.hulls.args, 
+                  ellipses = T, group.ellipses.args,
+                  group.hulls = F, group.hull.args,
+                  bty = "L",
+                  iso.order = c(1,2),
+                  xlab = "NMDS1", x.limits=c(-1.1, 1.3),
+                  ylab = "NMDS2", y.limits=c(-1.2, 1.2))
+
+
 ```
 
 
@@ -322,6 +311,7 @@ Niches<-read.csv("Outputs/SIBER_p.Overlap.csv", header=TRUE)
 ##Set factor variables
 Niches$Site<-factor(Niches$Site, levels=c("KL", "SS"))
 Niches$Genotype<-factor(Niches$Genotype, levels=c("AC8", "AC10", "AC12"))
+Niches$TimeP<-factor(Niches$TimeP)
 
 ```
 
@@ -416,9 +406,169 @@ Overlap.lme.contrast$group2<-paste(Overlap.lme.contrast$Site, Overlap.lme.contra
 ```
 
 
-## Ellipses
+### Trying updated Ellipse Plotting
 Note: to Create SIBER Ellipses, run SIBER_Ellipse.R in Outputs/SIBER
 Requires phys.ellipses.posterior created in SIBER_Ellipse.R in Outputs/SIBER
+
+#### Create Ellipse Dataframe
+Note: this chunk of code is from the [SIBER package vingette](https://github.com/AndrewLJackson/SIBER/tree/306aa9dc922b9c73dc8223f423e667f11fad844a)
+```{r}
+##Load SIBER Ellipse Object
+load("Outputs/SIBER/Phys.SIBER.Ellipses.RData")
+
+##Create Ellipses
+# how many of the posterior draws do you want?
+n.posts <- 10
+
+# decide how big an ellipse you want to draw
+p.ell <- 0.95
+
+# a list to store the results
+all_ellipses <- list()
+
+# loop over groups
+for (i in 1:length(phys.ellipses.posterior)){
+  
+  # a dummy variable to build in the loop
+  ell <- NULL
+  post.id <- NULL
+  
+  for ( j in 1:n.posts){
+    
+    # covariance matrix
+    Sigma  <- matrix(phys.ellipses.posterior[[i]][j,1:4], 2, 2)
+    
+    # mean
+    mu     <- phys.ellipses.posterior[[i]][j,5:6]
+    
+    # ellipse points
+    
+    out <- ellipse::ellipse(Sigma, centre = mu , level = p.ell)
+    
+    
+    ell <- rbind(ell, out)
+    post.id <- c(post.id, rep(j, nrow(out)))
+    
+  }
+  ell <- as.data.frame(ell)
+  ell$rep <- post.id
+  all_ellipses[[i]] <- ell
+}
+
+ellipse_df <- bind_rows(all_ellipses, .id = "id")
+
+
+# now we need the group and community names
+
+# extract them from the ellipses.posterior list
+group_comm_names <- names(phys.ellipses.posterior)[as.numeric(ellipse_df$id)]
+
+# split them and conver to a matrix, NB byrow = T
+split_group_comm <- matrix(unlist(strsplit(group_comm_names, "[.]")),
+                           nrow(ellipse_df), 2, byrow = TRUE)
+
+ellipse_df$community <- split_group_comm[,1]
+ellipse_df$group     <- split_group_comm[,2]
+
+ellipse_df <- dplyr::rename(ellipse_df, iso1 = x, iso2 = y)
+
+```
+
+
+```{r}
+ggplot(data = phys.siber.input, aes(iso1, iso2)) +
+  geom_point(aes(color = factor(group):factor(community)), size = 2)+
+  xlab("NMDS1")+
+  ylab("NMDS2") + 
+  theme(text = element_text(size=15), legend.position="none")+
+  facet_wrap(~factor(group):factor(community))+
+   geom_polygon(data = ellipse_df,
+              mapping = aes(iso1, iso2, 
+                            group = rep, 
+                            color = factor(group):factor(community),
+                            fill = NULL),
+              fill = NA, alpha = 0.2)
+```
+
+This still isn't what we want to show.
+
+
+## Ellipses Across Time and Space
+
+### By Origin
+
+#### KL
+```{r}
+ellipses.origin.plot_KL<-ggplot(data = phys.nmds.samples.plot.data[which(phys.nmds.samples.plot.data$Site=="KL"),], aes(x = MDS1, y = MDS2)) + 
+  stat_conf_ellipse(data = phys.nmds.samples.plot.data[which(phys.nmds.samples.plot.data$Site=="KL"),], geom = "polygon", level = 0.95, alpha = 0.7, aes(fill= Origin))+
+  scale_fill_manual(values =Orig.colors.o[1:2])+
+  theme_bw()+
+   theme(axis.title.x = element_text(size = axis.title.sz), 
+        axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
+        axis.text.y=element_text(size=axis.txt.sz, colour="black"),
+        legend.text=element_text(size=leg.txt.sz), 
+        legend.box.background = element_rect(color = "black"))+
+  labs(x=paste0('NMDS 1 (',NMDS1,"%)"), y=paste0('NMDS 2 (',NMDS2,"%)"))+
+  facet_grid(~TimeP); ellipses.origin.plot_KL
+
+```
+
+
+```{r}
+ellipses.origin.plot_SS<-ggplot(data = phys.nmds.samples.plot.data[which(phys.nmds.samples.plot.data$Site=="SS"),], aes(x = MDS1, y = MDS2)) + 
+  stat_conf_ellipse(data = phys.nmds.samples.plot.data[which(phys.nmds.samples.plot.data$Site=="SS"),], geom = "polygon", level = 0.95, alpha = 0.7, aes(fill= Origin))+
+  scale_fill_manual(values =Orig.colors.o[3:4])+
+  theme_bw()+
+   theme(axis.title.x = element_text(size = axis.title.sz), 
+        axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
+        axis.text.y=element_text(size=axis.txt.sz, colour="black"),
+        legend.text=element_text(size=leg.txt.sz), 
+        legend.box.background = element_rect(color = "black"))+
+  labs(x=paste0('NMDS 1 (',NMDS1,"%)"), y=paste0('NMDS 2 (',NMDS2,"%)"))+
+  facet_grid(~TimeP); ellipses.origin.plot_SS
+
+```
+
+
+### By Origin and Genotype
+
+#### KL
+```{r}
+ellipses.orig.geno.plot_KL<-ggplot(data = phys.nmds.samples.plot.data[which(phys.nmds.samples.plot.data$Site=="KL"),], aes(x = MDS1, y = MDS2)) + 
+  stat_conf_ellipse(data = phys.nmds.samples.plot.data[which(phys.nmds.samples.plot.data$Site=="KL"),], geom = "polygon", level = 0.95, alpha = 0.7, aes(fill= Origin))+
+  scale_fill_manual(values =Orig.colors.o[1:2])+
+  theme_bw()+
+   theme(axis.title.x = element_text(size = axis.title.sz), 
+        axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
+        axis.text.y=element_text(size=axis.txt.sz, colour="black"),
+        legend.text=element_text(size=leg.txt.sz), 
+        legend.box.background = element_rect(color = "black"))+
+  labs(x=paste0('NMDS 1 (',NMDS1,"%)"), y=paste0('NMDS 2 (',NMDS2,"%)"))+
+  facet_grid(Genotype~TimeP, scales = "free"); ellipses.orig.geno.plot_KL
+
+```
+
+
+```{r}
+ellipses.orig.geno.plot_SS<-ggplot(data = phys.nmds.samples.plot.data[which(phys.nmds.samples.plot.data$Site=="SS"),], aes(x = MDS1, y = MDS2)) + 
+  stat_conf_ellipse(data = phys.nmds.samples.plot.data[which(phys.nmds.samples.plot.data$Site=="SS"),], geom = "polygon", level = 0.95, alpha = 0.7, aes(fill= Origin))+
+  scale_fill_manual(values =Orig.colors.o[3:4])+
+  theme_bw()+
+   theme(axis.title.x = element_text(size = axis.title.sz), 
+        axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
+        axis.text.y=element_text(size=axis.txt.sz, colour="black"),
+        legend.text=element_text(size=leg.txt.sz), 
+        legend.box.background = element_rect(color = "black"))+
+  labs(x=paste0('NMDS 1 (',NMDS1,"%)"), y=paste0('NMDS 2 (',NMDS2,"%)"))+
+  facet_grid(Genotype~TimeP, scales = "free"); ellipses.orig.geno.plot_SS
+
+```
+
+
 
 ### Plot Niche Ellipses
 Format data to plot
@@ -449,14 +599,14 @@ ggsave(filename="Figures/04_SIBER/NicheEllipseGeno.png", plot=phys.nmds.ellipses
 
 Plot by origin
 ```{r}
-(phys.nmds.ellipses.origin <- ggplot(phys.nmds.plot.data, 
+phys.nmds.ellipses.origin <- ggplot(phys.nmds.plot.data, 
                               aes(x = MDS1, y = MDS2, fill = Origin))+
     stat_conf_ellipse(geom = "polygon", level = 0.95, alpha = 0.5)+
     facet_grid(Site ~ `Time Period`, scales = "free")+
     scale_fill_viridis_d(end = 0.8, option = "A")+
-    theme_bw()
+    theme_bw(); phys.nmds.ellipses.origin
   
-)
+
 
 ggsave(filename="Figures/04_SIBER/NicheEllipseOrigin.png", plot=phys.nmds.ellipses.origin, dpi=300, width=10, height=8, units="in")
 ```
