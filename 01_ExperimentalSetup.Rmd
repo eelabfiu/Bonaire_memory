@@ -73,6 +73,19 @@ Site.colors.o <- c("#3B5698FF", "#5BCDADFF")
 Orig.colors.o<- c("#40498EFF", "#357BA2FF", "#5BCDADFF","#B1E4C2FF")
 #Origins: KL Native, KL Transplant, SS Native, SS Transplant
 
+
+##Geno.Orig Groups
+show_col(viridis_pal(option = "turbo")(30))
+#Geno.Orig.colors.o<-c("#4686FBFF", "#28BBECFF", "#31F299FF", "#A2FC3CFF", "#FB8022FF", #"#EDD03AFF")
+Geno.Orig.colors.o<-c("#458AFCFF", "#2DB6F1FF", "#1FE9AFFF", "#96FE44FF", "#FE942AFF", "#EBD239FF")
+#Genotypes and Origins: AC8.N, AC8.T, AC10.N, AC10.T, AC12.N, AC12.T
+
+
+##Genotype Colors
+Geno.colors.o<-c("#458AFCFF", "#1FE9AFFF",  "#FE942AFF")
+#Genotypes: AC8, AC10, AC12
+
+
 ##Heat Assay Treatments
 show_col(viridis_pal(option = "turbo")(25))
 HC.colors.o<-c("#3BA0FDFF", "#BA1E02FF")
