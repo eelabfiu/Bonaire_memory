@@ -148,7 +148,9 @@ NMDS2
 phys.nmds.samples.plot.data <- cbind(phys.log.num, phys.nmds$points) 
 phys.nmds.samples.plot.data$ID<-rownames(phys.nmds.samples.plot.data)
 phys.nmds.samples.plot.data<-merge(phys.nmds.samples.plot.data, Phys.rm[,c(1,3:9)])
-
+phys.nmds.samples.plot.data$Geno.Orig<-paste(phys.nmds.samples.plot.data$Genotype, phys.nmds.samples.plot.data$Orig, sep=".")
+phys.nmds.samples.plot.data$Geno.Orig<-factor(phys.nmds.samples.plot.data$Geno.Orig, levels=c("AC8.N","AC8.T", "AC10.N", "AC10.T", "AC12.N", "AC12.T"), ordered=TRUE)
+  
 phys.nmds.covariates.plot.data <- data.frame(phys.envi.vectors)
 phys.nmds.covariates.plot.data$Covariate<-c(rownames(phys.envi.vectors))
 names(phys.nmds.covariates.plot.data)[1:2]<-c("MDS1", "MDS2")
@@ -244,11 +246,234 @@ plotSiberObject(phys.siber.object,
 ```
 
 
+## Ellipses Across Time and Space
+Plotting 95% confidence intervals of the physiological niche space for each group.
+
+## By Origin
+
+### KL
+```{r}
+ellipses.origin.plot_KL<-ggplot(data = phys.nmds.samples.plot.data[which(phys.nmds.samples.plot.data$Site=="KL"),], aes(x = MDS1, y = MDS2)) + 
+  stat_conf_ellipse(data = phys.nmds.samples.plot.data[which(phys.nmds.samples.plot.data$Site=="KL"),], geom = "polygon", level = 0.95, alpha = 0.7, aes(fill= Origin))+
+  scale_fill_manual(values =Orig.colors.o[1:2])+
+  theme_bw()+
+   theme(axis.title.x = element_text(size = axis.title.sz), 
+        axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
+        axis.text.y=element_text(size=axis.txt.sz, colour="black"),
+        legend.title=element_text(size=leg.title.sz),
+        legend.text=element_text(size=leg.txt.sz), 
+        legend.box.background = element_rect(color = "black"),
+        legend.position="top", 
+        strip.text = element_text(size=axis.title.sz), 
+        strip.background=element_rect(fill="white"))+
+  labs(x=paste0('NMDS 1 (',NMDS1,"%)"), y=paste0('NMDS 2 (',NMDS2,"%)"))+
+  facet_wrap(~TimeP, nrow=1); ellipses.origin.plot_KL
+
+```
+
+
+### SS
+```{r}
+ellipses.origin.plot_SS<-ggplot(data = phys.nmds.samples.plot.data[which(phys.nmds.samples.plot.data$Site=="SS"),], aes(x = MDS1, y = MDS2)) + 
+  stat_conf_ellipse(data = phys.nmds.samples.plot.data[which(phys.nmds.samples.plot.data$Site=="SS"),], geom = "polygon", level = 0.95, alpha = 0.7, aes(fill= Origin))+
+  scale_fill_manual(values =Orig.colors.o[3:4])+
+  theme_bw()+
+   theme(axis.title.x = element_text(size = axis.title.sz), 
+        axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
+        axis.text.y=element_text(size=axis.txt.sz, colour="black"),
+        legend.title=element_text(size=leg.title.sz),
+        legend.text=element_text(size=leg.txt.sz), 
+        legend.box.background = element_rect(color = "black"),
+        legend.position="top", 
+        strip.text = element_text(size=axis.title.sz), 
+        strip.background=element_rect(fill="white"))+
+  labs(x=paste0('NMDS 1 (',NMDS1,"%)"), y=paste0('NMDS 2 (',NMDS2,"%)"))+
+  facet_wrap(~TimeP, nrow=1); ellipses.origin.plot_SS
+
+```
+
+
+## By Origin and Genotype
+Need to decide the best way to display these.
+
+### KL
+```{r}
+ellipses.orig.geno.grid_KL<-ggplot(data = phys.nmds.samples.plot.data[which(phys.nmds.samples.plot.data$Site=="KL"),], aes(x = MDS1, y = MDS2)) + 
+  stat_conf_ellipse(data = phys.nmds.samples.plot.data[which(phys.nmds.samples.plot.data$Site=="KL"),], geom = "polygon", level = 0.95, aes(fill=Geno.Orig), alpha=0.6)+
+  scale_fill_manual(values =Geno.Orig.colors.o)+
+  theme_bw()+
+   theme(axis.title.x = element_text(size = axis.title.sz), 
+        axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
+        axis.text.y=element_text(size=axis.txt.sz, colour="black"),
+        legend.title=element_text(size=leg.title.sz),
+        legend.text=element_text(size=leg.txt.sz), 
+        legend.box.background = element_rect(color = "black"),
+        legend.position="top", 
+        strip.text = element_text(size=axis.title.sz), 
+        strip.background=element_rect(fill="white"))+
+  labs(x=paste0('NMDS 1 (',NMDS1,"%)"), y=paste0('NMDS 2 (',NMDS2,"%)"))+
+  facet_grid(Genotype~TimeP); ellipses.orig.geno.grid_KL
+
+```
+
+
+```{r}
+ellipses.orig.geno.plot_KL.a<-ggplot(data = phys.nmds.samples.plot.data[which(phys.nmds.samples.plot.data$Site=="KL"),], aes(x = MDS1, y = MDS2)) + 
+  stat_conf_ellipse(data = phys.nmds.samples.plot.data[which(phys.nmds.samples.plot.data$Site=="KL"),], geom = "polygon", level = 0.95,  aes(fill=Geno.Orig), alpha=0.6)+
+  scale_fill_manual(values =Geno.Orig.colors.o)+
+  theme_bw()+
+   theme(axis.title.x = element_text(size = axis.title.sz), 
+        axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
+        axis.text.y=element_text(size=axis.txt.sz, colour="black"),
+        legend.title=element_text(size=leg.title.sz),
+        legend.text=element_text(size=leg.txt.sz), 
+        legend.box.background = element_rect(color = "black"),
+        legend.position="top", 
+        strip.text = element_text(size=axis.title.sz), 
+        strip.background=element_rect(fill="white"))+
+  labs(x=paste0('NMDS 1 (',NMDS1,"%)"), y=paste0('NMDS 2 (',NMDS2,"%)"), fill="Genotype.Origin")+
+  facet_wrap(~TimeP, nrow=1); ellipses.orig.geno.plot_KL.a
+```
+
+
+```{r}
+ellipses.orig.geno.plot_KL.b<-ggplot(data = phys.nmds.samples.plot.data[which(phys.nmds.samples.plot.data$Site=="KL"),], aes(x = MDS1, y = MDS2)) + 
+  stat_conf_ellipse(data = phys.nmds.samples.plot.data[which(phys.nmds.samples.plot.data$Site=="KL"),], geom = "polygon", level = 0.95,  aes(fill=Genotype, alpha=Origin))+
+  scale_fill_manual(values =Geno.colors.o)+
+  scale_alpha_manual(values=c(0.6,0.2))+
+  theme_bw()+
+   theme(axis.title.x = element_text(size = axis.title.sz), 
+        axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
+        axis.text.y=element_text(size=axis.txt.sz, colour="black"),
+        legend.title=element_text(size=leg.title.sz),
+        legend.text=element_text(size=leg.txt.sz), 
+        legend.box.background = element_rect(color = "black"),
+        legend.position="top", 
+        strip.text = element_text(size=axis.title.sz), 
+        strip.background=element_rect(fill="white"))+
+  labs(x=paste0('NMDS 1 (',NMDS1,"%)"), y=paste0('NMDS 2 (',NMDS2,"%)"))+
+  facet_wrap(~TimeP, nrow=1); ellipses.orig.geno.plot_KL.b
+```
+
+
+```{r}
+ellipses.orig.geno.plot_KL.c<-ggplot(data = phys.nmds.samples.plot.data[which(phys.nmds.samples.plot.data$Site=="KL"),], aes(x = MDS1, y = MDS2)) + 
+  stat_conf_ellipse(data = phys.nmds.samples.plot.data[which(phys.nmds.samples.plot.data$Site=="KL" & phys.nmds.samples.plot.data$Orig=="N"),], geom = "polygon", level = 0.95,  aes(fill=Genotype), alpha=0.6)+
+   stat_conf_ellipse(data = phys.nmds.samples.plot.data[which(phys.nmds.samples.plot.data$Site=="KL" & phys.nmds.samples.plot.data$Orig=="T"),], geom = "path", level = 0.95,  aes(color=Genotype), linewidth=bar.sz, alpha=0.8)+
+  scale_fill_manual(values =Geno.colors.o)+
+    scale_colour_manual(values =Geno.colors.o)+
+  theme_bw()+
+   theme(axis.title.x = element_text(size = axis.title.sz), 
+        axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
+        axis.text.y=element_text(size=axis.txt.sz, colour="black"),
+        legend.title=element_text(size=leg.title.sz),
+        legend.text=element_text(size=leg.txt.sz), 
+        legend.box.background = element_rect(color = "black"),
+        legend.position="top", 
+        strip.text = element_text(size=axis.title.sz), 
+        strip.background=element_rect(fill="white"))+
+  labs(x=paste0('NMDS 1 (',NMDS1,"%)"), y=paste0('NMDS 2 (',NMDS2,"%)"))+
+  facet_wrap(~TimeP, nrow=1); ellipses.orig.geno.plot_KL.c
+```
+
+
+### SS
+```{r}
+ellipses.orig.geno.grid_SS<-ggplot(data = phys.nmds.samples.plot.data[which(phys.nmds.samples.plot.data$Site=="SS"),], aes(x = MDS1, y = MDS2)) + 
+  stat_conf_ellipse(data = phys.nmds.samples.plot.data[which(phys.nmds.samples.plot.data$Site=="SS"),], geom = "polygon", level = 0.95, aes(fill=Geno.Orig), alpha=0.6)+
+  scale_fill_manual(values =Geno.Orig.colors.o)+
+  theme_bw()+
+   theme(axis.title.x = element_text(size = axis.title.sz), 
+        axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
+        axis.text.y=element_text(size=axis.txt.sz, colour="black"),
+        legend.title=element_text(size=leg.title.sz),
+        legend.text=element_text(size=leg.txt.sz), 
+        legend.box.background = element_rect(color = "black"),
+        legend.position="top", 
+        strip.text = element_text(size=axis.title.sz), 
+        strip.background=element_rect(fill="white"))+
+  labs(x=paste0('NMDS 1 (',NMDS1,"%)"), y=paste0('NMDS 2 (',NMDS2,"%)"))+
+  facet_grid(Genotype~TimeP); ellipses.orig.geno.grid_SS
+
+```
+
+
+```{r}
+ellipses.orig.geno.plot_SS.a<-ggplot(data = phys.nmds.samples.plot.data[which(phys.nmds.samples.plot.data$Site=="SS"),], aes(x = MDS1, y = MDS2)) + 
+  stat_conf_ellipse(data = phys.nmds.samples.plot.data[which(phys.nmds.samples.plot.data$Site=="SS"),], geom = "polygon", level = 0.95,  aes(fill=Geno.Orig), alpha=0.6)+
+  scale_fill_manual(values =Geno.Orig.colors.o)+
+  theme_bw()+
+   theme(axis.title.x = element_text(size = axis.title.sz), 
+        axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
+        axis.text.y=element_text(size=axis.txt.sz, colour="black"),
+        legend.title=element_text(size=leg.title.sz),
+        legend.text=element_text(size=leg.txt.sz), 
+        legend.box.background = element_rect(color = "black"),
+        legend.position="top", 
+        strip.text = element_text(size=axis.title.sz), 
+        strip.background=element_rect(fill="white"))+
+  labs(x=paste0('NMDS 1 (',NMDS1,"%)"), y=paste0('NMDS 2 (',NMDS2,"%)"), fill="Genotype.Origin")+
+  facet_wrap(~TimeP, nrow=1); ellipses.orig.geno.plot_SS.a
+```
+
+
+```{r}
+ellipses.orig.geno.plot_SS.b<-ggplot(data = phys.nmds.samples.plot.data[which(phys.nmds.samples.plot.data$Site=="SS"),], aes(x = MDS1, y = MDS2)) + 
+  stat_conf_ellipse(data = phys.nmds.samples.plot.data[which(phys.nmds.samples.plot.data$Site=="SS"),], geom = "polygon", level = 0.95,  aes(fill=Genotype, alpha=Origin))+
+  scale_fill_manual(values =Geno.colors.o)+
+  scale_alpha_manual(values=c(0.6,0.2))+
+  theme_bw()+
+   theme(axis.title.x = element_text(size = axis.title.sz), 
+        axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
+        axis.text.y=element_text(size=axis.txt.sz, colour="black"),
+        legend.title=element_text(size=leg.title.sz),
+        legend.text=element_text(size=leg.txt.sz), 
+        legend.box.background = element_rect(color = "black"),
+        legend.position="top", 
+        strip.text = element_text(size=axis.title.sz), 
+        strip.background=element_rect(fill="white"))+
+  labs(x=paste0('NMDS 1 (',NMDS1,"%)"), y=paste0('NMDS 2 (',NMDS2,"%)"))+
+  facet_wrap(~TimeP, nrow=1); ellipses.orig.geno.plot_SS.b
+```
+
+
+```{r}
+ellipses.orig.geno.plot_SS.c<-ggplot(data = phys.nmds.samples.plot.data[which(phys.nmds.samples.plot.data$Site=="SS"),], aes(x = MDS1, y = MDS2)) + 
+  stat_conf_ellipse(data = phys.nmds.samples.plot.data[which(phys.nmds.samples.plot.data$Site=="SS" & phys.nmds.samples.plot.data$Orig=="N"),], geom = "polygon", level = 0.95,  aes(fill=Genotype), alpha=0.6)+
+   stat_conf_ellipse(data = phys.nmds.samples.plot.data[which(phys.nmds.samples.plot.data$Site=="SS" & phys.nmds.samples.plot.data$Orig=="T"),], geom = "path", level = 0.95,  aes(color=Genotype), linewidth=bar.sz, alpha=0.8)+
+  scale_fill_manual(values =Geno.colors.o)+
+    scale_colour_manual(values =Geno.colors.o)+
+  theme_bw()+
+   theme(axis.title.x = element_text(size = axis.title.sz), 
+        axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
+        axis.text.y=element_text(size=axis.txt.sz, colour="black"),
+        legend.title=element_text(size=leg.title.sz),
+        legend.text=element_text(size=leg.txt.sz), 
+        legend.box.background = element_rect(color = "black"),
+        legend.position="top", 
+        strip.text = element_text(size=axis.title.sz), 
+        strip.background=element_rect(fill="white"))+
+  labs(x=paste0('NMDS 1 (',NMDS1,"%)"), y=paste0('NMDS 2 (',NMDS2,"%)"))+
+  facet_wrap(~TimeP, nrow=1); ellipses.orig.geno.plot_SS.c
+```
+
+
 # Ellipse Overlap
 
 ## Calculate Percent Overlap
 Calculating the overlap of physiological niche space between corals of the same genotype, at the same site and timepoint. Using Percent of Niche Overlap as a more informative indicator of how similar the Transplant corals are to their Native clonemates. 
 
+First, calculating the area of the 95% prediction ellipses for each group as well as the maximum likelihood of overlap between physiological niche ellipses.
 
 ### Calculate Niche Areas
 ```{r}
@@ -324,6 +549,32 @@ Niches$TimeP<-factor(Niches$TimeP)
 Overlap.plot<-ggplot(Niches, aes(x=TimeP, y=pOverlap, colour=Genotype, group=Genotype)) + 
   geom_line(linewidth=bar.sz)+
   geom_point(size=point.sz)+
+  scale_colour_manual(values =Geno.colors.o)+
+  theme_classic()+
+  theme(axis.title.x = element_text(size = axis.title.sz), 
+        axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
+        axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.txt.sz), 
+        legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"),
+        strip.text=element_text(size=axis.title.sz))+
+  labs(x="Timepoint", y="Physiological Niche Overlap")+
+  facet_wrap(~Site); Overlap.plot
+
+##Save Figure
+ggsave(filename="Figures/04_SIBER/NicheOverlap.png", plot=Overlap.plot, dpi=300, width=8, height=5, units="in")
+
+```
+
+
+#### KL
+```{r}
+##Plot Niche Overlap across Timepoints
+Overlap_KL.plot<-ggplot(Niches[which(Niches$Site=="KL"),], aes(x=TimeP, y=pOverlap, colour=Genotype, group=Genotype)) + 
+  geom_line(linewidth=bar.sz)+
+  geom_point(size=point.sz)+
+  scale_colour_manual(values =Geno.colors.o)+
   theme_classic()+
   theme(axis.title.x = element_text(size = axis.title.sz), 
         axis.title.y = element_text(size = axis.title.sz), 
@@ -332,13 +583,29 @@ Overlap.plot<-ggplot(Niches, aes(x=TimeP, y=pOverlap, colour=Genotype, group=Gen
         legend.text=element_text(size=leg.txt.sz), 
         legend.title=element_text(size=leg.title.sz), 
         legend.box.background = element_rect(color = "black"), 
-        strip.text=element_text(size=axis.title.sz))+
+        legend.position="top")+
   labs(x="Timepoint", y="Physiological Niche Overlap")+
-  facet_wrap(~Site); Overlap.plot
+  ylim(0.05,1.05); Overlap_KL.plot
+```
 
-##Save Figure
-ggsave(filename="Figures/04_SIBER/NicheOverlap.png", plot=Overlap.plot, dpi=300, width=8, height=5, units="in")
-
+#### SS
+```{r}
+##Plot Niche Overlap across Timepoints
+Overlap_SS.plot<-ggplot(Niches[which(Niches$Site=="SS"),], aes(x=TimeP, y=pOverlap, colour=Genotype, group=Genotype)) + 
+  geom_line(linewidth=bar.sz)+
+  geom_point(size=point.sz)+
+  scale_colour_manual(values =Geno.colors.o)+
+  theme_classic()+
+  theme(axis.title.x = element_text(size = axis.title.sz), 
+        axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
+        axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.txt.sz), 
+        legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"), 
+        legend.position="top")+
+  labs(x="Timepoint", y="Physiological Niche Overlap")+
+  ylim(0.05,1.05); Overlap_SS.plot
 ```
 
 
@@ -361,13 +628,52 @@ Overlap_Avg.plot<-ggplot(pOverlap.sum, aes(x=TimeP, y=pOverlap, colour=Site, gro
         legend.position="none",
         strip.text=element_text(size=axis.title.sz))+
   labs(x="Timepoint", y="Physiological Niche Overlap")+
-  facet_wrap(~Site); Overlap_N_Avg.plot
+  facet_wrap(~Site); Overlap_Avg.plot
 
 ##Save Figure
-ggsave(filename="Figures/04_SIBER/AvgNicheOverlap.png", plot=Overlap_N_Avg.plot, dpi=300, width=6, height=5, units="in")
+ggsave(filename="Figures/04_SIBER/AvgNicheOverlap.png", plot=Overlap_Avg.plot, dpi=300, width=6, height=5, units="in")
 ```
 
-Still need to update below here
+
+#### KL
+```{r}
+##Plot Average Niche Overlap across Timepoints
+Overlap_Avg_KL.plot<-ggplot(pOverlap.sum[which(pOverlap.sum$Site=="KL"),], aes(x=TimeP, y=pOverlap, colour=Site, group=1)) + 
+  scale_colour_manual(values=Site.colors.o[1])+
+  geom_errorbar(aes(ymin=pOverlap-se, ymax=pOverlap+se), width=cap.sz, linewidth=bar.sz) +
+  geom_line(linewidth=bar.sz)+
+  geom_point(size=point.sz)+
+  theme_classic()+
+  theme(axis.title.x = element_text(size = axis.title.sz), 
+        axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
+        axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.position="none")+
+  labs(x="Timepoint", y="Physiological Niche Overlap")+
+  ylim(0.05,1.05); Overlap_Avg_KL.plot
+
+```
+
+
+#### SS
+```{r}
+##Plot Average Niche Overlap across Timepoints
+Overlap_Avg_SS.plot<-ggplot(pOverlap.sum[which(pOverlap.sum$Site=="SS"),], aes(x=TimeP, y=pOverlap, colour=Site, group=1)) + 
+  scale_colour_manual(values=Site.colors.o[2])+
+  geom_errorbar(aes(ymin=pOverlap-se, ymax=pOverlap+se), width=cap.sz, linewidth=bar.sz) +
+  geom_line(linewidth=bar.sz)+
+  geom_point(size=point.sz)+
+  theme_classic()+
+  theme(axis.title.x = element_text(size = axis.title.sz), 
+        axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
+        axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.position="none")+
+  labs(x="Timepoint", y="Physiological Niche Overlap")+
+  ylim(0.05,1.05); Overlap_Avg_SS.plot
+
+```
+
 
 ## Differences in Overlap
 
@@ -406,7 +712,82 @@ Overlap.lme.contrast$group2<-paste(Overlap.lme.contrast$Site, Overlap.lme.contra
 ```
 
 
-### Trying updated Ellipse Plotting
+# Figures
+
+### Figure 2
+```{r}
+##Create Panel
+AvgOverlap_fig<-plot_grid(ellipses.origin.plot_KL, Overlap_Avg_KL.plot, 
+                      ellipses.origin.plot_SS, Overlap_Avg_SS.plot,
+                    rel_widths=c(1, .4, 1, .4), 
+                    rel_heights = c(1, 1, 1, 1),
+                    nrow=2, ncol=2, byrow=T, labels = c("A", "B", "C", "D"))
+
+##Save Figure
+ggsave(filename="Figures/04_SIBER/Fig2_AvgNicheOverlap.png", plot=AvgOverlap_fig, dpi=300, width=14, height=9, units="in")
+
+```
+
+
+### Figure S3
+```{r}
+
+##Save Figure
+ggsave(filename="Figures/04_SIBER/FigS3_PhysiologyNMDS.png", plot=phys.nmds.plot, dpi=300, width=7, height=6, units="in")
+
+```
+
+
+### Figure S4
+
+#### Adjust Figures for Panel
+```{r}
+##KL
+Overlap_KL.plot.cut<-ggplot(Niches[which(Niches$Site=="KL"),], aes(x=TimeP, y=pOverlap, colour=Genotype, group=Genotype)) + 
+  geom_line(linewidth=bar.sz)+
+  geom_point(size=point.sz)+
+  scale_colour_manual(values =Geno.colors.o)+
+  theme_classic()+
+  theme(axis.title.x = element_text(size = axis.title.sz), 
+        axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
+        axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.position="none")+
+  labs(x="Timepoint", y="Physiological Niche Overlap")+
+  ylim(0.05,1.05)
+
+##SS
+Overlap_SS.plot.cut<-ggplot(Niches[which(Niches$Site=="SS"),], aes(x=TimeP, y=pOverlap, colour=Genotype, group=Genotype)) + 
+  geom_line(linewidth=bar.sz)+
+  geom_point(size=point.sz)+
+  scale_colour_manual(values =Geno.colors.o)+
+  theme_classic()+
+  theme(axis.title.x = element_text(size = axis.title.sz), 
+        axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
+        axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.position="none")+
+  labs(x="Timepoint", y="Physiological Niche Overlap")+
+  ylim(0.05,1.05)
+```
+
+
+#### Figure S4
+```{r}
+##Create Panel
+Overlap_fig<-plot_grid(ellipses.orig.geno.plot_KL.b, Overlap_KL.plot.cut, 
+                      ellipses.orig.geno.plot_SS.b, Overlap_SS.plot.cut,
+                    rel_widths=c(1, .4, 1, .4), 
+                    rel_heights = c(1, 1, 1, 1),
+                    nrow=2, ncol=2, byrow=T, labels = c("A", "B", "C", "D"))
+
+##Save Figure
+ggsave(filename="Figures/04_SIBER/FigS4_NicheOverlap.png", plot=Overlap_fig, dpi=300, width=14, height=9, units="in")
+
+```
+
+
+# Trying Other Ellipse Plotting Options
 Note: to Create SIBER Ellipses, run SIBER_Ellipse.R in Outputs/SIBER
 Requires phys.ellipses.posterior created in SIBER_Ellipse.R in Outputs/SIBER
 
@@ -481,93 +862,16 @@ ggplot(data = phys.siber.input, aes(iso1, iso2)) +
   xlab("NMDS1")+
   ylab("NMDS2") + 
   theme(text = element_text(size=15), legend.position="none")+
-  facet_wrap(~factor(group):factor(community))+
    geom_polygon(data = ellipse_df,
               mapping = aes(iso1, iso2, 
                             group = rep, 
                             color = factor(group):factor(community),
                             fill = NULL),
-              fill = NA, alpha = 0.2)
+              fill = NA, alpha = 0.2)+
+  facet_wrap(~factor(group):factor(community))
 ```
 
 This still isn't what we want to show.
-
-
-## Ellipses Across Time and Space
-
-### By Origin
-
-#### KL
-```{r}
-ellipses.origin.plot_KL<-ggplot(data = phys.nmds.samples.plot.data[which(phys.nmds.samples.plot.data$Site=="KL"),], aes(x = MDS1, y = MDS2)) + 
-  stat_conf_ellipse(data = phys.nmds.samples.plot.data[which(phys.nmds.samples.plot.data$Site=="KL"),], geom = "polygon", level = 0.95, alpha = 0.7, aes(fill= Origin))+
-  scale_fill_manual(values =Orig.colors.o[1:2])+
-  theme_bw()+
-   theme(axis.title.x = element_text(size = axis.title.sz), 
-        axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
-        axis.text.y=element_text(size=axis.txt.sz, colour="black"),
-        legend.text=element_text(size=leg.txt.sz), 
-        legend.box.background = element_rect(color = "black"))+
-  labs(x=paste0('NMDS 1 (',NMDS1,"%)"), y=paste0('NMDS 2 (',NMDS2,"%)"))+
-  facet_grid(~TimeP); ellipses.origin.plot_KL
-
-```
-
-
-```{r}
-ellipses.origin.plot_SS<-ggplot(data = phys.nmds.samples.plot.data[which(phys.nmds.samples.plot.data$Site=="SS"),], aes(x = MDS1, y = MDS2)) + 
-  stat_conf_ellipse(data = phys.nmds.samples.plot.data[which(phys.nmds.samples.plot.data$Site=="SS"),], geom = "polygon", level = 0.95, alpha = 0.7, aes(fill= Origin))+
-  scale_fill_manual(values =Orig.colors.o[3:4])+
-  theme_bw()+
-   theme(axis.title.x = element_text(size = axis.title.sz), 
-        axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
-        axis.text.y=element_text(size=axis.txt.sz, colour="black"),
-        legend.text=element_text(size=leg.txt.sz), 
-        legend.box.background = element_rect(color = "black"))+
-  labs(x=paste0('NMDS 1 (',NMDS1,"%)"), y=paste0('NMDS 2 (',NMDS2,"%)"))+
-  facet_grid(~TimeP); ellipses.origin.plot_SS
-
-```
-
-
-### By Origin and Genotype
-
-#### KL
-```{r}
-ellipses.orig.geno.plot_KL<-ggplot(data = phys.nmds.samples.plot.data[which(phys.nmds.samples.plot.data$Site=="KL"),], aes(x = MDS1, y = MDS2)) + 
-  stat_conf_ellipse(data = phys.nmds.samples.plot.data[which(phys.nmds.samples.plot.data$Site=="KL"),], geom = "polygon", level = 0.95, alpha = 0.7, aes(fill= Origin))+
-  scale_fill_manual(values =Orig.colors.o[1:2])+
-  theme_bw()+
-   theme(axis.title.x = element_text(size = axis.title.sz), 
-        axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
-        axis.text.y=element_text(size=axis.txt.sz, colour="black"),
-        legend.text=element_text(size=leg.txt.sz), 
-        legend.box.background = element_rect(color = "black"))+
-  labs(x=paste0('NMDS 1 (',NMDS1,"%)"), y=paste0('NMDS 2 (',NMDS2,"%)"))+
-  facet_grid(Genotype~TimeP, scales = "free"); ellipses.orig.geno.plot_KL
-
-```
-
-
-```{r}
-ellipses.orig.geno.plot_SS<-ggplot(data = phys.nmds.samples.plot.data[which(phys.nmds.samples.plot.data$Site=="SS"),], aes(x = MDS1, y = MDS2)) + 
-  stat_conf_ellipse(data = phys.nmds.samples.plot.data[which(phys.nmds.samples.plot.data$Site=="SS"),], geom = "polygon", level = 0.95, alpha = 0.7, aes(fill= Origin))+
-  scale_fill_manual(values =Orig.colors.o[3:4])+
-  theme_bw()+
-   theme(axis.title.x = element_text(size = axis.title.sz), 
-        axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
-        axis.text.y=element_text(size=axis.txt.sz, colour="black"),
-        legend.text=element_text(size=leg.txt.sz), 
-        legend.box.background = element_rect(color = "black"))+
-  labs(x=paste0('NMDS 1 (',NMDS1,"%)"), y=paste0('NMDS 2 (',NMDS2,"%)"))+
-  facet_grid(Genotype~TimeP, scales = "free"); ellipses.orig.geno.plot_SS
-
-```
-
 
 
 ### Plot Niche Ellipses
@@ -611,5 +915,3 @@ phys.nmds.ellipses.origin <- ggplot(phys.nmds.plot.data,
 ggsave(filename="Figures/04_SIBER/NicheEllipseOrigin.png", plot=phys.nmds.ellipses.origin, dpi=300, width=10, height=8, units="in")
 ```
 
-# Figures
-Need to decide on final figure panels
