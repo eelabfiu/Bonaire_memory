@@ -154,7 +154,7 @@ ggplot(Growth, aes(x=Set, y=TLE_cm.day)) +
 
 ```
 
-Potential outliers have been re-measured and therefore will be retained. Need to add two more of SS AC8 T for n=10
+Potential outliers have been re-measured and therefore will be retained. n=10 per Site, Genotype, Origin group
 
 
 ### Compare Growth Rate
@@ -258,6 +258,7 @@ TP1.2_Growth.plot<-ggplot(TP1.2_Growth.sum, aes(x=Site, y=TLE_cm.day, colour=Sit
         legend.box.background = element_rect(color = "black"))+
   labs(x="Site and Origin", y=expression(paste('Growth Rate (cm day'^-1*")")), colour="Origin")+
   ylim(0, 0.25)+
+  annotate("text", x=2, y=0.24, label="*", size=sig.sz, fontface="bold")+
   geom_bracket(xmin=1, xmax=2, y.position=0.01, label.size=levels.sz, label="**", inherit.aes = FALSE); TP1.2_Growth.plot
 ```
 
@@ -1675,6 +1676,7 @@ TP1.2_Growth.plot.cut<-ggplot(TP1.2_Growth.sum, aes(x=Site, y=TLE_cm.day, colour
         legend.box.background = element_rect(color = "black"), legend.position=c(0.2, 0.8))+
   labs(x="Site and Origin", y=expression(paste('Growth Rate (cm day'^-1*")")), colour="Origin")+
   ylim(0, 0.3)+
+    annotate("text", x=2, y=0.24, label="*", size=sig.sz, fontface="bold")+
   geom_bracket(xmin=1, xmax=2, y.position=0.01, label.size=levels.sz, label="**", inherit.aes = FALSE)
 
 ##FvFm Retention
@@ -1734,7 +1736,7 @@ ggsave(filename="Figures/03_Performance/Fig3_Performance.png", plot=Performance_
 
 
 
-### Figure 4 Growth and Tolerance ES
+### Figure 4 Growth vs Tolerance
 
 #### Adjust Figures for Panel
 ```{r}
