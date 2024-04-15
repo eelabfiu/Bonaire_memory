@@ -31,6 +31,7 @@ if (!require("corrplot")) install.packages("corrplot")
 if (!require("tidyverse")) install.packages("tidyverse")
 if (!require("Rmisc")) install.packages("Rmisc")
 if (!require("ggpubr")) install.packages("ggpubr")
+if (!require("lme4")) install.packages("lme4")
 if (!require("DHARMa")) install.packages("DHARMa")
 if (!require("emmeans")) install.packages("emmeans")
 
@@ -44,6 +45,7 @@ library(corrplot) #Required for correlation plot
 library(tidyverse) #Required for data manipulation
 library(Rmisc) #Required for data summary
 library(ggpubr) #Required for stat_conf_ellipse
+library(lme4) #required for mixed effects models
 library(DHARMa) #Required to check residuals of mixed effects models
 library(emmeans) #Required for pairwise comparisons 
 
@@ -342,7 +344,7 @@ ellipses.orig.geno.plot_KL.a<-ggplot(data = phys.nmds.samples.plot.data[which(ph
 
 ```{r}
 ellipses.orig.geno.plot_KL.b<-ggplot(data = phys.nmds.samples.plot.data[which(phys.nmds.samples.plot.data$Site=="KL"),], aes(x = MDS1, y = MDS2)) + 
-  stat_conf_ellipse(data = phys.nmds.samples.plot.data[which(phys.nmds.samples.plot.data$Site=="KL"),], geom = "polygon", level = 0.95,  aes(fill=Genotype, alpha=Origin))+
+  stat_ellipse(data = phys.nmds.samples.plot.data[which(phys.nmds.samples.plot.data$Site=="KL"),], geom = "polygon", level = 0.95,  aes(fill=Genotype, alpha=Origin))+
   scale_fill_manual(values =Geno.colors.o)+
   scale_alpha_manual(values=c(0.6,0.2))+
   theme_bw()+
@@ -363,7 +365,7 @@ ellipses.orig.geno.plot_KL.b<-ggplot(data = phys.nmds.samples.plot.data[which(ph
 
 ```{r}
 ellipses.orig.geno.plot_KL.c<-ggplot(data = phys.nmds.samples.plot.data[which(phys.nmds.samples.plot.data$Site=="KL"),], aes(x = MDS1, y = MDS2)) + 
-  stat_conf_ellipse(data = phys.nmds.samples.plot.data[which(phys.nmds.samples.plot.data$Site=="KL" & phys.nmds.samples.plot.data$Orig=="N"),], geom = "polygon", level = 0.95,  aes(fill=Genotype), alpha=0.6)+
+  stat_ellipse(data = phys.nmds.samples.plot.data[which(phys.nmds.samples.plot.data$Site=="KL" & phys.nmds.samples.plot.data$Orig=="N"),], geom = "polygon", level = 0.95,  aes(fill=Genotype), alpha=0.6)+
    stat_conf_ellipse(data = phys.nmds.samples.plot.data[which(phys.nmds.samples.plot.data$Site=="KL" & phys.nmds.samples.plot.data$Orig=="T"),], geom = "path", level = 0.95,  aes(color=Genotype), linewidth=bar.sz, alpha=0.8)+
   scale_fill_manual(values =Geno.colors.o)+
     scale_colour_manual(values =Geno.colors.o)+
@@ -386,7 +388,7 @@ ellipses.orig.geno.plot_KL.c<-ggplot(data = phys.nmds.samples.plot.data[which(ph
 ### SS
 ```{r}
 ellipses.orig.geno.grid_SS<-ggplot(data = phys.nmds.samples.plot.data[which(phys.nmds.samples.plot.data$Site=="SS"),], aes(x = MDS1, y = MDS2)) + 
-  stat_conf_ellipse(data = phys.nmds.samples.plot.data[which(phys.nmds.samples.plot.data$Site=="SS"),], geom = "polygon", level = 0.95, aes(fill=Geno.Orig), alpha=0.6)+
+  stat_ellipse(data = phys.nmds.samples.plot.data[which(phys.nmds.samples.plot.data$Site=="SS"),], geom = "polygon", level = 0.95, aes(fill=Geno.Orig), alpha=0.6)+
   scale_fill_manual(values =Geno.Orig.colors.o)+
   theme_bw()+
    theme(axis.title.x = element_text(size = axis.title.sz), 
@@ -407,7 +409,7 @@ ellipses.orig.geno.grid_SS<-ggplot(data = phys.nmds.samples.plot.data[which(phys
 
 ```{r}
 ellipses.orig.geno.plot_SS.a<-ggplot(data = phys.nmds.samples.plot.data[which(phys.nmds.samples.plot.data$Site=="SS"),], aes(x = MDS1, y = MDS2)) + 
-  stat_conf_ellipse(data = phys.nmds.samples.plot.data[which(phys.nmds.samples.plot.data$Site=="SS"),], geom = "polygon", level = 0.95,  aes(fill=Geno.Orig), alpha=0.6)+
+  stat_ellipse(data = phys.nmds.samples.plot.data[which(phys.nmds.samples.plot.data$Site=="SS"),], geom = "polygon", level = 0.95,  aes(fill=Geno.Orig), alpha=0.6)+
   scale_fill_manual(values =Geno.Orig.colors.o)+
   theme_bw()+
    theme(axis.title.x = element_text(size = axis.title.sz), 
@@ -427,7 +429,7 @@ ellipses.orig.geno.plot_SS.a<-ggplot(data = phys.nmds.samples.plot.data[which(ph
 
 ```{r}
 ellipses.orig.geno.plot_SS.b<-ggplot(data = phys.nmds.samples.plot.data[which(phys.nmds.samples.plot.data$Site=="SS"),], aes(x = MDS1, y = MDS2)) + 
-  stat_conf_ellipse(data = phys.nmds.samples.plot.data[which(phys.nmds.samples.plot.data$Site=="SS"),], geom = "polygon", level = 0.95,  aes(fill=Genotype, alpha=Origin))+
+  stat_ellipse(data = phys.nmds.samples.plot.data[which(phys.nmds.samples.plot.data$Site=="SS"),], geom = "polygon", level = 0.95,  aes(fill=Genotype, alpha=Origin))+
   scale_fill_manual(values =Geno.colors.o)+
   scale_alpha_manual(values=c(0.6,0.2))+
   theme_bw()+
@@ -448,7 +450,7 @@ ellipses.orig.geno.plot_SS.b<-ggplot(data = phys.nmds.samples.plot.data[which(ph
 
 ```{r}
 ellipses.orig.geno.plot_SS.c<-ggplot(data = phys.nmds.samples.plot.data[which(phys.nmds.samples.plot.data$Site=="SS"),], aes(x = MDS1, y = MDS2)) + 
-  stat_conf_ellipse(data = phys.nmds.samples.plot.data[which(phys.nmds.samples.plot.data$Site=="SS" & phys.nmds.samples.plot.data$Orig=="N"),], geom = "polygon", level = 0.95,  aes(fill=Genotype), alpha=0.6)+
+  stat_ellipse(data = phys.nmds.samples.plot.data[which(phys.nmds.samples.plot.data$Site=="SS" & phys.nmds.samples.plot.data$Orig=="N"),], geom = "polygon", level = 0.95,  aes(fill=Genotype), alpha=0.6)+
    stat_conf_ellipse(data = phys.nmds.samples.plot.data[which(phys.nmds.samples.plot.data$Site=="SS" & phys.nmds.samples.plot.data$Orig=="T"),], geom = "path", level = 0.95,  aes(color=Genotype), linewidth=bar.sz, alpha=0.8)+
   scale_fill_manual(values =Geno.colors.o)+
     scale_colour_manual(values =Geno.colors.o)+
