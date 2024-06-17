@@ -68,7 +68,7 @@ library(ggpubr) #Required for stat brackets
 ### Load and Organize Data
 ```{r}
 ##Growth
-Length<-read.csv("Data/Length.csv", header=TRUE)
+Length<-read.csv("Data/LengthFull.csv", header=TRUE)
 Dates<-read.csv("Data/BonaireDates.csv", header=TRUE)
 
 ##Set date variables
@@ -110,15 +110,15 @@ Thermal$Origin<-factor(Thermal$Origin, levels=c("Native", "Transplant"))
 #### Calculate Days
 ```{r}
 ##Subset Dates for TP 1 and TP 2 Growth
-Growth.Dates<-subset(Dates, Task=="Growth" & TimeP=="TP1" |
+Growth.Dates_T1.2<-subset(Dates, Task=="Growth" & TimeP=="TP1" |
                        Task=="Growth" & TimeP=="TP2" )
 
 ##Convert to Wide format
-Growth.Dates<-Growth.Dates %>%  pivot_wider(names_from = TimeP, values_from = Date)
+Growth.Dates_T1.2<-Growth.Dates_T1.2 %>%  pivot_wider(names_from = TimeP, values_from = Date)
 
 ##Calculate Number of Days
 #TP 1 to TP2
-Growth.Dates$TP1.2_days<-time_length(Growth.Dates$TP2-Growth.Dates$TP1, unit="days")
+Growth.Dates_T1.2$TP1.2_days<-time_length(Growth.Dates_T1.2$TP2-Growth.Dates_T1.2$TP1, unit="days")
 
 ```
 
@@ -128,26 +128,29 @@ Growth.Dates$TP1.2_days<-time_length(Growth.Dates$TP2-Growth.Dates$TP1, unit="da
 ##Merge Length Data with Growth Dates
 #Merges by Site column
 #Adds TP1.2_days column
-Growth<-merge(Length, Growth.Dates[,c(-2)], all.x=TRUE)
+Growth_T1.2<-merge(Length, Growth.Dates_T1.2[,c(-2)], all.x=TRUE)
 
 ##Calculate Linear Extension (cm)
-Growth$Ext_cm<-Growth$TL.TP2_cm-Growth$TL.TP1_cm
+Growth_T1.2$Ext_cm<-Growth_T1.2$TL.TP2_cm-Growth_T1.2$TL.TP1_cm
 
-##Calculate Growth Rate (cm/day)
-Growth$TLE_cm.day<-Growth$Ext_cm/Growth$TP1.2_days
+##Calculate Growth_T1.2 Rate (cm/day)
+Growth_T1.2$TLE_cm.day<-Growth_T1.2$Ext_cm/Growth_T1.2$TP1.2_days
 
 ```
 
 
 #### Data QC
 ```{r}
+##Remove Corals not Measured in T1 to T2
+Growth_T1.2<-Growth_T1.2 %>% drop_na(TLE_cm.day)
+
 ##Sample Size per Set
-Growth %>% 
+Growth_T1.2 %>% 
   dplyr::group_by(Set) %>%
   dplyr::summarize(SampleSize = length(Set))
 
 ##Check for Outliers
-ggplot(Growth, aes(x=Set, y=TLE_cm.day)) + 
+ggplot(Growth_T1.2, aes(x=Set, y=TLE_cm.day)) + 
   geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
   geom_jitter(shape=16, position=position_jitter(0.1))+
   theme(axis.text.x = element_text(angle = 90))
@@ -160,27 +163,27 @@ Potential outliers have been re-measured and therefore will be retained. n=10 pe
 ### Compare Growth Rate
 ```{r}
 #Check normality
-hist(Growth$TLE_cm.day)
-shapiro.test(Growth$TLE_cm.day)
+hist(Growth_T1.2$TLE_cm.day)
+shapiro.test(Growth_T1.2$TLE_cm.day)
 #Not normal
 
-hist(log(Growth$TLE_cm.day+1))
-shapiro.test(log(Growth$TLE_cm.day+1))
+hist(log(Growth_T1.2$TLE_cm.day+1))
+shapiro.test(log(Growth_T1.2$TLE_cm.day+1))
 ##Still not normal
 
 ##Compare generalized linear mixed effects models
-TLE.glmr.gaus<-glmer(TLE_cm.day~Origin*Site+(1|Genotype), data=Growth, family=gaussian(link="identity"))
-TLE.glmr.gaus.l<-glmer(TLE_cm.day~Origin*Site+(1|Genotype), data=Growth, family=gaussian(link="log"))
-TLE.glmr.gaus.i<-glmer(TLE_cm.day~Origin*Site+(1|Genotype), data=Growth, family=gaussian(link="inverse"))
+TLE_T1.2.glmr.gaus<-glmer(TLE_cm.day~Origin*Site+(1|Genotype), data=Growth_T1.2, family=gaussian(link="identity"))
+TLE_T1.2.glmr.gaus.l<-glmer(TLE_cm.day~Origin*Site+(1|Genotype), data=Growth_T1.2, family=gaussian(link="log"))
+TLE_T1.2.glmr.gaus.i<-glmer(TLE_cm.day~Origin*Site+(1|Genotype), data=Growth_T1.2, family=gaussian(link="inverse"))
 
-TLE.glmr.gam.l<-glmer(TLE_cm.day~Origin*Site+(1|Genotype), data=Growth, family=Gamma(link="log"))
-TLE.glmr.gam.i<-glmer(TLE_cm.day~Origin*Site+(1|Genotype), data=Growth, family=Gamma(link="inverse"))
+TLE_T1.2.glmr.gam.l<-glmer(TLE_cm.day~Origin*Site+(1|Genotype), data=Growth_T1.2, family=Gamma(link="log"))
+TLE_T1.2.glmr.gam.i<-glmer(TLE_cm.day~Origin*Site+(1|Genotype), data=Growth_T1.2, family=Gamma(link="inverse"))
 
-TLE.glmr.inv<-glmer(TLE_cm.day~Origin*Site+(1|Genotype), data=Growth, family=inverse.gaussian(link="1/mu^2"))
-TLE.glmr.inv.l<-glmer(TLE_cm.day~Origin*Site+(1|Genotype), data=Growth, family=inverse.gaussian(link="log"))
-TLE.glmr.inv.i<-glmer(TLE_cm.day~Origin*Site+(1|Genotype), data=Growth, family=inverse.gaussian(link="inverse"))
+TLE_T1.2.glmr.inv<-glmer(TLE_cm.day~Origin*Site+(1|Genotype), data=Growth_T1.2, family=inverse.gaussian(link="1/mu^2"))
+TLE_T1.2.glmr.inv.l<-glmer(TLE_cm.day~Origin*Site+(1|Genotype), data=Growth_T1.2, family=inverse.gaussian(link="log"))
+TLE_T1.2.glmr.inv.i<-glmer(TLE_cm.day~Origin*Site+(1|Genotype), data=Growth_T1.2, family=inverse.gaussian(link="inverse"))
 
-AIC(TLE.glmr.gaus, TLE.glmr.gaus.l, TLE.glmr.gaus.i, TLE.glmr.gam.l, TLE.glmr.gam.i, TLE.glmr.inv, TLE.glmr.inv.l, TLE.glmr.inv.i)
+AIC(TLE_T1.2.glmr.gaus, TLE_T1.2.glmr.gaus.l, TLE_T1.2.glmr.gaus.i, TLE_T1.2.glmr.gam.l, TLE_T1.2.glmr.gam.i, TLE_T1.2.glmr.inv, TLE_T1.2.glmr.inv.l, TLE_T1.2.glmr.inv.i)
 ```
 
 Gamma distribution with log-link has the lowest AIC.
@@ -188,8 +191,8 @@ Gamma distribution with log-link has the lowest AIC.
 
 ```{r}
 ##Check residuals
-TLE.glmr.gam.l_res <- simulateResiduals(fittedModel = TLE.glmr.gam.l, plot = F)
-plot(TLE.glmr.gam.l_res)
+TLE_T1.2.glmr.gam.l_res <- simulateResiduals(fittedModel = TLE_T1.2.glmr.gam.l, plot = F)
+plot(TLE_T1.2.glmr.gam.l_res)
 
 ```
 
@@ -198,8 +201,8 @@ Compare residuals across models
 
 ```{r}
 ##Check residuals
-TLE.glmr.gaus.l_res <- simulateResiduals(fittedModel = TLE.glmr.gaus.l, plot = F)
-plot(TLE.glmr.gaus.l_res)
+TLE_T1.2.glmr.gaus.l_res <- simulateResiduals(fittedModel = TLE_T1.2.glmr.gaus.l, plot = F)
+plot(TLE_T1.2.glmr.gaus.l_res)
 
 ```
 
@@ -209,42 +212,42 @@ Compare with log+1 transformed lmer model
 ##Model with log +1 transformation
 #Function of Site and Origin, with Genotype as a Random effect
 #Interaction between Site and Origin
-TLE.lme<-lmer(log(TLE_cm.day+1)~Origin*Site+(1|Genotype), data=Growth)
+TLE_T1.2.lme<-lmer(log(TLE_cm.day+1)~Origin*Site+(1|Genotype), data=Growth_T1.2)
 
 ##Check residuals
-TLE.lme_res <- simulateResiduals(fittedModel = TLE.lme, plot = F)
-plot(TLE.lme_res)
+TLE_T1.2.lme_res <- simulateResiduals(fittedModel = TLE_T1.2.lme, plot = F)
+plot(TLE_T1.2.lme_res)
 ```
 Better residuals with the log+1 transformed lmer model.
 
 
 ```{r}
 ##Model results
-summary(TLE.lme)
+summary(TLE_T1.2.lme)
 
-eta_squared(TLE.lme)
+eta_squared(TLE_T1.2.lme)
 ```
 
 
 Effect size of Origin for each Site
 ```{r}
 ##KL
-TLE.lme_KL<-lmer(log(TLE_cm.day+1)~Origin+(1|Genotype), data=Growth[which(Growth$Site=="KL"),])
-summary(TLE.lme_KL)
-eta_squared(TLE.lme_KL)
+TLE_T1.2.lme_KL<-lmer(log(TLE_cm.day+1)~Origin+(1|Genotype), data=Growth_T1.2[which(Growth_T1.2$Site=="KL"),])
+summary(TLE_T1.2.lme_KL)
+eta_squared(TLE_T1.2.lme_KL)
 
 
 ##SS
-TLE.lme_SS<-lmer(log(TLE_cm.day+1)~Origin+(1|Genotype), data=Growth[which(Growth$Site=="SS"),])
-summary(TLE.lme_SS)
-eta_squared(TLE.lme_SS)
+TLE_T1.2.lme_SS<-lmer(log(TLE_cm.day+1)~Origin+(1|Genotype), data=Growth_T1.2[which(Growth_T1.2$Site=="SS"),])
+summary(TLE_T1.2.lme_SS)
+eta_squared(TLE_T1.2.lme_SS)
 
 ```
 
 
 ```{r Plot Growth Rate TP1 to 2}
 ##Summary statistics by Site and Origin
-TP1.2_Growth.sum<-summarySE(Growth, measurevar="TLE_cm.day", groupvars=c("Site", "Origin", "Site.Orig"), na.rm=TRUE)
+TP1.2_Growth.sum<-summarySE(Growth_T1.2, measurevar="TLE_cm.day", groupvars=c("Site", "Origin", "Site.Orig"), na.rm=TRUE)
 
 ##Plot Average Growth Rate across Treatments
 TP1.2_Growth.plot<-ggplot(TP1.2_Growth.sum, aes(x=Site, y=TLE_cm.day, colour=Site.Orig)) + 
@@ -266,7 +269,7 @@ TP1.2_Growth.plot<-ggplot(TP1.2_Growth.sum, aes(x=Site, y=TLE_cm.day, colour=Sit
 ### Average Growth Rates by Genotype
 ```{r}
 ##Summary statistics by Genotype and Origin
-TP1.2_Growth.sum.SS<-summarySE(subset(Growth, Site=="SS"), measurevar="TLE_cm.day", groupvars=c("Genotype", "Origin"), na.rm=TRUE)
+TP1.2_Growth.sum.SS<-summarySE(subset(Growth_T1.2, Site=="SS"), measurevar="TLE_cm.day", groupvars=c("Genotype", "Origin"), na.rm=TRUE)
 
 TP1.2_Growth.sum.SS
 
@@ -282,6 +285,211 @@ TP1.2_Growth.SS
 mean(TP1.2_Growth.SS$Perc.Inc)
 std.error(TP1.2_Growth.SS$Perc.Inc)
 ```
+
+
+### Growth Rate TP3 to TP4
+
+#### Calculate Days
+```{r}
+##Subset Dates for TP 3 and TP 4 Growth
+Growth.Dates_T3.4<-subset(Dates, Task=="Growth" & TimeP=="TP3" |
+                       Task=="Growth" & TimeP=="TP4" )
+
+##Convert to Wide format
+Growth.Dates_T3.4<-Growth.Dates_T3.4 %>%  pivot_wider(names_from = TimeP, values_from = Date)
+
+##Calculate Number of Days
+#TP 3 to TP4
+Growth.Dates_T3.4$TP3.4_days<-time_length(Growth.Dates_T3.4$TP4-Growth.Dates_T3.4$TP3, unit="days")
+
+```
+
+
+#### Calculate Total Linear Extension
+```{r}
+##Merge Length Data with Growth Dates
+#Merges by Site column
+#Adds TP3.4_days column
+Growth_T3.4<-merge(Length, Growth.Dates_T3.4[,c(-2)], all.x=TRUE)
+
+##Calculate Linear Extension (cm)
+Growth_T3.4$Ext_cm<-Growth_T3.4$TL.TP4_cm-Growth_T3.4$TL.TP3_cm
+
+##Calculate Growth_T3.4 Rate (cm/day)
+Growth_T3.4$TLE_cm.day<-Growth_T3.4$Ext_cm/Growth_T3.4$TP3.4_days
+
+```
+
+
+#### Data QC
+```{r}
+##Remove Corals not Measured in T1 to T2
+Growth_T3.4<-Growth_T3.4 %>% drop_na(TLE_cm.day)
+
+##Sample Size per Set
+Growth_T3.4 %>% 
+  dplyr::group_by(Set) %>%
+  dplyr::summarize(SampleSize = length(Set))
+
+##Check for Outliers
+ggplot(Growth_T3.4, aes(x=Set, y=TLE_cm.day)) + 
+  geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
+  geom_jitter(shape=16, position=position_jitter(0.1))+
+  theme(axis.text.x = element_text(angle = 90))
+
+```
+
+
+### Compare Growth Rate
+```{r}
+#Check normality
+hist(Growth_T3.4$TLE_cm.day)
+shapiro.test(Growth_T3.4$TLE_cm.day)
+#Not normal
+
+hist(log(Growth_T3.4$TLE_cm.day+1))
+shapiro.test(log(Growth_T3.4$TLE_cm.day+1))
+##Still not normal
+
+##Compare generalized linear mixed effects models
+TLE_T3.4.glmr.gaus<-glmer(TLE_cm.day~Origin*Site+(1|Genotype), data=Growth_T3.4, family=gaussian(link="identity"))
+TLE_T3.4.glmr.gaus.l<-glmer(TLE_cm.day~Origin*Site+(1|Genotype), data=Growth_T3.4, family=gaussian(link="log"))
+TLE_T3.4.glmr.gaus.i<-glmer(TLE_cm.day~Origin*Site+(1|Genotype), data=Growth_T3.4, family=gaussian(link="inverse"))
+
+TLE_T3.4.glmr.gam.l<-glmer(TLE_cm.day~Origin*Site+(1|Genotype), data=Growth_T3.4, family=Gamma(link="log"))
+TLE_T3.4.glmr.gam.i<-glmer(TLE_cm.day~Origin*Site+(1|Genotype), data=Growth_T3.4, family=Gamma(link="inverse"))
+
+TLE_T3.4.glmr.inv<-glmer(TLE_cm.day~Origin*Site+(1|Genotype), data=Growth_T3.4, family=inverse.gaussian(link="1/mu^2"))
+TLE_T3.4.glmr.inv.l<-glmer(TLE_cm.day~Origin*Site+(1|Genotype), data=Growth_T3.4, family=inverse.gaussian(link="log"))
+TLE_T3.4.glmr.inv.i<-glmer(TLE_cm.day~Origin*Site+(1|Genotype), data=Growth_T3.4, family=inverse.gaussian(link="inverse"))
+
+AIC(TLE_T3.4.glmr.gaus, TLE_T3.4.glmr.gaus.l, TLE_T3.4.glmr.gaus.i, TLE_T3.4.glmr.gam.l, TLE_T3.4.glmr.gam.i, TLE_T3.4.glmr.inv, TLE_T3.4.glmr.inv.l, TLE_T3.4.glmr.inv.i)
+```
+
+Gamma distribution with log-link has the lowest AIC.
+
+
+```{r}
+##Check residuals
+TLE_T3.4.glmr.gam.l_res <- simulateResiduals(fittedModel = TLE_T3.4.glmr.gam.l, plot = F)
+plot(TLE_T3.4.glmr.gam.l_res)
+
+```
+
+
+Compare residuals across models
+
+```{r}
+##Check residuals
+TLE_T3.4.glmr.gaus.l_res <- simulateResiduals(fittedModel = TLE_T3.4.glmr.gaus.l, plot = F)
+plot(TLE_T3.4.glmr.gaus.l_res)
+
+```
+
+Compare with log+1 transformed lmer model
+
+```{r}
+##Model with log +1 transformation
+#Function of Site and Origin, with Genotype as a Random effect
+#Interaction between Site and Origin
+TLE_T3.4.lme<-lmer(log(TLE_cm.day+1)~Origin*Site+(1|Genotype), data=Growth_T3.4)
+
+##Check residuals
+TLE_T3.4.lme_res <- simulateResiduals(fittedModel = TLE_T3.4.lme, plot = F)
+plot(TLE_T3.4.lme_res)
+```
+Better residuals with the log+1 transformed lmer model.
+
+
+```{r}
+##Model results
+summary(TLE_T3.4.lme)
+
+eta_squared(TLE_T3.4.lme)
+```
+
+
+Effect size of Origin for each Site
+```{r}
+##KL
+TLE_T3.4.lme_KL<-lmer(log(TLE_cm.day+1)~Origin+(1|Genotype), data=Growth_T3.4[which(Growth_T3.4$Site=="KL"),])
+summary(TLE_T3.4.lme_KL)
+eta_squared(TLE_T3.4.lme_KL)
+
+
+##SS
+TLE_T3.4.lme_SS<-lmer(log(TLE_cm.day+1)~Origin+(1|Genotype), data=Growth_T3.4[which(Growth_T3.4$Site=="SS"),])
+summary(TLE_T3.4.lme_SS)
+eta_squared(TLE_T3.4.lme_SS)
+
+```
+
+
+```{r Plot Growth Rate TP3 to 4}
+##Summary statistics by Site and Origin
+TP3.4_Growth.sum<-summarySE(Growth_T3.4, measurevar="TLE_cm.day", groupvars=c("Site", "Origin", "Site.Orig"), na.rm=TRUE)
+
+##Plot Average Growth Rate across Treatments
+TP3.4_Growth.plot<-ggplot(TP3.4_Growth.sum, aes(x=Site, y=TLE_cm.day, colour=Site.Orig)) + 
+  scale_colour_manual(values=Orig.colors.o)+
+  geom_errorbar(aes(ymin=TLE_cm.day-se, ymax=TLE_cm.day+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
+  geom_point(size=point.sz, position=position_dodge(width=0.5))+
+  theme_classic()+
+  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"))+
+  labs(x="Site and Origin", y=expression(paste('Growth Rate (cm day'^-1*")")), colour="Origin")+
+  ylim(0, 0.25)+
+  annotate("text", x=1, y=0.24, label="-", size=sig.sz, fontface="bold")+
+  annotate("text", x=2, y=0.2, label="**", size=sig.sz, fontface="bold")+
+  geom_bracket(xmin=1, xmax=2, y.position=0.01, label.size=levels.sz, label="***", inherit.aes = FALSE); TP3.4_Growth.plot
+```
+
+
+### Average Growth Rates by Genotype
+
+SS
+```{r}
+##Summary statistics by Genotype and Origin
+TP3.4_Growth.sum.SS<-summarySE(subset(Growth_T3.4, Site=="SS"), measurevar="TLE_cm.day", groupvars=c("Genotype", "Origin"), na.rm=TRUE)
+
+TP3.4_Growth.sum.SS
+
+##Calculate Percent Difference between Native and Transplant by Genotype
+TP3.4_Growth.SS<-TP3.4_Growth.sum.SS[which(TP3.4_Growth.sum.SS$Origin=="Native"), c(1,4)]
+names(TP3.4_Growth.SS)[2]<-paste(names(TP3.4_Growth.SS)[2], "N", sep="_")
+TP3.4_Growth.SS$TLE_cm.day_T<-TP3.4_Growth.sum.SS$TLE_cm.day[which(TP3.4_Growth.sum.SS$Origin=="Transplant")]
+TP3.4_Growth.SS$Perc.Inc<-((TP3.4_Growth.SS$TLE_cm.day_T-TP3.4_Growth.SS$TLE_cm.day_N)/TP3.4_Growth.SS$TLE_cm.day_N)*100
+
+TP3.4_Growth.SS
+
+##Mean and Standard Error
+mean(TP3.4_Growth.SS$Perc.Inc)
+std.error(TP3.4_Growth.SS$Perc.Inc)
+```
+
+
+KL
+```{r}
+##Summary statistics by Genotype and Origin
+TP3.4_Growth.sum.KL<-summarySE(subset(Growth_T3.4, Site=="KL"), measurevar="TLE_cm.day", groupvars=c("Genotype", "Origin"), na.rm=TRUE)
+
+TP3.4_Growth.sum.KL
+
+##Calculate Percent Difference between Native and Transplant by Genotype
+TP3.4_Growth.KL<-TP3.4_Growth.sum.KL[which(TP3.4_Growth.sum.KL$Origin=="Native"), c(1,4)]
+names(TP3.4_Growth.KL)[2]<-paste(names(TP3.4_Growth.KL)[2], "N", sep="_")
+TP3.4_Growth.KL$TLE_cm.day_T<-TP3.4_Growth.sum.KL$TLE_cm.day[which(TP3.4_Growth.sum.SS$Origin=="Transplant")]
+TP3.4_Growth.KL$Perc.Inc<-((TP3.4_Growth.KL$TLE_cm.day_N-TP3.4_Growth.KL$TLE_cm.day_T)/TP3.4_Growth.KL$TLE_cm.day_T)*100
+
+TP3.4_Growth.KL
+
+##Mean and Standard Error
+mean(TP3.4_Growth.KL$Perc.Inc)
+std.error(TP3.4_Growth.KL$Perc.Inc)
+```
+
 
 
 # Thermal Tolerance
@@ -2059,9 +2267,9 @@ ggsave(filename="Figures/03_Performance/FigS5_ToleranceMetrics.png", plot=Tol_fi
 ##Dataframe of Performance Results 
 ##Model Results
 TableS5<-data.frame(rbind(
-   summary(TLE.lme)$coefficients[-1,],summary(TLE.lme_KL)$coefficients[-1,],
-   summary(TLE.lme_SS)$coefficients[-1,],
-   
+   summary(TLE_T1.2.lme)$coefficients[-1,],
+   summary(TLE_T1.2.lme_KL)$coefficients[-1,],
+   summary(TLE_T1.2.lme_SS)$coefficients[-1,],
    summary(Tol_PAM.lme_TP1)$coefficients[-1,],summary(Tol_PAM.lme_TP1_KL)$coefficients[-1,],
    summary(Tol_PAM.lme_TP1_SS)$coefficients[-1,],
    summary(Tol_Sym.lme_TP1)$coefficients[-1,],summary(Tol_Sym.lme_TP1_KL)$coefficients[-1,],
@@ -2100,8 +2308,8 @@ TableS5$Predictor<-c(rep(c("Origin", "Site", "Origin x Site", "KL Origin", "SS O
 
 ##Effect Size  
 TableS5$EtaSq<-c(
-  eta_squared(TLE.lme)$Eta2_partial,eta_squared(TLE.lme_KL)$Eta2_partial,
-   eta_squared(TLE.lme_SS)$Eta2_partial,
+  eta_squared(TLE_T1.2.lme)$Eta2_partial,eta_squared(TLE_T1.2.lme_KL)$Eta2_partial,
+   eta_squared(TLE_T1.2.lme_SS)$Eta2_partial,
    
    eta_squared(Tol_PAM.lme_TP1)$Eta2_partial,eta_squared(Tol_PAM.lme_TP1_KL)$Eta2_partial,
    eta_squared(Tol_PAM.lme_TP1_SS)$Eta2_partial,
