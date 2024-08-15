@@ -295,10 +295,10 @@ Using Native niche area as the denominator which may be more informative as the 
 Niches$pOverlap<-Niches$Overlap/Niches$Native
 
 ##Write out dataframe
-write.csv(Niches, "Outputs/SIBER_p.Overlap.csv", row.names=FALSE)
+write.csv(Niches, "Outputs/SIBER/SIBER_p.Overlap.csv", row.names=FALSE)
 
 ##Read in
-Niches<-read.csv("Outputs/SIBER_p.Overlap.csv", header=TRUE)
+Niches<-read.csv("Outputs/SIBER/SIBER_p.Overlap.csv", header=TRUE)
 
 ##Set factor variables
 Niches$Site<-factor(Niches$Site, levels=c("KL", "SS"))
