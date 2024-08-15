@@ -30,6 +30,9 @@ if (!require("corrplot")) install.packages("corrplot")
 if (!require("DHARMa")) install.packages("DHARMa")
 if (!require("effectsize")) install.packages("effectsize")
 if (!require("emmeans")) install.packages("emmeans")
+if (!require("Hmisc")) install.packages("Hmisc")
+if (!require("dplyr")) install.packages("dplyr")
+if (!require("tidyr")) install.packages("tidyr")
 
 ##Load Packages
 library(ggplot2) #Required for ggplots
@@ -41,6 +44,9 @@ library(corrplot) #Required for correlation plot
 library(DHARMa) #Required to check residuals of mixed effects models
 library(effectsize) #Required for eta_squared effect sizes
 library(emmeans) #Required for pairwise comparisons 
+library(Hmisc) #Required for correlations
+library(dplyr) #Required for dataframe organization
+library(tidyr) #Required for dataframe organization
 
 ```
 
@@ -158,14 +164,21 @@ Coral.TP1.perm<-adonis2(vegdist(Coral.log_TP1[,c(11:14, 16)], "euclidean")~ Cora
 adonis_OmegaSq(Coral.TP1.perm)
 
 ##Check dispersion by Origin
-anova(betadisper(vegdist(Coral.log_TP1[,c(11:14, 16)], "euclidean"), Coral.log_TP1$Origin))
+TP1.disp_orig<-anova(betadisper(vegdist(Coral.log_TP1[,c(11:14, 16)], "euclidean"), Coral.log_TP1$Origin))
+TP1.disp_orig
 
 ##Check dispersion by Site
-anova(betadisper(vegdist(Coral.log_TP1[,c(11:14, 16)], "euclidean"), Coral.log_TP1$Site))
+TP1.disp_site<-anova(betadisper(vegdist(Coral.log_TP1[,c(11:14, 16)], "euclidean"), Coral.log_TP1$Site))
+TP1.disp_site
 
 ##Check dispersion by Origin:Site
-anova(betadisper(vegdist(Coral.log_TP1[,c(11:14, 16)], "euclidean"), Coral.log_TP1$Origin:Coral.log_TP1$Site))
+TP1.disp_os<-anova(betadisper(vegdist(Coral.log_TP1[,c(11:14, 16)], "euclidean"), Coral.log_TP1$Origin:Coral.log_TP1$Site))
+TP1.disp_os
 
+##Save results
+PERM_T1.res<-data.frame(adonis_OmegaSq(Coral.TP1.perm)[1:3,])
+PERM_T1.res$Predictor<-c("Origin", "Site", "Origin x Site")
+PERM_T1.res$p_DISP<-c(TP1.disp_orig$`Pr(>F)`[1], TP1.disp_site$`Pr(>F)`[1], TP1.disp_os$`Pr(>F)`[1])
 ```
 Physiology differs significantly by Origin and the effect of Origin differs between Sites.
 
@@ -180,8 +193,8 @@ Coral.TP1.perm_KL<-adonis2(vegdist(Coral.log_TP1[which(Coral.log_TP1$Site=="KL")
 adonis_OmegaSq(Coral.TP1.perm_KL)
 
 ##Check dispersion by Origin
-anova(betadisper(vegdist(Coral.log_TP1[which(Coral.log_TP1$Site=="KL"),c(11:14, 16)], "euclidean"), Coral.log_TP1$Origin[which(Coral.log_TP1$Site=="KL")]))
-
+TP1.KL.disp_orig<-anova(betadisper(vegdist(Coral.log_TP1[which(Coral.log_TP1$Site=="KL"),c(11:14, 16)], "euclidean"), Coral.log_TP1$Origin[which(Coral.log_TP1$Site=="KL")]))
+TP1.KL.disp_orig
 
 ##SS
 ##PERMANOVA
@@ -191,10 +204,20 @@ Coral.TP1.perm_SS<-adonis2(vegdist(Coral.log_TP1[which(Coral.log_TP1$Site=="SS")
 adonis_OmegaSq(Coral.TP1.perm_SS)
 
 ##Check dispersion by Origin
-anova(betadisper(vegdist(Coral.log_TP1[which(Coral.log_TP1$Site=="SS"),c(11:14, 16)], "euclidean"), Coral.log_TP1$Origin[which(Coral.log_TP1$Site=="SS")]))
+TP1.SS.disp_orig<-anova(betadisper(vegdist(Coral.log_TP1[which(Coral.log_TP1$Site=="SS"),c(11:14, 16)], "euclidean"), Coral.log_TP1$Origin[which(Coral.log_TP1$Site=="SS")]))
+TP1.SS.disp_orig
+
+##Save results
+PERM_T1.site.res<-data.frame(adonis_OmegaSq(Coral.TP1.perm_KL)[1,])
+PERM_T1.site.res<-rbind(PERM_T1.site.res, data.frame(adonis_OmegaSq(Coral.TP1.perm_SS)[1,]))
+PERM_T1.site.res$Predictor<-c("KL Origin", "SS Origin")
+PERM_T1.site.res$p_DISP<-c(TP1.KL.disp_orig$`Pr(>F)`[1], TP1.SS.disp_orig$`Pr(>F)`[1])
+
+##Combine results 
+PERM_T1.res<-rbind(PERM_T1.res, PERM_T1.site.res)
+PERM_T1.res$Timepoint<-rep("T1", nrow(PERM_T1.res))
 
 ```
-
 
 #### Variance Partitioning
 ```{r}
@@ -241,13 +264,21 @@ Coral.TP2.perm<-adonis2(vegdist(Coral.log_TP2[,c(11:14, 16)], "euclidean")~ Cora
 adonis_OmegaSq(Coral.TP2.perm)
 
 ##Check dispersion by Origin
-anova(betadisper(vegdist(Coral.log_TP2[,c(11:14, 16)], "euclidean"), Coral.log_TP2$Origin))
+TP2.disp_orig<-anova(betadisper(vegdist(Coral.log_TP2[,c(11:14, 16)], "euclidean"), Coral.log_TP2$Origin))
+TP2.disp_orig
 
 ##Check dispersion by Site
-anova(betadisper(vegdist(Coral.log_TP2[,c(11:14, 16)], "euclidean"), Coral.log_TP2$Site))
+TP2.disp_site<-anova(betadisper(vegdist(Coral.log_TP2[,c(11:14, 16)], "euclidean"), Coral.log_TP2$Site))
+TP2.disp_site
 
 ##Check dispersion by Origin:Site
-anova(betadisper(vegdist(Coral.log_TP2[,c(11:14, 16)], "euclidean"), Coral.log_TP2$Origin:Coral.log_TP2$Site))
+TP2.disp_os<-anova(betadisper(vegdist(Coral.log_TP2[,c(11:14, 16)], "euclidean"), Coral.log_TP2$Origin:Coral.log_TP2$Site))
+TP2.disp_os
+
+##Save results
+PERM_T2.res<-data.frame(adonis_OmegaSq(Coral.TP2.perm)[1:3,])
+PERM_T2.res$Predictor<-c("Origin", "Site", "Origin x Site")
+PERM_T2.res$p_DISP<-c(TP2.disp_orig$`Pr(>F)`[1], TP2.disp_site$`Pr(>F)`[1], TP2.disp_os$`Pr(>F)`[1])
 
 ```
 
@@ -263,8 +294,8 @@ Coral.TP2.perm_KL<-adonis2(vegdist(Coral.log_TP2[which(Coral.log_TP2$Site=="KL")
 adonis_OmegaSq(Coral.TP2.perm_KL)
 
 ##Check dispersion by Origin
-anova(betadisper(vegdist(Coral.log_TP2[which(Coral.log_TP2$Site=="KL"),c(11:14, 16)], "euclidean"), Coral.log_TP2$Origin[which(Coral.log_TP2$Site=="KL")]))
-
+TP2.KL.disp_orig<-anova(betadisper(vegdist(Coral.log_TP2[which(Coral.log_TP2$Site=="KL"),c(11:14, 16)], "euclidean"), Coral.log_TP2$Origin[which(Coral.log_TP2$Site=="KL")]))
+TP2.KL.disp_orig
 
 ##SS
 ##PERMANOVA
@@ -274,7 +305,18 @@ Coral.TP2.perm_SS<-adonis2(vegdist(Coral.log_TP2[which(Coral.log_TP2$Site=="SS")
 adonis_OmegaSq(Coral.TP2.perm_SS)
 
 ##Check dispersion by Origin
-anova(betadisper(vegdist(Coral.log_TP2[which(Coral.log_TP2$Site=="SS"),c(11:14, 16)], "euclidean"), Coral.log_TP2$Origin[which(Coral.log_TP2$Site=="SS")]))
+TP2.SS.disp_orig<-anova(betadisper(vegdist(Coral.log_TP2[which(Coral.log_TP2$Site=="SS"),c(11:14, 16)], "euclidean"), Coral.log_TP2$Origin[which(Coral.log_TP2$Site=="SS")]))
+TP2.SS.disp_orig
+
+##Save results
+PERM_T2.site.res<-data.frame(adonis_OmegaSq(Coral.TP2.perm_KL)[1,])
+PERM_T2.site.res<-rbind(PERM_T2.site.res, data.frame(adonis_OmegaSq(Coral.TP2.perm_SS)[1,]))
+PERM_T2.site.res$Predictor<-c("KL Origin", "SS Origin")
+PERM_T2.site.res$p_DISP<-c(TP2.KL.disp_orig$`Pr(>F)`[1], TP2.SS.disp_orig$`Pr(>F)`[1])
+
+##Combine results 
+PERM_T2.res<-rbind(PERM_T2.res, PERM_T2.site.res)
+PERM_T2.res$Timepoint<-rep("T2", nrow(PERM_T2.res))
 
 ```
 
@@ -295,13 +337,21 @@ Coral.TP3.perm<-adonis2(vegdist(Coral.log_TP3[,c(11:14, 16)], "euclidean")~ Cora
 adonis_OmegaSq(Coral.TP3.perm)
 
 ##Check dispersion by Origin
-anova(betadisper(vegdist(Coral.log_TP3[,c(11:14, 16)], "euclidean"), Coral.log_TP3$Origin))
+TP3.disp_orig<-anova(betadisper(vegdist(Coral.log_TP3[,c(11:14, 16)], "euclidean"), Coral.log_TP3$Origin))
+TP3.disp_orig
 
 ##Check dispersion by Site
-anova(betadisper(vegdist(Coral.log_TP3[,c(11:14, 16)], "euclidean"), Coral.log_TP3$Site))
+TP3.disp_site<-anova(betadisper(vegdist(Coral.log_TP3[,c(11:14, 16)], "euclidean"), Coral.log_TP3$Site))
+TP3.disp_site
 
 ##Check dispersion by Origin:Site
-anova(betadisper(vegdist(Coral.log_TP3[,c(11:14, 16)], "euclidean"), Coral.log_TP3$Origin:Coral.log_TP3$Site))
+TP3.disp_os<-anova(betadisper(vegdist(Coral.log_TP3[,c(11:14, 16)], "euclidean"), Coral.log_TP3$Origin:Coral.log_TP3$Site))
+TP3.disp_os
+
+##Save results
+PERM_T3.res<-data.frame(adonis_OmegaSq(Coral.TP3.perm)[1:3,])
+PERM_T3.res$Predictor<-c("Origin", "Site", "Origin x Site")
+PERM_T3.res$p_DISP<-c(TP3.disp_orig$`Pr(>F)`[1], TP3.disp_site$`Pr(>F)`[1], TP3.disp_os$`Pr(>F)`[1])
 
 ```
 
@@ -317,8 +367,8 @@ Coral.TP3.perm_KL<-adonis2(vegdist(Coral.log_TP3[which(Coral.log_TP3$Site=="KL")
 adonis_OmegaSq(Coral.TP3.perm_KL)
 
 ##Check dispersion by Origin
-anova(betadisper(vegdist(Coral.log_TP3[which(Coral.log_TP3$Site=="KL"),c(11:14, 16)], "euclidean"), Coral.log_TP3$Origin[which(Coral.log_TP3$Site=="KL")]))
-
+TP3.KL.disp_orig<-anova(betadisper(vegdist(Coral.log_TP3[which(Coral.log_TP3$Site=="KL"),c(11:14, 16)], "euclidean"), Coral.log_TP3$Origin[which(Coral.log_TP3$Site=="KL")]))
+TP3.KL.disp_orig
 
 ##SS
 ##PERMANOVA
@@ -328,7 +378,18 @@ Coral.TP3.perm_SS<-adonis2(vegdist(Coral.log_TP3[which(Coral.log_TP3$Site=="SS")
 adonis_OmegaSq(Coral.TP3.perm_SS)
 
 ##Check dispersion by Origin
-anova(betadisper(vegdist(Coral.log_TP3[which(Coral.log_TP3$Site=="SS"),c(11:14, 16)], "euclidean"), Coral.log_TP3$Origin[which(Coral.log_TP3$Site=="SS")]))
+TP3.SS.disp_orig<-anova(betadisper(vegdist(Coral.log_TP3[which(Coral.log_TP3$Site=="SS"),c(11:14, 16)], "euclidean"), Coral.log_TP3$Origin[which(Coral.log_TP3$Site=="SS")]))
+TP3.SS.disp_orig
+
+##Save results
+PERM_T3.site.res<-data.frame(adonis_OmegaSq(Coral.TP3.perm_KL)[1,])
+PERM_T3.site.res<-rbind(PERM_T3.site.res, data.frame(adonis_OmegaSq(Coral.TP3.perm_SS)[1,]))
+PERM_T3.site.res$Predictor<-c("KL Origin", "SS Origin")
+PERM_T3.site.res$p_DISP<-c(TP3.KL.disp_orig$`Pr(>F)`[1], TP3.SS.disp_orig$`Pr(>F)`[1])
+
+##Combine results 
+PERM_T3.res<-rbind(PERM_T3.res, PERM_T3.site.res)
+PERM_T3.res$Timepoint<-rep("T3", nrow(PERM_T3.res))
 
 
 ```
@@ -350,13 +411,21 @@ Coral.TP4.perm<-adonis2(vegdist(Coral.log_TP4[,c(11:14, 16)], "euclidean")~ Cora
 adonis_OmegaSq(Coral.TP4.perm)
 
 ##Check dispersion by Origin
-anova(betadisper(vegdist(Coral.log_TP4[,c(11:14, 16)], "euclidean"), Coral.log_TP4$Origin))
+TP4.disp_orig<-anova(betadisper(vegdist(Coral.log_TP4[,c(11:14, 16)], "euclidean"), Coral.log_TP4$Origin))
+TP4.disp_orig
 
 ##Check dispersion by Site
-anova(betadisper(vegdist(Coral.log_TP4[,c(11:14, 16)], "euclidean"), Coral.log_TP4$Site))
+TP4.disp_site<-anova(betadisper(vegdist(Coral.log_TP4[,c(11:14, 16)], "euclidean"), Coral.log_TP4$Site))
+TP4.disp_site
 
 ##Check dispersion by Origin:Site
-anova(betadisper(vegdist(Coral.log_TP4[,c(11:14, 16)], "euclidean"), Coral.log_TP4$Origin:Coral.log_TP4$Site))
+TP4.disp_os<-anova(betadisper(vegdist(Coral.log_TP4[,c(11:14, 16)], "euclidean"), Coral.log_TP4$Origin:Coral.log_TP4$Site))
+TP4.disp_os
+
+##Save results
+PERM_T4.res<-data.frame(adonis_OmegaSq(Coral.TP4.perm)[1:3,])
+PERM_T4.res$Predictor<-c("Origin", "Site", "Origin x Site")
+PERM_T4.res$p_DISP<-c(TP4.disp_orig$`Pr(>F)`[1], TP4.disp_site$`Pr(>F)`[1], TP4.disp_os$`Pr(>F)`[1])
 
 ```
 
@@ -372,8 +441,8 @@ Coral.TP4.perm_KL<-adonis2(vegdist(Coral.log_TP4[which(Coral.log_TP4$Site=="KL")
 adonis_OmegaSq(Coral.TP4.perm_KL)
 
 ##Check dispersion by Origin
-anova(betadisper(vegdist(Coral.log_TP4[which(Coral.log_TP4$Site=="KL"),c(11:14, 16)], "euclidean"), Coral.log_TP4$Origin[which(Coral.log_TP4$Site=="KL")]))
-
+TP4.KL.disp_orig<-anova(betadisper(vegdist(Coral.log_TP4[which(Coral.log_TP4$Site=="KL"),c(11:14, 16)], "euclidean"), Coral.log_TP4$Origin[which(Coral.log_TP4$Site=="KL")]))
+TP4.KL.disp_orig
 
 ##SS
 ##PERMANOVA
@@ -383,7 +452,18 @@ Coral.TP4.perm_SS<-adonis2(vegdist(Coral.log_TP4[which(Coral.log_TP4$Site=="SS")
 adonis_OmegaSq(Coral.TP4.perm_SS)
 
 ##Check dispersion by Origin
-anova(betadisper(vegdist(Coral.log_TP4[which(Coral.log_TP4$Site=="SS"),c(11:14, 16)], "euclidean"), Coral.log_TP4$Origin[which(Coral.log_TP4$Site=="SS")]))
+TP4.SS.disp_orig<-anova(betadisper(vegdist(Coral.log_TP4[which(Coral.log_TP4$Site=="SS"),c(11:14, 16)], "euclidean"), Coral.log_TP4$Origin[which(Coral.log_TP4$Site=="SS")]))
+TP4.SS.disp_orig
+
+##Save results
+PERM_T4.site.res<-data.frame(adonis_OmegaSq(Coral.TP4.perm_KL)[1,])
+PERM_T4.site.res<-rbind(PERM_T4.site.res, data.frame(adonis_OmegaSq(Coral.TP4.perm_SS)[1,]))
+PERM_T4.site.res$Predictor<-c("KL Origin", "SS Origin")
+PERM_T4.site.res$p_DISP<-c(TP4.KL.disp_orig$`Pr(>F)`[1], TP4.SS.disp_orig$`Pr(>F)`[1])
+
+##Combine results 
+PERM_T4.res<-rbind(PERM_T4.res, PERM_T4.site.res)
+PERM_T4.res$Timepoint<-rep("T4", nrow(PERM_T4.res))
 
 ```
 
@@ -420,6 +500,11 @@ summary(Prot.C.lme_TP1)
 
 eta_squared(Prot.C.lme_TP1)
 
+##Save model results
+Prot.C_TP1.res<-data.frame(summary(Prot.C.lme_TP1)$coefficients[-1,])
+Prot.C_TP1.res$Predictor<-c("Origin", "Site", "Origin x Site")
+Prot.C_TP1.res$EtaSq<-c(eta_squared(Prot.C.lme_TP1)$Eta2)
+Prot.C_TP1.res$Response<-rep("Protein Host", nrow(Prot.C_TP1.res))
 ```
 
 
@@ -444,6 +529,11 @@ summary(Prot.S.lme_TP1)
 
 eta_squared(Prot.S.lme_TP1)
 
+##Save model results
+Prot.S_TP1.res<-data.frame(summary(Prot.S.lme_TP1)$coefficients[-1,])
+Prot.S_TP1.res$Predictor<-c("Origin", "Site", "Origin x Site")
+Prot.S_TP1.res$EtaSq<-c(eta_squared(Prot.S.lme_TP1)$Eta2)
+Prot.S_TP1.res$Response<-rep("Protein Symbiont", nrow(Prot.S_TP1.res))
 ```
 
 Effect size of Origin for each Site
@@ -459,6 +549,17 @@ Prot.S.lme_TP1_SS<-lmer(TP_ug.cm2_S~Origin+(1|Genotype), data=Coral.TP1[which(Co
 summary(Prot.S.lme_TP1_SS)
 eta_squared(Prot.S.lme_TP1_SS)
 
+
+##Save results
+Prot.S_TP1.site.res<-data.frame(rbind(summary(Prot.S.lme_TP1_KL)$coefficients[-1,],
+                                      summary(Prot.S.lme_TP1_SS)$coefficients[-1,]))
+Prot.S_TP1.site.res$Predictor<-c("KL Origin", "SS Origin")
+Prot.S_TP1.site.res$EtaSq<-c(eta_squared(Prot.S.lme_TP1_KL)$Eta2, eta_squared(Prot.S.lme_TP1_SS)$Eta2)
+Prot.S_TP1.site.res$Response<-rep("Protein Symbiont", nrow(Prot.S_TP1.site.res))
+
+##Combine results 
+Prot.S_TP1.res<-rbind(Prot.S_TP1.res, Prot.S_TP1.site.res)
+
 ```
 
 
@@ -473,12 +574,16 @@ TP1_ProtSym.plot<-ggplot(TP1_ProtSym.sum, aes(x=Site, y=TP_ug.cm2_S, colour=Site
   geom_errorbar(aes(ymin=TP_ug.cm2_S-se, ymax=TP_ug.cm2_S+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
   geom_point(size=point.sz, position=position_dodge(width=0.5))+
   theme_classic()+
-  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
-        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
-        legend.box.background = element_rect(color = "black"))+
-  labs(x="Site and Origin", y=expression(paste('Symbiont Protein (\u03BCg cm'^-2*")")), colour="Origin")+
-  ylim(350, 550)+
+  theme(axis.title.x = element_text(size = axis.title.sz), 
+        axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
+        axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.txt.sz), 
+        legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"), 
+        legend.position="top")+
+  labs(x="Site and Origin", y=expression(paste('Symbiont Protein (\u03BCg cm'^-2*")")), colour=NULL)+
+  ylim(250, 550)+
   annotate("text", x=2, y=535, label="**", size=sig.sz, fontface="bold"); TP1_ProtSym.plot
 ```
 
@@ -504,6 +609,12 @@ summary(Bio.C.lme_TP1)
 
 eta_squared(Bio.C.lme_TP1)
 
+##Save model results
+Bio.C_TP1.res<-data.frame(summary(Bio.C.lme_TP1)$coefficients[-1,])
+Bio.C_TP1.res$Predictor<-c("Origin", "Site", "Origin x Site")
+Bio.C_TP1.res$EtaSq<-c(eta_squared(Bio.C.lme_TP1)$Eta2)
+Bio.C_TP1.res$Response<-rep("Biomass Host", nrow(Bio.C_TP1.res))
+
 ```
 
 
@@ -519,6 +630,16 @@ Bio.C.lme_TP1_SS<-lmer(AFDW_mg.cm2_C~Origin+(1|Genotype), data=Coral.TP1[which(C
 summary(Bio.C.lme_TP1_SS)
 eta_squared(Bio.C.lme_TP1_SS)
 
+##Save results
+Bio.C_TP1.site.res<-data.frame(rbind(summary(Bio.C.lme_TP1_KL)$coefficients[-1,],
+                                      summary(Bio.C.lme_TP1_SS)$coefficients[-1,]))
+Bio.C_TP1.site.res$Predictor<-c("KL Origin", "SS Origin")
+Bio.C_TP1.site.res$EtaSq<-c(eta_squared(Bio.C.lme_TP1_KL)$Eta2, eta_squared(Bio.C.lme_TP1_SS)$Eta2)
+Bio.C_TP1.site.res$Response<-rep("Biomass Host", nrow(Bio.C_TP1.site.res))
+
+##Combine results 
+Bio.C_TP1.res<-rbind(Bio.C_TP1.res, Bio.C_TP1.site.res)
+
 ```
 
 
@@ -532,13 +653,17 @@ TP1_BioHost.plot<-ggplot(TP1_BioHost.sum, aes(x=Site, y=AFDW_mg.cm2_C, colour=Si
   geom_errorbar(aes(ymin=AFDW_mg.cm2_C-se, ymax=AFDW_mg.cm2_C+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
   geom_point(size=point.sz, position=position_dodge(width=0.5))+
   theme_classic()+
-  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
-        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
-        legend.box.background = element_rect(color = "black"))+
-  labs(x="Site and Origin", y=expression(paste('Host Biomass (mg cm'^-2*")")), colour="Origin")+
-  ylim(0, 2)+
-   annotate("text", x=1, y=1.5, label="*", size=sig.sz, fontface="bold"); TP1_BioHost.plot
+  theme(axis.title.x = element_text(size = axis.title.sz),
+        axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
+        axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.txt.sz), 
+        legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"), 
+        legend.position = "top")+
+  labs(x="Site and Origin", y=expression(paste('Host Biomass (mg cm'^-2*")")), colour=NULL)+
+  ylim(0.8, 1.6)+
+   annotate("text", x=1, y=1.3, label="*", size=sig.sz, fontface="bold"); TP1_BioHost.plot
 ```
 
 
@@ -564,6 +689,12 @@ summary(Bio.S.lme_TP1)
 
 eta_squared(Bio.S.lme_TP1)
 
+##Save model results
+Bio.S_TP1.res<-data.frame(summary(Bio.S.lme_TP1)$coefficients[-1,])
+Bio.S_TP1.res$Predictor<-c("Origin", "Site", "Origin x Site")
+Bio.S_TP1.res$EtaSq<-c(eta_squared(Bio.S.lme_TP1)$Eta2)
+Bio.S_TP1.res$Response<-rep("Biomass Symbiont", nrow(Bio.S_TP1.res))
+
 ```
 
 
@@ -580,6 +711,17 @@ Bio.S.lme_TP1_SS<-lmer(AFDW_mg.cm2_S~Origin+(1|Genotype), data=Coral.TP1[which(C
 summary(Bio.S.lme_TP1_SS)
 eta_squared(Bio.S.lme_TP1_SS)
 
+
+##Save results
+Bio.S_TP1.site.res<-data.frame(rbind(summary(Bio.S.lme_TP1_KL)$coefficients[-1,],
+                                     summary(Bio.S.lme_TP1_SS)$coefficients[-1,]))
+Bio.S_TP1.site.res$Predictor<-c("KL Origin", "SS Origin")
+Bio.S_TP1.site.res$EtaSq<-c(eta_squared(Bio.S.lme_TP1_KL)$Eta2, eta_squared(Bio.S.lme_TP1_SS)$Eta2)
+Bio.S_TP1.site.res$Response<-rep("Biomass Symbiont", nrow(Bio.S_TP1.site.res))
+
+##Combine results 
+Bio.S_TP1.res<-rbind(Bio.S_TP1.res, Bio.S_TP1.site.res)
+
 ```
 
 
@@ -593,13 +735,17 @@ TP1_BioSym.plot<-ggplot(TP1_BioSym.sum, aes(x=Site, y=AFDW_mg.cm2_S, colour=Site
   geom_errorbar(aes(ymin=AFDW_mg.cm2_S-se, ymax=AFDW_mg.cm2_S+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
   geom_point(size=point.sz, position=position_dodge(width=0.5))+
   theme_classic()+
-  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
-        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
-        legend.box.background = element_rect(color = "black"))+
-  labs(x="Site and Origin", y=expression(paste('Symbiont Biomass (mg cm'^-2*")")), colour="Origin")+
-  ylim(0, 1)+
-  annotate("text", x=2, y=0.85, label="**", size=sig.sz, fontface="bold"); TP1_BioSym.plot
+  theme(axis.title.x = element_text(size = axis.title.sz), 
+        axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
+        axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.txt.sz), 
+        legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"), 
+        legend.position="top")+
+  labs(x="Site and Origin", y=expression(paste('Symbiont Biomass (mg cm'^-2*")")), colour=NULL)+
+  ylim(0.45, 0.95)+
+  annotate("text", x=2, y=0.8, label="**", size=sig.sz, fontface="bold"); TP1_BioSym.plot
 ```
 
 
@@ -624,6 +770,12 @@ summary(Chl.lme_TP1)
 
 eta_squared(Chl.lme_TP1)
 
+##Save model results
+Chl_TP1.res<-data.frame(summary(Chl.lme_TP1)$coefficients[-1,])
+Chl_TP1.res$Predictor<-c("Origin", "Site", "Origin x Site")
+Chl_TP1.res$EtaSq<-c(eta_squared(Chl.lme_TP1)$Eta2)
+Chl_TP1.res$Response<-rep("Chlorophyll", nrow(Chl_TP1.res))
+
 ```
 
 
@@ -639,6 +791,16 @@ Chl.lme_TP1_SS<-lmer(Chl_ug.cm2~Origin+(1|Genotype), data=Coral.TP1[which(Coral.
 summary(Chl.lme_TP1_SS)
 eta_squared(Chl.lme_TP1_SS)
 
+##Save results
+Chl_TP1.site.res<-data.frame(rbind(summary(Chl.lme_TP1_KL)$coefficients[-1,],
+                                     summary(Chl.lme_TP1_SS)$coefficients[-1,]))
+Chl_TP1.site.res$Predictor<-c("KL Origin", "SS Origin")
+Chl_TP1.site.res$EtaSq<-c(eta_squared(Chl.lme_TP1_KL)$Eta2, eta_squared(Chl.lme_TP1_SS)$Eta2)
+Chl_TP1.site.res$Response<-rep("Chlorophyll", nrow(Chl_TP1.site.res))
+
+##Combine results 
+Chl_TP1.res<-rbind(Chl_TP1.res, Chl_TP1.site.res)
+
 ```
 
 
@@ -652,13 +814,28 @@ TP1_Chl.plot<-ggplot(TP1_Chl.sum, aes(x=Site, y=Chl_ug.cm2, colour=Site.Orig)) +
   geom_errorbar(aes(ymin=Chl_ug.cm2-se, ymax=Chl_ug.cm2+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
   geom_point(size=point.sz, position=position_dodge(width=0.5))+
   theme_classic()+
-  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
-        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
-        legend.box.background = element_rect(color = "black"))+
-  labs(x="Site and Origin", y=expression(paste('Total Chlorophyll (\u03BCg cm'^-2*")")), colour="Origin")+
-  ylim(0, 2)+
+  theme(axis.title.x = element_text(size = axis.title.sz), 
+        axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
+        axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.txt.sz), 
+        legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"), 
+        legend.position="top")+
+  labs(x="Site and Origin", y=expression(paste('Total Chlorophyll (\u03BCg cm'^-2*")")), colour=NULL)+
+  ylim(0.5, 3.25)+
   annotate("text", x=2, y=1.7, label="***", size=sig.sz, fontface="bold"); TP1_Chl.plot
+```
+
+
+#### Save Results
+```{r}
+##Combine Results
+Phys_T1.res<-rbind(Prot.C_TP1.res, Prot.S_TP1.res, Bio.C_TP1.res, Bio.S_TP1.res, Chl_TP1.res)
+
+##Add Timepoint
+Phys_T1.res$TimeP<-rep("T1", nrow(Phys_T1.res))
+
 ```
 
 
@@ -692,6 +869,12 @@ summary(Prot.C.lme_TP2)
 
 eta_squared(Prot.C.lme_TP2)
 
+##Save model results
+Prot.C_TP2.res<-data.frame(summary(Prot.C.lme_TP2)$coefficients[-1,])
+Prot.C_TP2.res$Predictor<-c("Origin", "Site", "Origin x Site")
+Prot.C_TP2.res$EtaSq<-c(eta_squared(Prot.C.lme_TP2)$Eta2)
+Prot.C_TP2.res$Response<-rep("Protein Host", nrow(Prot.C_TP2.res))
+
 ```
 
 
@@ -716,6 +899,11 @@ summary(Prot.S.lme_TP2)
 
 eta_squared(Prot.S.lme_TP2)
 
+##Save model results
+Prot.S_TP2.res<-data.frame(summary(Prot.S.lme_TP2)$coefficients[-1,])
+Prot.S_TP2.res$Predictor<-c("Origin", "Site", "Origin x Site")
+Prot.S_TP2.res$EtaSq<-c(eta_squared(Prot.S.lme_TP2)$Eta2)
+Prot.S_TP2.res$Response<-rep("Protein Symbiont", nrow(Prot.S_TP2.res))
 
 ```
 
@@ -731,6 +919,16 @@ Prot.S.lme_TP2_SS<-lmer(TP_ug.cm2_S~Origin+(1|Genotype), data=Coral.TP2[which(Co
 summary(Prot.S.lme_TP2_SS)
 eta_squared(Prot.S.lme_TP2_SS)
 
+##Save results
+Prot.S_TP2.site.res<-data.frame(rbind(summary(Prot.S.lme_TP2_KL)$coefficients[-1,],
+                                     summary(Prot.S.lme_TP2_SS)$coefficients[-1,]))
+Prot.S_TP2.site.res$Predictor<-c("KL Origin", "SS Origin")
+Prot.S_TP2.site.res$EtaSq<-c(eta_squared(Prot.S.lme_TP2_KL)$Eta2, eta_squared(Prot.S.lme_TP2_SS)$Eta2)
+Prot.S_TP2.site.res$Response<-rep("Protein Symbiont", nrow(Prot.S_TP2.site.res))
+
+##Combine results 
+Prot.S_TP2.res<-rbind(Prot.S_TP2.res, Prot.S_TP2.site.res)
+
 ```
 
 
@@ -745,12 +943,16 @@ TP2_ProtSym.plot<-ggplot(TP2_ProtSym.sum, aes(x=Site, y=TP_ug.cm2_S, colour=Site
   geom_errorbar(aes(ymin=TP_ug.cm2_S-se, ymax=TP_ug.cm2_S+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
   geom_point(size=point.sz, position=position_dodge(width=0.5))+
   theme_classic()+
-  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
-        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
-        legend.box.background = element_rect(color = "black"))+
-  labs(x="Site and Origin", y=expression(paste('Symbiont Protein (\u03BCg cm'^-2*")")), colour="Origin")+
-  ylim(250, 450); TP2_ProtSym.plot
+  theme(axis.title.x = element_text(size = axis.title.sz), 
+        axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
+        axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.txt.sz), 
+        legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"), 
+        legend.position="top")+
+  labs(x="Site and Origin", y=expression(paste('Symbiont Protein (\u03BCg cm'^-2*")")), colour=NULL)+
+  ylim(250, 550); TP2_ProtSym.plot
 ```
 
 
@@ -775,6 +977,12 @@ summary(Bio.C.lme_TP2)
 
 eta_squared(Bio.C.lme_TP2)
 
+##Save model results
+Bio.C_TP2.res<-data.frame(summary(Bio.C.lme_TP2)$coefficients[-1,])
+Bio.C_TP2.res$Predictor<-c("Origin", "Site", "Origin x Site")
+Bio.C_TP2.res$EtaSq<-c(eta_squared(Bio.C.lme_TP2)$Eta2)
+Bio.C_TP2.res$Response<-rep("Biomass Host", nrow(Bio.C_TP2.res))
+
 ```
 
 
@@ -790,6 +998,16 @@ Bio.C.lme_TP2_SS<-lmer(AFDW_mg.cm2_C~Origin+(1|Genotype), data=Coral.TP2[which(C
 summary(Bio.C.lme_TP2_SS)
 eta_squared(Bio.C.lme_TP2_SS)
 
+##Save results
+Bio.C_TP2.site.res<-data.frame(rbind(summary(Bio.C.lme_TP2_KL)$coefficients[-1,],
+                                     summary(Bio.C.lme_TP2_SS)$coefficients[-1,]))
+Bio.C_TP2.site.res$Predictor<-c("KL Origin", "SS Origin")
+Bio.C_TP2.site.res$EtaSq<-c(eta_squared(Bio.C.lme_TP2_KL)$Eta2, eta_squared(Bio.C.lme_TP2_SS)$Eta2)
+Bio.C_TP2.site.res$Response<-rep("Biomass Host", nrow(Bio.C_TP2.site.res))
+
+##Combine results 
+Bio.C_TP2.res<-rbind(Bio.C_TP2.res, Bio.C_TP2.site.res)
+
 ```
 
 
@@ -803,12 +1021,16 @@ TP2_BioHost.plot<-ggplot(TP2_BioHost.sum, aes(x=Site, y=AFDW_mg.cm2_C, colour=Si
   geom_errorbar(aes(ymin=AFDW_mg.cm2_C-se, ymax=AFDW_mg.cm2_C+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
   geom_point(size=point.sz, position=position_dodge(width=0.5))+
   theme_classic()+
-  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
-        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
-        legend.box.background = element_rect(color = "black"))+
-  labs(x="Site and Origin", y=expression(paste('Host Biomass (mg cm'^-2*")")), colour="Origin")+
-  ylim(0, 2)+
+  theme(axis.title.x = element_text(size = axis.title.sz), 
+        axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
+        axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.txt.sz), 
+        legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"), 
+        legend.position="top")+
+  labs(x="Site and Origin", y=expression(paste('Host Biomass (mg cm'^-2*")")), colour=NULL)+
+  ylim(0.8, 1.6)+
   annotate("text", x=2, y=1.35, label="-", size=levels.sz, fontface="bold"); TP2_BioHost.plot
 ```
 
@@ -834,6 +1056,12 @@ summary(Bio.S.lme_TP2)
 
 eta_squared(Bio.S.lme_TP2)
 
+##Save model results
+Bio.S_TP2.res<-data.frame(summary(Bio.S.lme_TP2)$coefficients[-1,])
+Bio.S_TP2.res$Predictor<-c("Origin", "Site", "Origin x Site")
+Bio.S_TP2.res$EtaSq<-c(eta_squared(Bio.S.lme_TP2)$Eta2)
+Bio.S_TP2.res$Response<-rep("Biomass Symbiont", nrow(Bio.S_TP2.res))
+
 ```
 
 
@@ -849,6 +1077,16 @@ Bio.S.lme_TP2_SS<-lmer(AFDW_mg.cm2_S~Origin+(1|Genotype), data=Coral.TP2[which(C
 summary(Bio.S.lme_TP2_SS)
 eta_squared(Bio.S.lme_TP2_SS)
 
+##Save results
+Bio.S_TP2.site.res<-data.frame(rbind(summary(Bio.S.lme_TP2_KL)$coefficients[-1,],
+                                     summary(Bio.S.lme_TP2_SS)$coefficients[-1,]))
+Bio.S_TP2.site.res$Predictor<-c("KL Origin", "SS Origin")
+Bio.S_TP2.site.res$EtaSq<-c(eta_squared(Bio.S.lme_TP2_KL)$Eta2, eta_squared(Bio.S.lme_TP2_SS)$Eta2)
+Bio.S_TP2.site.res$Response<-rep("Biomass Symbiont", nrow(Bio.S_TP2.site.res))
+
+##Combine results 
+Bio.S_TP2.res<-rbind(Bio.S_TP2.res, Bio.S_TP2.site.res)
+
 ```
 
 
@@ -862,13 +1100,17 @@ TP2_BioSym.plot<-ggplot(TP2_BioSym.sum, aes(x=Site, y=AFDW_mg.cm2_S, colour=Site
   geom_errorbar(aes(ymin=AFDW_mg.cm2_S-se, ymax=AFDW_mg.cm2_S+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
   geom_point(size=point.sz, position=position_dodge(width=0.5))+
   theme_classic()+
-  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
-        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
-        legend.box.background = element_rect(color = "black"))+
-  labs(x="Site and Origin", y=expression(paste('Symbiont Biomass (mg cm'^-2*")")), colour="Origin")+
-  ylim(0, 1)+
-  annotate("text", x=1, y=0.85, label="*", size=sig.sz, fontface="bold"); TP2_BioSym.plot
+  theme(axis.title.x = element_text(size = axis.title.sz), 
+        axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
+        axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.txt.sz), 
+        legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"), 
+        legend.position= "top")+
+  labs(x="Site and Origin", y=expression(paste('Symbiont Biomass (mg cm'^-2*")")), colour=NULL)+
+  ylim(0.45, 0.95)+
+  annotate("text", x=1, y=0.78, label="*", size=sig.sz, fontface="bold"); TP2_BioSym.plot
 ```
 
 
@@ -893,6 +1135,12 @@ summary(Chl.lme_TP2)
 
 eta_squared(Chl.lme_TP2)
 
+##Save model results
+Chl_TP2.res<-data.frame(summary(Chl.lme_TP2)$coefficients[-1,])
+Chl_TP2.res$Predictor<-c("Origin", "Site", "Origin x Site")
+Chl_TP2.res$EtaSq<-c(eta_squared(Chl.lme_TP2)$Eta2)
+Chl_TP2.res$Response<-rep("Chlorophyll", nrow(Chl_TP2.res))
+
 ```
 
 
@@ -909,6 +1157,17 @@ Chl.lme_TP2_SS<-lmer(Chl_ug.cm2~Origin+(1|Genotype), data=Coral.TP2[which(Coral.
 summary(Chl.lme_TP2_SS)
 eta_squared(Chl.lme_TP2_SS)
 
+
+##Save results
+Chl_TP2.site.res<-data.frame(rbind(summary(Chl.lme_TP2_KL)$coefficients[-1,],
+                                     summary(Chl.lme_TP2_SS)$coefficients[-1,]))
+Chl_TP2.site.res$Predictor<-c("KL Origin", "SS Origin")
+Chl_TP2.site.res$EtaSq<-c(eta_squared(Chl.lme_TP2_KL)$Eta2, eta_squared(Chl.lme_TP2_SS)$Eta2)
+Chl_TP2.site.res$Response<-rep("Chlorophyll", nrow(Chl_TP2.site.res))
+
+##Combine results 
+Chl_TP2.res<-rbind(Chl_TP2.res, Chl_TP2.site.res)
+
 ```
 
 
@@ -922,13 +1181,28 @@ TP2_Chl.plot<-ggplot(TP2_Chl.sum, aes(x=Site, y=Chl_ug.cm2, colour=Site.Orig)) +
   geom_errorbar(aes(ymin=Chl_ug.cm2-se, ymax=Chl_ug.cm2+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
   geom_point(size=point.sz, position=position_dodge(width=0.5))+
   theme_classic()+
-  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
-        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
-        legend.box.background = element_rect(color = "black"))+
-  labs(x="Site and Origin", y=expression(paste('Total Chlorophyll (\u03BCg cm'^-2*")")), colour="Origin")+
-  ylim(0, 2.5)+
-  annotate("text", x=c(1,2), y=c(1.5, 2.5), label="*", size=sig.sz, fontface="bold"); TP2_Chl.plot
+  theme(axis.title.x = element_text(size = axis.title.sz), 
+        axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
+        axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.txt.sz), 
+        legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"), 
+        legend.position= "top")+
+  labs(x="Site and Origin", y=expression(paste('Total Chlorophyll (\u03BCg cm'^-2*")")), colour=NULL)+
+  ylim(0.5, 3.25)+
+  annotate("text", x=c(1,2), y=c(1.5, 2.6), label="*", size=sig.sz, fontface="bold"); TP2_Chl.plot
+```
+
+
+#### Save Results
+```{r}
+##Combine Results
+Phys_T2.res<-rbind(Prot.C_TP2.res, Prot.S_TP2.res, Bio.C_TP2.res, Bio.S_TP2.res, Chl_TP2.res)
+
+##Add Timepoint
+Phys_T2.res$TimeP<-rep("T2", nrow(Phys_T2.res))
+
 ```
 
 
@@ -962,6 +1236,12 @@ summary(Prot.C.lme_TP3)
 
 eta_squared(Prot.C.lme_TP3)
 
+##Save model results
+Prot.C_TP3.res<-data.frame(summary(Prot.C.lme_TP3)$coefficients[-1,])
+Prot.C_TP3.res$Predictor<-c("Origin", "Site", "Origin x Site")
+Prot.C_TP3.res$EtaSq<-c(eta_squared(Prot.C.lme_TP3)$Eta2)
+Prot.C_TP3.res$Response<-rep("Protein Host", nrow(Prot.C_TP3.res))
+
 ```
 
 
@@ -986,6 +1266,12 @@ summary(Prot.S.lme_TP3)
 
 eta_squared(Prot.S.lme_TP3)
 
+##Save model results
+Prot.S_TP3.res<-data.frame(summary(Prot.S.lme_TP3)$coefficients[-1,])
+Prot.S_TP3.res$Predictor<-c("Origin", "Site", "Origin x Site")
+Prot.S_TP3.res$EtaSq<-c(eta_squared(Prot.S.lme_TP3)$Eta2)
+Prot.S_TP3.res$Response<-rep("Protein Symbiont", nrow(Prot.S_TP3.res))
+
 ```
 
 Effect size of Origin for each Site
@@ -1001,6 +1287,16 @@ Prot.S.lme_TP3_SS<-lmer(TP_ug.cm2_S~Origin+(1|Genotype), data=Coral.TP3[which(Co
 summary(Prot.S.lme_TP3_SS)
 eta_squared(Prot.S.lme_TP3_SS)
 
+##Save results
+Prot.S_TP3.site.res<-data.frame(rbind(summary(Prot.S.lme_TP3_KL)$coefficients[-1,],
+                                     summary(Prot.S.lme_TP3_SS)$coefficients[-1,]))
+Prot.S_TP3.site.res$Predictor<-c("KL Origin", "SS Origin")
+Prot.S_TP3.site.res$EtaSq<-c(eta_squared(Prot.S.lme_TP3_KL)$Eta2, eta_squared(Prot.S.lme_TP3_SS)$Eta2)
+Prot.S_TP3.site.res$Response<-rep("Protein Symbiont", nrow(Prot.S_TP3.site.res))
+
+##Combine results 
+Prot.S_TP3.res<-rbind(Prot.S_TP3.res, Prot.S_TP3.site.res)
+
 ```
 
 
@@ -1015,12 +1311,16 @@ TP3_ProtSym.plot<-ggplot(TP3_ProtSym.sum, aes(x=Site, y=TP_ug.cm2_S, colour=Site
   geom_errorbar(aes(ymin=TP_ug.cm2_S-se, ymax=TP_ug.cm2_S+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
   geom_point(size=point.sz, position=position_dodge(width=0.5))+
   theme_classic()+
-  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
-        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
-        legend.box.background = element_rect(color = "black"))+
-  labs(x="Site and Origin", y=expression(paste('Symbiont Protein (\u03BCg cm'^-2*")")), colour="Origin")+
-  ylim(250, 450); TP3_ProtSym.plot
+  theme(axis.title.x = element_text(size = axis.title.sz), 
+        axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
+        axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.txt.sz), 
+        legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"), 
+        legend.position="top")+
+  labs(x="Site and Origin", y=expression(paste('Symbiont Protein (\u03BCg cm'^-2*")")), colour=NULL)+
+  ylim(250, 550); TP3_ProtSym.plot
 ```
 
 
@@ -1045,6 +1345,12 @@ summary(Bio.C.lme_TP3)
 
 eta_squared(Bio.C.lme_TP3)
 
+##Save model results
+Bio.C_TP3.res<-data.frame(summary(Bio.C.lme_TP3)$coefficients[-1,])
+Bio.C_TP3.res$Predictor<-c("Origin", "Site", "Origin x Site")
+Bio.C_TP3.res$EtaSq<-c(eta_squared(Bio.C.lme_TP3)$Eta2)
+Bio.C_TP3.res$Response<-rep("Biomass Host", nrow(Bio.C_TP3.res))
+
 ```
 
 
@@ -1060,6 +1366,16 @@ Bio.C.lme_TP3_SS<-lmer(AFDW_mg.cm2_C~Origin+(1|Genotype), data=Coral.TP3[which(C
 summary(Bio.C.lme_TP3_SS)
 eta_squared(Bio.C.lme_TP3_SS)
 
+##Save results
+Bio.C_TP3.site.res<-data.frame(rbind(summary(Bio.C.lme_TP3_KL)$coefficients[-1,],
+                                     summary(Bio.C.lme_TP3_SS)$coefficients[-1,]))
+Bio.C_TP3.site.res$Predictor<-c("KL Origin", "SS Origin")
+Bio.C_TP3.site.res$EtaSq<-c(eta_squared(Bio.C.lme_TP3_KL)$Eta2, eta_squared(Bio.C.lme_TP3_SS)$Eta2)
+Bio.C_TP3.site.res$Response<-rep("Biomass Host", nrow(Bio.C_TP3.site.res))
+
+##Combine results 
+Bio.C_TP3.res<-rbind(Bio.C_TP3.res, Bio.C_TP3.site.res)
+
 ```
 
 
@@ -1073,12 +1389,16 @@ TP3_BioHost.plot<-ggplot(TP3_BioHost.sum, aes(x=Site, y=AFDW_mg.cm2_C, colour=Si
   geom_errorbar(aes(ymin=AFDW_mg.cm2_C-se, ymax=AFDW_mg.cm2_C+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
   geom_point(size=point.sz, position=position_dodge(width=0.5))+
   theme_classic()+
-  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
-        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
-        legend.box.background = element_rect(color = "black"))+
-  labs(x="Site and Origin", y=expression(paste('Host Biomass (mg cm'^-2*")")), colour="Origin")+
-  ylim(0, 2); TP3_BioHost.plot
+  theme(axis.title.x = element_text(size = axis.title.sz), 
+        axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
+        axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.txt.sz), 
+        legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"), 
+        legend.position="top")+
+  labs(x="Site and Origin", y=expression(paste('Host Biomass (mg cm'^-2*")")), colour=NULL)+
+  ylim(0.8, 1.6); TP3_BioHost.plot
 ```
 
 
@@ -1107,6 +1427,12 @@ summary(Bio.S.lme_TP3)
 
 eta_squared(Bio.S.lme_TP3)
 
+##Save model results
+Bio.S_TP3.res<-data.frame(summary(Bio.S.lme_TP3)$coefficients[-1,])
+Bio.S_TP3.res$Predictor<-c("Origin", "Site", "Origin x Site")
+Bio.S_TP3.res$EtaSq<-c(eta_squared(Bio.S.lme_TP3)$Eta2)
+Bio.S_TP3.res$Response<-rep("Biomass Symbiont", nrow(Bio.S_TP3.res))
+
 ```
 
 
@@ -1121,6 +1447,17 @@ eta_squared(Bio.S.lme_TP3_KL)
 Bio.S.lme_TP3_SS<-lmer(log(AFDW_mg.cm2_S+1)~Origin+(1|Genotype), data=Coral.TP3[which(Coral.TP3$Site=="SS"),])
 summary(Bio.S.lme_TP3_SS)
 eta_squared(Bio.S.lme_TP3_SS)
+
+##Save results
+Bio.S_TP3.site.res<-data.frame(rbind(summary(Bio.S.lme_TP3_KL)$coefficients[-1,],
+                                     summary(Bio.S.lme_TP3_SS)$coefficients[-1,]))
+Bio.S_TP3.site.res$Predictor<-c("KL Origin", "SS Origin")
+Bio.S_TP3.site.res$EtaSq<-c(eta_squared(Bio.S.lme_TP3_KL)$Eta2, eta_squared(Bio.S.lme_TP3_SS)$Eta2)
+Bio.S_TP3.site.res$Response<-rep("Biomass Symbiont", nrow(Bio.S_TP3.site.res))
+
+##Combine results 
+Bio.S_TP3.res<-rbind(Bio.S_TP3.res, Bio.S_TP3.site.res)
+
 ```
 
 
@@ -1134,12 +1471,16 @@ TP3_BioSym.plot<-ggplot(TP3_BioSym.sum, aes(x=Site, y=AFDW_mg.cm2_S, colour=Site
   geom_errorbar(aes(ymin=AFDW_mg.cm2_S-se, ymax=AFDW_mg.cm2_S+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
   geom_point(size=point.sz, position=position_dodge(width=0.5))+
   theme_classic()+
-  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
-        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
-        legend.box.background = element_rect(color = "black"))+
-  labs(x="Site and Origin", y=expression(paste('Symbiont Biomass (mg cm'^-2*")")), colour="Origin")+
-  ylim(0, 1); TP3_BioSym.plot
+  theme(axis.title.x = element_text(size = axis.title.sz), 
+        axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
+        axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.txt.sz), 
+        legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"), 
+        legend.position="top")+
+  labs(x="Site and Origin", y=expression(paste('Symbiont Biomass (mg cm'^-2*")")), colour=NULL)+
+  ylim(0.45, 0.95); TP3_BioSym.plot
 ```
 
 
@@ -1168,6 +1509,12 @@ summary(Chl.lme_TP3)
 
 eta_squared(Chl.lme_TP3)
 
+##Save model results
+Chl_TP3.res<-data.frame(summary(Chl.lme_TP3)$coefficients[-1,])
+Chl_TP3.res$Predictor<-c("Origin", "Site", "Origin x Site")
+Chl_TP3.res$EtaSq<-c(eta_squared(Chl.lme_TP3)$Eta2)
+Chl_TP3.res$Response<-rep("Chlorophyll", nrow(Chl_TP3.res))
+
 ```
 
 
@@ -1184,6 +1531,16 @@ Chl.lme_TP3_SS<-lmer(log(Chl_ug.cm2+1)~Origin+(1|Genotype), data=Coral.TP3[which
 summary(Chl.lme_TP3_SS)
 eta_squared(Chl.lme_TP3_SS)
 
+##Save results
+Chl_TP3.site.res<-data.frame(rbind(summary(Chl.lme_TP3_KL)$coefficients[-1,],
+                                     summary(Chl.lme_TP3_SS)$coefficients[-1,]))
+Chl_TP3.site.res$Predictor<-c("KL Origin", "SS Origin")
+Chl_TP3.site.res$EtaSq<-c(eta_squared(Chl.lme_TP3_KL)$Eta2, eta_squared(Chl.lme_TP3_SS)$Eta2)
+Chl_TP3.site.res$Response<-rep("Chlorophyll", nrow(Chl_TP3.site.res))
+
+##Combine results 
+Chl_TP3.res<-rbind(Chl_TP3.res, Chl_TP3.site.res)
+
 ```
 
 
@@ -1197,15 +1554,29 @@ TP3_Chl.plot<-ggplot(TP3_Chl.sum, aes(x=Site, y=Chl_ug.cm2, colour=Site.Orig)) +
   geom_errorbar(aes(ymin=Chl_ug.cm2-se, ymax=Chl_ug.cm2+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
   geom_point(size=point.sz, position=position_dodge(width=0.5))+
   theme_classic()+
-  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
-        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
-        legend.box.background = element_rect(color = "black"))+
-  labs(x="Site and Origin", y=expression(paste('Total Chlorophyll (\u03BCg cm'^-2*")")), colour="Origin")+
-  ylim(0, 2.5)+
-  annotate("text", x=1, y=1.7, label="-", size=levels.sz, fontface="bold"); TP3_Chl.plot
+  theme(axis.title.x = element_text(size = axis.title.sz), 
+        axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
+        axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.txt.sz), 
+        legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"), 
+        legend.position="top")+
+  labs(x="Site and Origin", y=expression(paste('Total Chlorophyll (\u03BCg cm'^-2*")")), colour=NULL)+
+  ylim(0.5, 3.25)+
+  annotate("text", x=1, y=1.5, label="-", size=levels.sz, fontface="bold"); TP3_Chl.plot
 ```
 
+
+#### Save Results
+```{r}
+##Combine Results
+Phys_T3.res<-rbind(Prot.C_TP3.res, Prot.S_TP3.res, Bio.C_TP3.res, Bio.S_TP3.res, Chl_TP3.res)
+
+##Add Timepoint
+Phys_T3.res$TimeP<-rep("T3", nrow(Phys_T3.res))
+
+```
 
 
 ### TP4
@@ -1238,6 +1609,12 @@ summary(Prot.C.lme_TP4)
 
 eta_squared(Prot.C.lme_TP4)
 
+##Save model results
+Prot.C_TP4.res<-data.frame(summary(Prot.C.lme_TP4)$coefficients[-1,])
+Prot.C_TP4.res$Predictor<-c("Origin", "Site", "Origin x Site")
+Prot.C_TP4.res$EtaSq<-c(eta_squared(Prot.C.lme_TP4)$Eta2)
+Prot.C_TP4.res$Response<-rep("Protein Host", nrow(Prot.C_TP4.res))
+
 ```
 
 
@@ -1262,6 +1639,12 @@ summary(Prot.S.lme_TP4)
 
 eta_squared(Prot.S.lme_TP4)
 
+##Save model results
+Prot.S_TP4.res<-data.frame(summary(Prot.S.lme_TP4)$coefficients[-1,])
+Prot.S_TP4.res$Predictor<-c("Origin", "Site", "Origin x Site")
+Prot.S_TP4.res$EtaSq<-c(eta_squared(Prot.S.lme_TP4)$Eta2)
+Prot.S_TP4.res$Response<-rep("Protein Symbiont", nrow(Prot.S_TP4.res))
+
 ```
 
 Effect size of Origin for each Site
@@ -1275,6 +1658,17 @@ eta_squared(Prot.S.lme_TP4_KL)
 Prot.S.lme_TP4_SS<-lmer(TP_ug.cm2_S~Origin+(1|Genotype), data=Coral.TP4[which(Coral.TP4$Site=="SS"),])
 summary(Prot.S.lme_TP4_SS)
 eta_squared(Prot.S.lme_TP4_SS)
+
+##Save results
+Prot.S_TP4.site.res<-data.frame(rbind(summary(Prot.S.lme_TP4_KL)$coefficients[-1,],
+                                     summary(Prot.S.lme_TP4_SS)$coefficients[-1,]))
+Prot.S_TP4.site.res$Predictor<-c("KL Origin", "SS Origin")
+Prot.S_TP4.site.res$EtaSq<-c(eta_squared(Prot.S.lme_TP4_KL)$Eta2, eta_squared(Prot.S.lme_TP4_SS)$Eta2)
+Prot.S_TP4.site.res$Response<-rep("Protein Symbiont", nrow(Prot.S_TP4.site.res))
+
+##Combine results 
+Prot.S_TP4.res<-rbind(Prot.S_TP4.res, Prot.S_TP4.site.res)
+
 ```
 
 
@@ -1289,12 +1683,16 @@ TP4_ProtSym.plot<-ggplot(TP4_ProtSym.sum, aes(x=Site, y=TP_ug.cm2_S, colour=Site
   geom_errorbar(aes(ymin=TP_ug.cm2_S-se, ymax=TP_ug.cm2_S+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
   geom_point(size=point.sz, position=position_dodge(width=0.5))+
   theme_classic()+
-  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
-        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
-        legend.box.background = element_rect(color = "black"))+
-  labs(x="Site and Origin", y=expression(paste('Symbiont Protein (\u03BCg cm'^-2*")")), colour="Origin")+
-  ylim(250, 450); TP4_ProtSym.plot
+  theme(axis.title.x = element_text(size = axis.title.sz), 
+        axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
+        axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.txt.sz), 
+        legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"), 
+        legend.position="top")+
+  labs(x="Site and Origin", y=expression(paste('Symbiont Protein (\u03BCg cm'^-2*")")), colour=NULL)+
+  ylim(250, 550); TP4_ProtSym.plot
 ```
 
 
@@ -1319,6 +1717,12 @@ summary(Bio.C.lme_TP4)
 
 eta_squared(Bio.C.lme_TP4)
 
+##Save model results
+Bio.C_TP4.res<-data.frame(summary(Bio.C.lme_TP4)$coefficients[-1,])
+Bio.C_TP4.res$Predictor<-c("Origin", "Site", "Origin x Site")
+Bio.C_TP4.res$EtaSq<-c(eta_squared(Bio.C.lme_TP4)$Eta2)
+Bio.C_TP4.res$Response<-rep("Biomass Host", nrow(Bio.C_TP4.res))
+
 ```
 
 
@@ -1335,6 +1739,15 @@ Bio.C.lme_TP4_SS<-lmer(AFDW_mg.cm2_C~Origin+(1|Genotype), data=Coral.TP4[which(C
 summary(Bio.C.lme_TP4_SS)
 eta_squared(Bio.C.lme_TP4_SS)
 
+##Save results
+Bio.C_TP4.site.res<-data.frame(rbind(summary(Bio.C.lme_TP4_KL)$coefficients[-1,],
+                                     summary(Bio.C.lme_TP4_SS)$coefficients[-1,]))
+Bio.C_TP4.site.res$Predictor<-c("KL Origin", "SS Origin")
+Bio.C_TP4.site.res$EtaSq<-c(eta_squared(Bio.C.lme_TP4_KL)$Eta2, eta_squared(Bio.C.lme_TP4_SS)$Eta2)
+Bio.C_TP4.site.res$Response<-rep("Biomass Host", nrow(Bio.C_TP4.site.res))
+
+##Combine results 
+Bio.C_TP4.res<-rbind(Bio.C_TP4.res, Bio.C_TP4.site.res)
 
 ```
 
@@ -1349,13 +1762,17 @@ TP4_BioHost.plot<-ggplot(TP4_BioHost.sum, aes(x=Site, y=AFDW_mg.cm2_C, colour=Si
   geom_errorbar(aes(ymin=AFDW_mg.cm2_C-se, ymax=AFDW_mg.cm2_C+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
   geom_point(size=point.sz, position=position_dodge(width=0.5))+
   theme_classic()+
-  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
-        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
-        legend.box.background = element_rect(color = "black"))+
-  labs(x="Site and Origin", y=expression(paste('Host Biomass (mg cm'^-2*")")), colour="Origin")+
-  ylim(0, 2)+
-  annotate("text", x=2, y=1.6, label="*", size=sig.sz, fontface="bold"); TP4_BioHost.plot
+  theme(axis.title.x = element_text(size = axis.title.sz), 
+        axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
+        axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.txt.sz), 
+        legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"), 
+        legend.position="top")+
+  labs(x="Site and Origin", y=expression(paste('Host Biomass (mg cm'^-2*")")), colour=NULL)+
+  ylim(0.8, 1.6)+
+  annotate("text", x=2, y=1.45, label="*", size=sig.sz, fontface="bold"); TP4_BioHost.plot
 ```
 
 
@@ -1380,6 +1797,12 @@ summary(Bio.S.lme_TP4)
 
 eta_squared(Bio.S.lme_TP4)
 
+##Save model results
+Bio.S_TP4.res<-data.frame(summary(Bio.S.lme_TP4)$coefficients[-1,])
+Bio.S_TP4.res$Predictor<-c("Origin", "Site", "Origin x Site")
+Bio.S_TP4.res$EtaSq<-c(eta_squared(Bio.S.lme_TP4)$Eta2)
+Bio.S_TP4.res$Response<-rep("Biomass Symbiont", nrow(Bio.S_TP4.res))
+
 ```
 
 
@@ -1395,6 +1818,16 @@ Bio.S.lme_TP4_SS<-lmer(AFDW_mg.cm2_S~Origin+(1|Genotype), data=Coral.TP4[which(C
 summary(Bio.S.lme_TP4_SS)
 eta_squared(Bio.S.lme_TP4_SS)
 
+##Save results
+Bio.S_TP4.site.res<-data.frame(rbind(summary(Bio.S.lme_TP4_KL)$coefficients[-1,],
+                                     summary(Bio.S.lme_TP4_SS)$coefficients[-1,]))
+Bio.S_TP4.site.res$Predictor<-c("KL Origin", "SS Origin")
+Bio.S_TP4.site.res$EtaSq<-c(eta_squared(Bio.S.lme_TP4_KL)$Eta2, eta_squared(Bio.S.lme_TP4_SS)$Eta2)
+Bio.S_TP4.site.res$Response<-rep("Biomass Symbiont", nrow(Bio.S_TP4.site.res))
+
+##Combine results 
+Bio.S_TP4.res<-rbind(Bio.S_TP4.res, Bio.S_TP4.site.res)
+
 ```
 
 
@@ -1408,12 +1841,16 @@ TP4_BioSym.plot<-ggplot(TP4_BioSym.sum, aes(x=Site, y=AFDW_mg.cm2_S, colour=Site
   geom_errorbar(aes(ymin=AFDW_mg.cm2_S-se, ymax=AFDW_mg.cm2_S+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
   geom_point(size=point.sz, position=position_dodge(width=0.5))+
   theme_classic()+
-  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
-        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
-        legend.box.background = element_rect(color = "black"))+
-  labs(x="Site and Origin", y=expression(paste('Symbiont Biomass (mg cm'^-2*")")), colour="Origin")+
-  ylim(0, 1); TP4_BioSym.plot
+  theme(axis.title.x = element_text(size = axis.title.sz), 
+        axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
+        axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.txt.sz), 
+        legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"), 
+        legend.position="top")+
+  labs(x="Site and Origin", y=expression(paste('Symbiont Biomass (mg cm'^-2*")")), colour=NULL)+
+  ylim(0.45, 0.95); TP4_BioSym.plot
 ```
 
 
@@ -1442,6 +1879,12 @@ summary(Chl.lme_TP4)
 
 eta_squared(Chl.lme_TP4)
 
+##Save model results
+Chl_TP4.res<-data.frame(summary(Chl.lme_TP4)$coefficients[-1,])
+Chl_TP4.res$Predictor<-c("Origin", "Site", "Origin x Site")
+Chl_TP4.res$EtaSq<-c(eta_squared(Chl.lme_TP4)$Eta2)
+Chl_TP4.res$Response<-rep("Chlorophyll", nrow(Chl_TP4.res))
+
 ```
 
 
@@ -1459,6 +1902,16 @@ Chl.lme_TP4_SS<-lmer(log(Chl_ug.cm2+1)~Origin+(1|Genotype), data=Coral.TP4[which
 summary(Chl.lme_TP4_SS)
 eta_squared(Chl.lme_TP4_SS)
 
+##Save results
+Chl_TP4.site.res<-data.frame(rbind(summary(Chl.lme_TP4_KL)$coefficients[-1,],
+                                     summary(Chl.lme_TP4_SS)$coefficients[-1,]))
+Chl_TP4.site.res$Predictor<-c("KL Origin", "SS Origin")
+Chl_TP4.site.res$EtaSq<-c(eta_squared(Chl.lme_TP4_KL)$Eta2, eta_squared(Chl.lme_TP4_SS)$Eta2)
+Chl_TP4.site.res$Response<-rep("Chlorophyll", nrow(Chl_TP4.site.res))
+
+##Combine results 
+Chl_TP4.res<-rbind(Chl_TP4.res, Chl_TP4.site.res)
+
 ```
 
 
@@ -1472,90 +1925,52 @@ TP4_Chl.plot<-ggplot(TP4_Chl.sum, aes(x=Site, y=Chl_ug.cm2, colour=Site.Orig)) +
   geom_errorbar(aes(ymin=Chl_ug.cm2-se, ymax=Chl_ug.cm2+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
   geom_point(size=point.sz, position=position_dodge(width=0.5))+
   theme_classic()+
-  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
-        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
-        legend.box.background = element_rect(color = "black"))+
-  labs(x="Site and Origin", y=expression(paste('Total Chlorophyll (\u03BCg cm'^-2*")")), colour="Origin")+
-  ylim(0, 3.5); TP4_Chl.plot
+  theme(axis.title.x = element_text(size = axis.title.sz), 
+        axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
+        axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.txt.sz), 
+        legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"), 
+        legend.position="top")+
+  labs(x="Site and Origin", y=expression(paste('Total Chlorophyll (\u03BCg cm'^-2*")")), colour=NULL)+
+  ylim(0.5, 3.25); TP4_Chl.plot
+```
+
+
+#### Save Results
+```{r}
+##Combine Results
+Phys_T4.res<-rbind(Prot.C_TP4.res, Prot.S_TP4.res, Bio.C_TP4.res, Bio.S_TP4.res, Chl_TP4.res)
+
+##Add Timepoint
+Phys_T4.res$TimeP<-rep("T4", nrow(Phys_T4.res))
+
 ```
 
 
 ### Effect Size over Time
-
 ```{r}
 ##Dataframe of effect size results
-Phys.ES<-data.frame(TimeP=c(rep("TP1",8), rep("TP2",8), rep("TP3",8), rep("TP4",8)), 
-                    Site=c(rep(c("KL", "SS"),16)),
-                    Metric=c(rep(c("AFDW_mg.cm2_C", "AFDW_mg.cm2_C", "AFDW_mg.cm2_S", "AFDW_mg.cm2_S", "TP_ug.cm2_S", "TP_ug.cm2_S", "Chl_ug.cm2", "Chl_ug.cm2"),4)),
-                    EtaSq=c(eta_squared(Bio.C.lme_TP1_KL)$Eta2_partial,
-                             eta_squared(Bio.C.lme_TP1_SS)$Eta2_partial,
-                             eta_squared(Bio.S.lme_TP1_KL)$Eta2_partial,
-                             eta_squared(Bio.S.lme_TP1_SS)$Eta2_partial,
-                             eta_squared(Prot.S.lme_TP1_KL)$Eta2_partial,
-                             eta_squared(Prot.S.lme_TP1_SS)$Eta2_partial, 
-                             eta_squared(Chl.lme_TP1_KL)$Eta2_partial,
-                             eta_squared(Chl.lme_TP1_SS)$Eta2_partial, 
-                      eta_squared(Bio.C.lme_TP2_KL)$Eta2_partial,
-                             eta_squared(Bio.C.lme_TP2_SS)$Eta2_partial,
-                             eta_squared(Bio.S.lme_TP2_KL)$Eta2_partial,
-                             eta_squared(Bio.S.lme_TP2_SS)$Eta2_partial,
-                             eta_squared(Prot.S.lme_TP2_KL)$Eta2_partial,
-                             eta_squared(Prot.S.lme_TP2_SS)$Eta2_partial, 
-                             eta_squared(Chl.lme_TP2_KL)$Eta2_partial,
-                             eta_squared(Chl.lme_TP2_SS)$Eta2_partial, 
-                        eta_squared(Bio.C.lme_TP3_KL)$Eta2_partial,
-                             eta_squared(Bio.C.lme_TP3_SS)$Eta2_partial,
-                             eta_squared(Bio.S.lme_TP3_KL)$Eta2_partial,
-                             eta_squared(Bio.S.lme_TP3_SS)$Eta2_partial,
-                             eta_squared(Prot.S.lme_TP3_KL)$Eta2_partial,
-                             eta_squared(Prot.S.lme_TP3_SS)$Eta2_partial, 
-                             eta_squared(Chl.lme_TP3_KL)$Eta2_partial,
-                             eta_squared(Chl.lme_TP3_SS)$Eta2_partial, 
-                      eta_squared(Bio.C.lme_TP4_KL)$Eta2_partial,
-                             eta_squared(Bio.C.lme_TP4_SS)$Eta2_partial,
-                             eta_squared(Bio.S.lme_TP4_KL)$Eta2_partial,
-                             eta_squared(Bio.S.lme_TP4_SS)$Eta2_partial,
-                             eta_squared(Prot.S.lme_TP4_KL)$Eta2_partial,
-                             eta_squared(Prot.S.lme_TP4_SS)$Eta2_partial, 
-                             eta_squared(Chl.lme_TP4_KL)$Eta2_partial,
-                             eta_squared(Chl.lme_TP4_SS)$Eta2_partial),
-                    Pvalue=c(summary(Bio.C.lme_TP1_KL)$coefficients[10],
-                             summary(Bio.C.lme_TP1_SS)$coefficients[10],
-                             summary(Bio.S.lme_TP1_KL)$coefficients[10],
-                             summary(Bio.S.lme_TP1_SS)$coefficients[10],
-                             summary(Prot.S.lme_TP1_KL)$coefficients[10],
-                             summary(Prot.S.lme_TP1_SS)$coefficients[10], 
-                             summary(Chl.lme_TP1_KL)$coefficients[10],
-                             summary(Chl.lme_TP1_SS)$coefficients[10], 
-                      summary(Bio.C.lme_TP2_KL)$coefficients[10],
-                             summary(Bio.C.lme_TP2_SS)$coefficients[10],
-                             summary(Bio.S.lme_TP2_KL)$coefficients[10],
-                             summary(Bio.S.lme_TP2_SS)$coefficients[10],
-                             summary(Prot.S.lme_TP2_KL)$coefficients[10],
-                             summary(Prot.S.lme_TP2_SS)$coefficients[10], 
-                             summary(Chl.lme_TP2_KL)$coefficients[10],
-                             summary(Chl.lme_TP2_SS)$coefficients[10], 
-                        summary(Bio.C.lme_TP3_KL)$coefficients[10],
-                             summary(Bio.C.lme_TP3_SS)$coefficients[10],
-                             summary(Bio.S.lme_TP3_KL)$coefficients[10],
-                             summary(Bio.S.lme_TP3_SS)$coefficients[10],
-                             summary(Prot.S.lme_TP3_KL)$coefficients[10],
-                             summary(Prot.S.lme_TP3_SS)$coefficients[10], 
-                             summary(Chl.lme_TP3_KL)$coefficients[10],
-                             summary(Chl.lme_TP3_SS)$coefficients[10], 
-                      summary(Bio.C.lme_TP4_KL)$coefficients[10],
-                             summary(Bio.C.lme_TP4_SS)$coefficients[10],
-                             summary(Bio.S.lme_TP4_KL)$coefficients[10],
-                             summary(Bio.S.lme_TP4_SS)$coefficients[10],
-                             summary(Prot.S.lme_TP4_KL)$coefficients[10],
-                             summary(Prot.S.lme_TP4_SS)$coefficients[10], 
-                             summary(Chl.lme_TP4_KL)$coefficients[10],
-                             summary(Chl.lme_TP4_SS)$coefficients[10]))
+Phys.ES<-rbind(Phys_T1.res, Phys_T2.res, Phys_T3.res, Phys_T4.res)
+Phys.ES<-Phys.ES %>% dplyr::rename(p = Pr...t..)
+Phys.ES<-Phys.ES[,c("TimeP", "Predictor", "Response", "EtaSq", "p")]
 
+##Site specific results
+Phys.ES<-Phys.ES[which(Phys.ES$Predictor=="KL Origin" | Phys.ES$Predictor=="SS Origin"),]
+Phys.ES<-Phys.ES %>% separate_wider_delim(cols="Predictor", delim=" ", names=c("Site", "Predictor"), cols_remove = TRUE)
 
+##Add Metric names
+Phys.ES$Metric<-ifelse(Phys.ES$Response== "Protein Host", "TP_ug.cm2_C", ifelse(
+  Phys.ES$Response== "Protein Symbiont", "TP_ug.cm2_S", ifelse(
+    Phys.ES$Response=="Biomass Host", "AFDW_mg.cm2_C", ifelse(
+      Phys.ES$Response=="Biomass Symbiont", "AFDW_mg.cm2_S", ifelse(
+        Phys.ES$Response=="Chlorophyll", "Chl_ug.cm2", NA)))))
 
-Phys.ES$Sig<-ifelse(Phys.ES$Pvalue<0.001, "***", ifelse(Phys.ES$Pvalue<0.01, "**", ifelse(Phys.ES$Pvalue<0.05, "*", ifelse(Phys.ES$Pvalue<0.1, "-", NA))))
+##Add Significance levels
+Phys.ES$Sig<-ifelse(Phys.ES$p<0.001, "***", ifelse(Phys.ES$p<0.01, "**", 
+            ifelse(Phys.ES$p<0.05, "*", ifelse(Phys.ES$p<0.1, "-", NA))))
+
 ```
 
 
@@ -1566,10 +1981,16 @@ Bio.C.ES.plot<-ggplot(Phys.ES[which(Phys.ES$Metric=="AFDW_mg.cm2_C"),], aes(x=Ti
     scale_fill_manual(values=Site.colors.o)+
 theme_classic()+
   ggtitle("Host Biomass")+
-  theme(plot.title = element_text(colour="black", size=panel.lab.sz, hjust=0.5), axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
-        legend.box.background = element_rect(color = "black"))+
-   labs(x="Time Point", y=expression(paste("Effect Size (p", eta^2, ")")), colour="Site")+
+  theme(plot.title = element_text(colour="black", size=panel.lab.sz, hjust=0.5), 
+        axis.title.x = element_text(size = axis.title.sz), 
+        axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
+        axis.text.y=element_text(size=axis.txt.sz, colour="black"),
+        legend.text=element_text(size=leg.txt.sz), 
+        legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"), 
+        legend.position=c(.9, .8))+
+   labs(x="Time Point", y=expression(paste("Origin Effect Size (p", eta^2, ")")), colour="Site")+
   ylim(0, 0.6)+
   geom_text(aes(label=Sig), vjust=-0.02, color="black", position=position_dodge(0.9), size=levels.sz, fontface="bold"); Bio.C.ES.plot
 
@@ -1582,10 +2003,16 @@ Bio.S.ES.plot<-ggplot(Phys.ES[which(Phys.ES$Metric=="AFDW_mg.cm2_S"),], aes(x=Ti
     scale_fill_manual(values=Site.colors.o)+
 theme_classic()+
   ggtitle("Symbiont Biomass")+
-  theme(plot.title = element_text(colour="black", size=panel.lab.sz, hjust=0.5), axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
-        legend.box.background = element_rect(color = "black"))+
-   labs(x="Time Point", y=expression(paste("Effect Size (p", eta^2, ")")), colour="Site")+
+  theme(plot.title = element_text(colour="black", size=panel.lab.sz, hjust=0.5), 
+        axis.title.x = element_text(size = axis.title.sz), 
+        axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
+        axis.text.y=element_text(size=axis.txt.sz, colour="black"),
+        legend.text=element_text(size=leg.txt.sz), 
+        legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"), 
+        legend.position=c(.9, .8))+
+   labs(x="Time Point", y=expression(paste("Origin Effect Size (p", eta^2, ")")), colour="Site")+
   ylim(0, 0.6)+
   geom_text(aes(label=Sig), vjust=-0.02, color="black", position=position_dodge(0.9), size=levels.sz, fontface="bold"); Bio.S.ES.plot
 
@@ -1599,10 +2026,16 @@ Prot.S.ES.plot<-ggplot(Phys.ES[which(Phys.ES$Metric=="TP_ug.cm2_S"),], aes(x=Tim
     scale_fill_manual(values=Site.colors.o)+
 theme_classic()+
   ggtitle("Symbiont Protein")+
-  theme(plot.title = element_text(colour="black", size=panel.lab.sz, hjust=0.5), axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
-        legend.box.background = element_rect(color = "black"))+
-   labs(x="Time Point", y=expression(paste("Effect Size (p", eta^2, ")")), colour="Site")+
+  theme(plot.title = element_text(colour="black", size=panel.lab.sz, hjust=0.5), 
+        axis.title.x = element_text(size = axis.title.sz), 
+        axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
+        axis.text.y=element_text(size=axis.txt.sz, colour="black"),
+        legend.text=element_text(size=leg.txt.sz), 
+        legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"), 
+        legend.position=c(.9, .8))+
+   labs(x="Time Point", y=expression(paste("Origin Effect Size (p", eta^2, ")")), colour="Site")+
   ylim(0, 0.6)+
   geom_text(aes(label=Sig), vjust=-0.02, color="black", position=position_dodge(0.9), size=levels.sz, fontface="bold"); Prot.S.ES.plot
 
@@ -1616,10 +2049,16 @@ Chl.ES.plot<-ggplot(Phys.ES[which(Phys.ES$Metric=="Chl_ug.cm2"),], aes(x=TimeP, 
     scale_fill_manual(values=Site.colors.o)+
 theme_classic()+
   ggtitle("Chlorophyll")+
-  theme(plot.title = element_text(colour="black", size=panel.lab.sz, hjust=0.5), axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
-        legend.box.background = element_rect(color = "black"))+
-   labs(x="Time Point", y=expression(paste("Effect Size (p", eta^2, ")")), colour="Site")+
+  theme(plot.title = element_text(colour="black", size=panel.lab.sz, hjust=0.5), 
+        axis.title.x = element_text(size = axis.title.sz), 
+        axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
+        axis.text.y=element_text(size=axis.txt.sz, colour="black"),
+        legend.text=element_text(size=leg.txt.sz), 
+        legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"), 
+        legend.position=c(.9, .8))+
+   labs(x="Time Point", y=expression(paste("Origin Effect Size (p", eta^2, ")")), colour="Site")+
   ylim(0, 0.6)+
   geom_text(aes(label=Sig), vjust=-0.02, color="black", position=position_dodge(0.9), size=levels.sz, fontface="bold"); Chl.ES.plot
 
@@ -1628,309 +2067,133 @@ theme_classic()+
 
 # Figures
 
-### Figure 2 Physiology Effect Size
+### Figure 2 Univariate Physiology
 
-#### Adjust Figures for Panel
+#### Adjust for Panel
 ```{r}
-##Host Biomass
-Bio.C.ES.plot.cut<-ggplot(Phys.ES[which(Phys.ES$Metric=="AFDW_mg.cm2_C"),], aes(x=TimeP, y=EtaSq, fill=Site))+
-  geom_bar(stat="identity", position=position_dodge())+
-    scale_fill_manual(values=Site.colors.o)+
-theme_classic()+
-  ggtitle("Host Biomass")+
-  theme(plot.title = element_text(colour="black", size=panel.lab.sz, hjust=0.5), axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
-        legend.box.background = element_rect(color = "black"), legend.position=c(0.15, 0.8))+
-   labs(x="", y=expression(paste("Effect Size (p", eta^2, ")")), colour="Site")+
-  ylim(0, 0.6)+
-  geom_text(aes(label=Sig), vjust=-0.02, color="black", position=position_dodge(0.9), size=levels.sz, fontface="bold")
+##Biomass Host
+TP1_BioHost.plot<-TP1_BioHost.plot+ ggtitle("TP1")+ labs(x="")+
+  theme(plot.title = element_text(colour="black", size=panel.lab.sz, face="bold", hjust=0.5), 
+        legend.position=c(0.5, 0.85), legend.direction="horizontal")+
+  guides(color=guide_legend(nrow=2, byrow=FALSE)) 
 
-##Symbiont Biomass
-Bio.S.ES.plot.cut<-ggplot(Phys.ES[which(Phys.ES$Metric=="AFDW_mg.cm2_S"),], aes(x=TimeP, y=EtaSq, fill=Site))+
-  geom_bar(stat="identity", position=position_dodge())+
-    scale_fill_manual(values=Site.colors.o)+
-theme_classic()+
-  ggtitle("Symbiont Biomass")+
-  theme(plot.title = element_text(colour="black", size=panel.lab.sz, hjust=0.5), axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), legend.position="none")+
-   labs(x="", y="", colour="Site")+
-  ylim(0, 0.6)+
-  geom_text(aes(label=Sig), vjust=-0.02, color="black", position=position_dodge(0.9), size=levels.sz, fontface="bold")
+TP2_BioHost.plot<-TP2_BioHost.plot+ ggtitle("TP2")+ labs(x="", y="") +
+  theme(plot.title = element_text(colour="black", size=panel.lab.sz, face="bold", hjust=0.5), 
+        legend.position="none")
 
-##Symbiont Protein
-Prot.S.ES.plot.cut<-ggplot(Phys.ES[which(Phys.ES$Metric=="TP_ug.cm2_S"),], aes(x=TimeP, y=EtaSq, fill=Site))+
-  geom_bar(stat="identity", position=position_dodge())+
-    scale_fill_manual(values=Site.colors.o)+
-theme_classic()+
-  ggtitle("Symbiont Protein")+
-  theme(plot.title = element_text(colour="black", size=panel.lab.sz, hjust=0.5), axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), legend.position="none")+
-   labs(x="Time Point", y=expression(paste("Effect Size (p", eta^2, ")")), colour="Site")+
-  ylim(0, 0.6)+
-  geom_text(aes(label=Sig), vjust=-0.02, color="black", position=position_dodge(0.9), size=levels.sz, fontface="bold")
+TP3_BioHost.plot<-TP3_BioHost.plot+ ggtitle("TP3")+ labs(x="", y="") +
+  theme(plot.title = element_text(colour="black", size=panel.lab.sz, face="bold", hjust=0.5), 
+        legend.position="none")
+
+TP4_BioHost.plot<-TP4_BioHost.plot+ ggtitle("TP4")+ labs(x="", y="") +
+  theme(plot.title = element_text(colour="black", size=panel.lab.sz, face="bold", hjust=0.5), 
+        legend.position="none")
+
+Bio.C.ES.plot<-Bio.C.ES.plot + theme(legend.position=c(.15, .8))
+
+##Biomass Symbiont
+TP1_BioSym.plot<-TP1_BioSym.plot + labs(x="") + theme(legend.position="none")
+
+TP2_BioSym.plot<-TP2_BioSym.plot + labs(x="", y="") + theme(legend.position="none")
+
+TP3_BioSym.plot<-TP3_BioSym.plot + labs(x="", y="") + theme(legend.position="none")
+
+TP4_BioSym.plot<-TP4_BioSym.plot + labs(x="", y="") + theme(legend.position="none")
+
+Bio.S.ES.plot<-Bio.S.ES.plot + theme(legend.position="none") 
+
+##Protein Symbiont
+TP1_ProtSym.plot<-TP1_ProtSym.plot + labs(x="") + theme(legend.position="none")
+
+TP2_ProtSym.plot<-TP2_ProtSym.plot + labs(x="", y="") + theme(legend.position="none")
+
+TP3_ProtSym.plot<-TP3_ProtSym.plot + labs(x="", y="") + theme(legend.position="none")
+
+TP4_ProtSym.plot<-TP4_ProtSym.plot + labs(x="", y="") + theme(legend.position="none")
+
+Prot.S.ES.plot<-Prot.S.ES.plot + theme(legend.position="none") 
 
 ##Chlorophyll
-Chl.ES.plot.cut<-ggplot(Phys.ES[which(Phys.ES$Metric=="Chl_ug.cm2"),], aes(x=TimeP, y=EtaSq, fill=Site))+
-  geom_bar(stat="identity", position=position_dodge())+
-    scale_fill_manual(values=Site.colors.o)+
-theme_classic()+
-  ggtitle("Chlorophyll")+
-  theme(plot.title = element_text(colour="black", size=panel.lab.sz, hjust=0.5), axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), legend.position="none")+
-   labs(x="Time Point", y="", colour="Site")+
-  ylim(0, 0.6)+
-  geom_text(aes(label=Sig), vjust=-0.02, color="black", position=position_dodge(0.9), size=levels.sz, fontface="bold")
+TP1_Chl.plot<-TP1_Chl.plot + theme(legend.position="none")
 
+TP2_Chl.plot<-TP2_Chl.plot + labs(y="") + theme(legend.position="none")
 
+TP3_Chl.plot<-TP3_Chl.plot + labs(y="") + theme(legend.position="none")
+
+TP4_Chl.plot<-TP4_Chl.plot + labs(y="") + theme(legend.position="none")
+
+Chl.ES.plot<-Chl.ES.plot + theme(legend.position="none")
 ```
 
 
 #### Figure 2
 ```{r}
 ##Create Panel
-PhysES_fig<-plot_grid(Bio.C.ES.plot.cut, Bio.S.ES.plot.cut, 
-                      Prot.S.ES.plot.cut, Chl.ES.plot.cut,
-                    rel_widths=c(0.9, 1, 0.9, 1), 
-                    rel_heights = c(1, 1, 1, 1),
-                    nrow=2, ncol=2, byrow=T, labels = c("A", "B", "C", "D"))
+Phys_fig<-plot_grid(TP1_BioHost.plot, TP2_BioHost.plot, 
+                      TP3_BioHost.plot, TP4_BioHost.plot, Bio.C.ES.plot, 
+                      TP1_BioSym.plot, TP2_BioSym.plot, 
+                      TP3_BioSym.plot, TP4_BioSym.plot, Bio.S.ES.plot, 
+                      TP1_ProtSym.plot, TP2_ProtSym.plot, 
+                      TP3_ProtSym.plot, TP4_ProtSym.plot, Prot.S.ES.plot, 
+                      TP1_Chl.plot, TP2_Chl.plot, 
+                      TP3_Chl.plot, TP4_Chl.plot, Chl.ES.plot,
+                    rel_widths=c(0.8, 0.8, 0.8, 0.8, 1), rel_heights = 1,
+                    nrow=4, ncol=5, byrow=T, labels = NULL)
 
 ##Save Figure
-ggsave(filename="Figures/02_Physiology/Fig2_PhysiologyEffectSizes.png", plot=PhysES_fig, dpi=300, width=10, height=8, units="in")
+ggsave(filename="Figures/02_Physiology/Fig2_Physiology.png", plot=Phys_fig, dpi=300, width=16, height=16, units="in")
 
 ```
 
 
-### Figure S3 Univariate Panels
+# Tables 
 
-#### Adjust Figures for Panel
+### Table S3 Physiology PERMANOVA and PERMDISP
 ```{r}
+##Combine Results Tables
+TableS3_Phys.PERM<-data.frame(rbind(PERM_T1.res, PERM_T2.res, PERM_T3.res, PERM_T4.res))
 
-##Biomass Host
-TP1_BioHost.plot.cut<-ggplot(TP1_BioHost.sum, aes(x=Site, y=AFDW_mg.cm2_C, colour=Site.Orig)) + 
-  scale_colour_manual(values=Orig.colors.o)+
-  geom_errorbar(aes(ymin=AFDW_mg.cm2_C-se, ymax=AFDW_mg.cm2_C+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
-  geom_point(size=point.sz, position=position_dodge(width=0.5))+
-  theme_classic()+
-  ggtitle("TP1")+
-  theme(plot.title = element_text(colour="black", size=panel.lab.sz, face="bold", hjust=0.5),
-    axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
-        legend.position="none")+
-  labs(x="", y=expression(paste('Host Biomass (mg cm'^-2*")")), colour="Origin")+
-  ylim(0.75, 1.5)+
-  annotate("text", x=1, y=1.35, label="*", size=levels.sz, fontface="bold")
+##Organize
+names(TableS3_Phys.PERM)
+TableS3_Phys.PERM<-TableS3_Phys.PERM %>% dplyr::rename( DF = Df, SS = SumOfSqs, EffectSize = parOmegaSq, p = Pr..F.)
+TableS3_Phys.PERM<-TableS3_Phys.PERM[,c("Timepoint", "Predictor", "DF", "SS", "F",   "EffectSize", "p", "p_DISP")]
 
+#Round to 3 digits
+TableS3_Phys.PERM$SS<-round(TableS3_Phys.PERM$SS, 3)
+TableS3_Phys.PERM$F<-round(TableS3_Phys.PERM$F, 3)
+TableS3_Phys.PERM$EffectSize<-round(TableS3_Phys.PERM$EffectSize, 3)
+TableS3_Phys.PERM$p<-round(TableS3_Phys.PERM$p, 3)
+TableS3_Phys.PERM$p_DISP<-round(TableS3_Phys.PERM$p_DISP, 3)
 
-TP2_BioHost.plot.cut<-ggplot(TP2_BioHost.sum, aes(x=Site, y=AFDW_mg.cm2_C, colour=Site.Orig)) + 
-  scale_colour_manual(values=Orig.colors.o)+
-  geom_errorbar(aes(ymin=AFDW_mg.cm2_C-se, ymax=AFDW_mg.cm2_C+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
-  geom_point(size=point.sz, position=position_dodge(width=0.5))+
-  theme_classic()+
-  ggtitle("TP2")+
-  theme(plot.title = element_text(colour="black", size=panel.lab.sz, face="bold", hjust=0.5),
-        axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
-        legend.position="none")+
-  labs(x="", y="", colour="Origin")+
-  ylim(0.75, 1.5)+
-  annotate("text", x=2, y=1.35, label="-", size=levels.sz, fontface="bold")
-
-TP3_BioHost.plot.cut<-ggplot(TP3_BioHost.sum, aes(x=Site, y=AFDW_mg.cm2_C, colour=Site.Orig)) + 
-  scale_colour_manual(values=Orig.colors.o)+
-  geom_errorbar(aes(ymin=AFDW_mg.cm2_C-se, ymax=AFDW_mg.cm2_C+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
-  geom_point(size=point.sz, position=position_dodge(width=0.5))+
-  theme_classic()+
-  ggtitle("TP3")+
-  theme(plot.title = element_text(colour="black", size=panel.lab.sz, face="bold", hjust=0.5),
-        axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
-        legend.position="none")+
-  labs(x="", y="", colour="Origin")+
-  ylim(0.75, 1.5)
-
-TP4_BioHost.plot.cut<-ggplot(TP4_BioHost.sum, aes(x=Site, y=AFDW_mg.cm2_C, colour=Site.Orig)) + 
-  scale_colour_manual(values=Orig.colors.o)+
-  geom_errorbar(aes(ymin=AFDW_mg.cm2_C-se, ymax=AFDW_mg.cm2_C+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
-  geom_point(size=point.sz, position=position_dodge(width=0.5))+
-  theme_classic()+
-  ggtitle("TP4")+
-  theme(plot.title = element_text(colour="black", size=panel.lab.sz, face="bold", hjust=0.5),
-        axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
-        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
-        legend.box.background = element_rect(color = "black"))+
-  labs(x="", y="", colour="Origin")+
-  ylim(0.75, 1.5)+
-  annotate("text", x=2, y=1.45, label="*", size=levels.sz, fontface="bold")
+##Write Out Table
+write.csv(TableS3_Phys.PERM, "Tables/TableS3_Physiology_PERM_Results.csv", row.names=FALSE)
 
 
-##Biomass Symbiont
-TP1_BioSym.plot.cut<-ggplot(TP1_BioSym.sum, aes(x=Site, y=AFDW_mg.cm2_S, colour=Site.Orig)) + 
-  scale_colour_manual(values=Orig.colors.o)+
-  geom_errorbar(aes(ymin=AFDW_mg.cm2_S-se, ymax=AFDW_mg.cm2_S+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
-  geom_point(size=point.sz, position=position_dodge(width=0.5))+
-  theme_classic()+
-  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
-        legend.position="none")+
-  labs(x="", y=expression(paste('Symbiont Biomass (mg cm'^-2*")")), colour="Origin")+
-  ylim(0.45, 0.95)+
-  annotate("text", x=2, y=0.82, label="**", size=levels.sz, fontface="bold")
-
-
-TP2_BioSym.plot.cut<-ggplot(TP2_BioSym.sum, aes(x=Site, y=AFDW_mg.cm2_S, colour=Site.Orig)) + 
-  scale_colour_manual(values=Orig.colors.o)+
-  geom_errorbar(aes(ymin=AFDW_mg.cm2_S-se, ymax=AFDW_mg.cm2_S+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
-  geom_point(size=point.sz, position=position_dodge(width=0.5))+
-  theme_classic()+
-  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
-        legend.position="none")+
-  labs(x="", y="", colour="Origin")+
-  ylim(0.45, 0.95)+
-  annotate("text", x=1, y=0.82, label="*", size=levels.sz, fontface="bold")
-
-
-TP3_BioSym.plot.cut<-ggplot(TP3_BioSym.sum, aes(x=Site, y=AFDW_mg.cm2_S, colour=Site.Orig)) + 
-  scale_colour_manual(values=Orig.colors.o)+
-  geom_errorbar(aes(ymin=AFDW_mg.cm2_S-se, ymax=AFDW_mg.cm2_S+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
-  geom_point(size=point.sz, position=position_dodge(width=0.5))+
-  theme_classic()+
-  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
-        legend.position="none")+
-  labs(x="", y="", colour="Origin")+
-  ylim(0.45, 0.95)
-
-TP4_BioSym.plot.cut<-ggplot(TP4_BioSym.sum, aes(x=Site, y=AFDW_mg.cm2_S, colour=Site.Orig)) + 
-  scale_colour_manual(values=Orig.colors.o)+
-  geom_errorbar(aes(ymin=AFDW_mg.cm2_S-se, ymax=AFDW_mg.cm2_S+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
-  geom_point(size=point.sz, position=position_dodge(width=0.5))+
-  theme_classic()+
-  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
-        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
-        legend.box.background = element_rect(color = "black"))+
-  labs(x="", y="", colour="Origin")+
-  ylim(0.45, 0.95)
-
-
-##Protein Symbiont
-TP1_ProtSym.plot.cut<-ggplot(TP1_ProtSym.sum, aes(x=Site, y=TP_ug.cm2_S, colour=Site.Orig)) + 
-  scale_colour_manual(values=Orig.colors.o)+
-  geom_errorbar(aes(ymin=TP_ug.cm2_S-se, ymax=TP_ug.cm2_S+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
-  geom_point(size=point.sz, position=position_dodge(width=0.5))+
-  theme_classic()+
-  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
-        legend.position="none")+
-  labs(x="", y=expression(paste('Symbiont Protein (\u03BCg cm'^-2*")")), colour="Origin")+
-  ylim(250, 550)+
-  annotate("text", x=2, y=535, label="**", size=levels.sz, fontface="bold")
-
-
-TP2_ProtSym.plot.cut<-ggplot(TP2_ProtSym.sum, aes(x=Site, y=TP_ug.cm2_S, colour=Site.Orig)) + 
-  scale_colour_manual(values=Orig.colors.o)+
-  geom_errorbar(aes(ymin=TP_ug.cm2_S-se, ymax=TP_ug.cm2_S+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
-  geom_point(size=point.sz, position=position_dodge(width=0.5))+
-  theme_classic()+
-  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
-        legend.position="none")+
-  labs(x="", y="", colour="Origin")+
-  ylim(250, 550)
-
-TP3_ProtSym.plot.cut<-ggplot(TP3_ProtSym.sum, aes(x=Site, y=TP_ug.cm2_S, colour=Site.Orig)) + 
-  scale_colour_manual(values=Orig.colors.o)+
-  geom_errorbar(aes(ymin=TP_ug.cm2_S-se, ymax=TP_ug.cm2_S+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
-  geom_point(size=point.sz, position=position_dodge(width=0.5))+
-  theme_classic()+
-  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
-        legend.position="none")+
-  labs(x="", y="", colour="Origin")+
-  ylim(250, 550)
-
-TP4_ProtSym.plot.cut<-ggplot(TP4_ProtSym.sum, aes(x=Site, y=TP_ug.cm2_S, colour=Site.Orig)) + 
-  scale_colour_manual(values=Orig.colors.o)+
-  geom_errorbar(aes(ymin=TP_ug.cm2_S-se, ymax=TP_ug.cm2_S+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
-  geom_point(size=point.sz, position=position_dodge(width=0.5))+
-  theme_classic()+
-  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
-        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
-        legend.box.background = element_rect(color = "black"))+
-  labs(x="", y="", colour="Origin")+
-  ylim(250, 550)
-
-
-##Chlorophyll
-TP1_Chl.plot.cut<-ggplot(TP1_Chl.sum, aes(x=Site, y=Chl_ug.cm2, colour=Site.Orig)) + 
-  scale_colour_manual(values=Orig.colors.o)+
-  geom_errorbar(aes(ymin=Chl_ug.cm2-se, ymax=Chl_ug.cm2+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
-  geom_point(size=point.sz, position=position_dodge(width=0.5))+
-  theme_classic()+
-  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
-        legend.position="none")+
-  labs(x="Site", y=expression(paste('Total Chlorophyll (\u03BCg cm'^-2*")")), colour="Origin")+
-  ylim(0.5, 3.25)+
-  annotate("text", x=2, y=1.7, label="***", size=levels.sz, fontface="bold")
-
-
-TP2_Chl.plot.cut<-ggplot(TP2_Chl.sum, aes(x=Site, y=Chl_ug.cm2, colour=Site.Orig)) + 
-  scale_colour_manual(values=Orig.colors.o)+
-  geom_errorbar(aes(ymin=Chl_ug.cm2-se, ymax=Chl_ug.cm2+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
-  geom_point(size=point.sz, position=position_dodge(width=0.5))+
-  theme_classic()+
-  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
-        legend.position="none")+
-  labs(x="Site", y="", colour="Origin")+
-  ylim(0.5, 3.25)+
-  annotate("text", x=c(1,2), y=c(1.7, 2.6), label="*", size=levels.sz, fontface="bold")
-
-
-TP3_Chl.plot.cut<-ggplot(TP3_Chl.sum, aes(x=Site, y=Chl_ug.cm2, colour=Site.Orig)) + 
-  scale_colour_manual(values=Orig.colors.o)+
-  geom_errorbar(aes(ymin=Chl_ug.cm2-se, ymax=Chl_ug.cm2+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
-  geom_point(size=point.sz, position=position_dodge(width=0.5))+
-  theme_classic()+
-  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
-        legend.position="none")+
-  labs(x="Site", y="", colour="Origin")+
-  ylim(0.5, 3.25)+
-  annotate("text", x=1, y=1.7, label="-", size=levels.sz, fontface="bold")
-
-TP4_Chl.plot.cut<-ggplot(TP4_Chl.sum, aes(x=Site, y=Chl_ug.cm2, colour=Site.Orig)) + 
-  scale_colour_manual(values=Orig.colors.o)+
-  geom_errorbar(aes(ymin=Chl_ug.cm2-se, ymax=Chl_ug.cm2+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
-  geom_point(size=point.sz, position=position_dodge(width=0.5))+
-  theme_classic()+
-  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
-        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
-        legend.box.background = element_rect(color = "black"))+
-  labs(x="Site", y="", colour="Origin")+
-  ylim(0.5, 3.25)
 ```
 
 
-#### Figure S3
+### Table S4 Physiology Univariate LM
 ```{r}
-##Create Panel
-Phys_fig<-plot_grid(
-  TP1_BioHost.plot.cut,TP2_BioHost.plot.cut,TP3_BioHost.plot.cut,TP4_BioHost.plot.cut,
-  TP1_BioSym.plot.cut,TP2_BioSym.plot.cut,TP3_BioSym.plot.cut,TP4_BioSym.plot.cut,
-  TP1_ProtSym.plot.cut,TP2_ProtSym.plot.cut,TP3_ProtSym.plot.cut,TP4_ProtSym.plot.cut,
-  TP1_Chl.plot.cut,TP2_Chl.plot.cut,TP3_Chl.plot.cut,TP4_Chl.plot.cut,
-                    rel_widths=c(rep(c(0.75, 0.75, 0.75,1),4)), 
-                    rel_heights = c(1,0.85,0.85,0.85),
-                    nrow=4, ncol=4, byrow=T, labels = NULL)
+##Combine Results Tables
+TableS4_Phys.LM<-data.frame(rbind(Phys_T1.res, Phys_T2.res, Phys_T3.res, Phys_T4.res))
 
-##Save Figure
-ggsave(filename="Figures/02_Physiology/FigS3_PhysiologyMetrics.png", plot=Phys_fig, dpi=300, width=12, height=14, units="in")
+##Organize
+names(TableS4_Phys.LM)
+TableS4_Phys.LM<-TableS4_Phys.LM %>% dplyr::rename(SE = Std..Error, DF = df, t = t.value, p = Pr...t.., EffectSize = EtaSq, Timepoint = TimeP)
+TableS4_Phys.LM<-TableS4_Phys.LM[,c("Timepoint", "Response", "Predictor", "Estimate", "SE", "DF", "t", "p", "EffectSize")]
+
+#Round to 3 digits
+TableS4_Phys.LM$Estimate<-round(TableS4_Phys.LM$Estimate, 3)
+TableS4_Phys.LM$SE<-round(TableS4_Phys.LM$SE, 3)
+TableS4_Phys.LM$t<-round(TableS4_Phys.LM$t, 3)
+TableS4_Phys.LM$p<-round(TableS4_Phys.LM$p, 3)
+TableS4_Phys.LM$EffectSize<-round(TableS4_Phys.LM$EffectSize, 3)
+
+#Integer
+TableS4_Phys.LM$DF<-round(TableS4_Phys.LM$DF, 0)
+
+##Write Out Table
+write.csv(TableS4_Phys.LM, "Tables/TableS4_Physiology_LM_Results.csv", row.names=FALSE)
 
 ```
 
