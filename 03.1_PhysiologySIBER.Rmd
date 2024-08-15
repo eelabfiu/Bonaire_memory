@@ -1,0 +1,603 @@
+---
+title: "SIBER Analysis of Coral Physiology"
+author: "Peter Flood and Serena Hackerott"
+date: "2/8/2024"
+output:
+  html_notebook:
+    toc: yes
+    toc_float: yes
+  html_document:
+    toc: yes
+    df_print: paged
+---
+
+# Setup
+
+```{r Setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+getwd()
+```
+
+
+### Load Packages
+```{r}
+##Install Packages if Needed
+if (!require("ggplot2")) install.packages("ggplot2")
+if (!require("cowplot")) install.packages("cowplot")
+if (!require("SIBER")) install.packages("SIBER")
+if (!require("vegan")) install.packages("vegan")
+if (!require("Hmisc")) install.packages("Hmisc")
+if (!require("corrplot")) install.packages("corrplot")
+if (!require("tidyverse")) install.packages("tidyverse")
+if (!require("Rmisc")) install.packages("Rmisc")
+if (!require("ggpubr")) install.packages("ggpubr")
+if (!require("lme4")) install.packages("lme4")
+if (!require("DHARMa")) install.packages("DHARMa")
+if (!require("emmeans")) install.packages("emmeans")
+
+##Load Packages
+library(ggplot2) #Required for ggplots
+library(cowplot) #Required for plotting panel figures
+library(SIBER) #Required for generating physiological ellipses and percent overlap calculations
+library(vegan) #Required for NMDS
+library(Hmisc) #Required for correlations
+library(corrplot) #Required for correlation plot
+library(tidyverse) #Required for data manipulation
+library(Rmisc) #Required for data summary
+library(ggpubr) #Required for stat_conf_ellipse
+library(lme4) #required for mixed effects models
+library(DHARMa) #Required to check residuals of mixed effects models
+library(emmeans) #Required for pairwise comparisons 
+
+
+```
+
+
+# Sample Data and Metadata
+
+### Load and Organize Data
+```{r}
+##Load Data
+#Note: Physiological metrics calculated in 02_PhysiologyMetrics.R file
+Phys<-read.csv("Outputs/CoralData.csv", header=TRUE)
+
+##Set factor variables
+Phys$TimeP<-factor(Phys$TimeP, levels=c("TP1", "TP2", "TP3", "TP4"))
+Phys$Site<-factor(Phys$Site, levels=c("KL", "SS"))
+Phys$Genotype<-factor(Phys$Genotype, levels=c("AC8", "AC10", "AC12"))
+Phys$Orig<-factor(Phys$Orig, levels=c("N", "T"))
+Phys$Origin<-factor(Phys$Origin, levels=c("Native", "Transplant"))
+Phys$Site.Orig<-factor(Phys$Site.Orig, levels=c("KL.N", "KL.T", "SS.N", "SS.T"))
+
+##Set rownames
+rownames(Phys)<-Phys$ID
+```
+
+
+### Check Correlation
+```{r}
+##Remove NA's
+names(Phys)
+Phys.rm<-na.omit(Phys)
+
+##Log +1 transform 
+Phys.log<-Phys.rm
+Phys.log[,-c(1:10)]<-log(Phys.rm[,-c(1:10)]+1)
+  
+Phys.corr<-rcorr(as.matrix(Phys.log[,-c(1:10)]), type="pearson")
+Phys.corr
+
+diag(Phys.corr$P)<-0
+
+corrplot(Phys.corr$r, type="upper", order="hclust", 
+         p.mat = Phys.corr$P, sig.level = 0.01, insig = "blank", tl.col="black")
+
+```
+Physiological variables of interest: Protein (Coral and Symbiont), Biomass (Coral and Symbiont), and Chlorophyll.
+
+
+# SIBER Ellipses
+
+### Prepare Input Data
+
+#### NMDS Ordination
+SIBER runs on a two dimensional data set. So first, we need to reduce the dimensionality of the physiology data. We're going to do this via Non-Metric Multidimensional Scaling (NMDS) on log+1 transformed physiological metrics of interest.
+```{r}
+#Select only the physiology columns of interest (without covariates) to put into the NMDS
+names(Phys.log)
+phys.log.num <- Phys.log[,c(11:14, 16)]
+
+#Run NMDS
+phys.nmds <- metaMDS(phys.log.num, distance = "euclidean", k = 2, autotransform = F)
+
+#Quick plot of NMDS output
+ordiplot(phys.nmds)
+```
+
+
+#### NMDS Model
+```{r}
+##Correlation with Physiology Metrics
+phys.envi.fit <- envfit(phys.nmds, phys.log.num)
+phys.envi.fit
+phys.envi.vectors <- phys.envi.fit[["vectors"]][["arrows"]]
+
+##Check Stress
+stressplot(phys.nmds)
+NMDS.stress<- sprintf("Stress = %.2f", phys.nmds$stress)
+NMDS.stress
+
+#Calculate Estimated Variance Explained per Axis
+# Not a true % variance explained, but an estimate from
+# correlating the original distance matrix with the ordination distance
+phys.ord.dist <- vegdist(phys.nmds$points[,1:2], method = "euclidean")
+phys.distance<-vegdist(phys.log.num, method="euclidean")
+plot(phys.distance,phys.ord.dist, xlab = "Original Distance", ylab = "Ordination Distance")
+phys.dist.cor<-cor(phys.distance,phys.ord.dist)^2
+phys.var.label<-sprintf("Estimated Variance = %.2f", phys.dist.cor*100)
+text(1.25, 0.1, phys.var.label)
+
+#Estimate % Variance on Axis 1
+phys.ax1_dist<-vegdist(phys.nmds$points[,1],method="euclidean")
+NMDS1<-sprintf("%1.2f",(cor(phys.distance,phys.ax1_dist)^2)*100)
+NMDS1
+
+#Estimate % Variance on Axis 2
+phys.ax2_dist<-vegdist(phys.nmds$points[,2],method="euclidean")
+NMDS2<-sprintf("%1.2f",(cor(phys.distance,phys.ax2_dist)^2)*100)
+NMDS2
+
+#Prepare for Plotting
+phys.nmds.samples.plot.data <- cbind(phys.log.num, phys.nmds$points) 
+phys.nmds.samples.plot.data$ID<-rownames(phys.nmds.samples.plot.data)
+phys.nmds.samples.plot.data<-merge(phys.nmds.samples.plot.data, Phys.rm[,c(1,3:9)])
+phys.nmds.samples.plot.data$Geno.Orig<-paste(phys.nmds.samples.plot.data$Genotype, phys.nmds.samples.plot.data$Orig, sep=".")
+phys.nmds.samples.plot.data$Geno.Orig<-factor(phys.nmds.samples.plot.data$Geno.Orig, levels=c("AC8.N","AC8.T", "AC10.N", "AC10.T", "AC12.N", "AC12.T"), ordered=TRUE)
+  
+phys.nmds.covariates.plot.data <- data.frame(phys.envi.vectors)
+phys.nmds.covariates.plot.data$Covariate<-c(rownames(phys.envi.vectors))
+names(phys.nmds.covariates.plot.data)[1:2]<-c("MDS1", "MDS2")
+phys.nmds.covariates.plot.data$Covariate
+phys.nmds.covariates.plot.data$Metric<-c("Protein_C", "Protein_S", "Biomass_C", "Biomass_S", "Chlorophyll")
+
+```
+
+
+#### Plot NMDS
+```{r}
+phys.nmds.plot<-ggplot(data = phys.nmds.samples.plot.data, aes(x = MDS1, y = MDS2)) + 
+  geom_point(data = phys.nmds.samples.plot.data, aes(colour = Site.Orig, shape=Genotype), size = point.sz-1, alpha = 0.8) + 
+  scale_colour_manual(values =Orig.colors.o)+
+  scale_shape_manual(values=Geno.shapes.o)+
+  theme_classic()+
+  scale_x_continuous(limits = c(-1.1, 1.1))+
+  scale_y_continuous(limits = c(-1.2, 1))+
+   theme(axis.title.x = element_text(size = axis.title.sz), 
+        axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
+        axis.text.y=element_text(size=axis.txt.sz, colour="black"),
+        legend.text=element_text(size=leg.txt.sz), 
+        legend.title=element_text(size=leg.title.sz),
+        legend.box.background = element_rect(color = "black"), 
+        legend.position=c(.9, .3))+
+  geom_segment(aes(x = 0, y = 0, xend = MDS1, yend = MDS2), 
+               data = phys.nmds.covariates.plot.data, 
+               linewidth =bar.sz, alpha = 0.8, colour = "grey30") +
+  geom_text(data=phys.nmds.covariates.plot.data, 
+            aes(x=MDS1, y=MDS2, label=Metric, fontface = "bold",
+                hjust=0.15*(1-sign(MDS1)),vjust=0.6*(1-sign(MDS2))), 
+            colour = "grey20", size=sig.sz)+
+  labs(x=paste0('NMDS 1 (',NMDS1,"%)"), y=paste0('NMDS 2 (',NMDS2,"%)"), color="Site.Origin")+
+  annotate("text", x = -1.1, y = -1.2, label = NMDS.stress, hjust=0, size=sig.sz); phys.nmds.plot
+```
+
+
+
+#### Data Prep for SIBER
+```{r}
+#Prepare data to be input into SIBER
+phys.siber.input <- phys.nmds$points %>% #extract 2-D physiology axes from NMDS
+  bind_cols(#add back covariates from original phys data
+    select(Phys.log, ID:Site.Orig) #select those covariate columns
+  ) %>% 
+  #SIBER object needs four specific columns
+  #iso1, iso2, group, and community
+  #Need to manipulate the data to match that format
+  #create  group variable that combines site, genotype and origin
+  unite("group", c(Site, Genotype, Orig), sep = "_") %>% 
+  #rename variables to match names for SIBER
+  dplyr::rename(community = TimeP, iso1 = MDS1, iso2 = MDS2) %>% 
+  #retain only columns for SIBER
+  select(iso1, iso2, group, community)
+
+```
+
+
+### Run SIBER
+Grouping by each genotype at each site, timepoint, and from each origin
+```{r}
+# create SIBER object
+phys.siber.object <- createSiberObject(phys.siber.input)
+
+# sample sizes by group
+phys.siber.object[["sample.sizes"]]
+
+# Calculate sumamry statistics for each group: TA, SEA and SEAc
+group.ML <- groupMetricsML(phys.siber.object)
+print(group.ML)
+
+##Save SIBER Object in Outputs
+save(phys.siber.object, file="Outputs/SIBER/Phys.SIBER.Object.RData")
+```
+
+
+# Ellipse Overlap
+
+### Calculate Percent Overlap
+Calculating the overlap of physiological niche space between corals of the same genotype, at the same site and timepoint. Using Percent of Niche Overlap as a more informative indicator of how similar the Transplant corals are to their Native clonemates. 
+
+First, calculating the area of the 95% prediction ellipses for each group as well as the maximum likelihood of overlap between physiological niche ellipses.
+
+#### Calculate Niche Areas
+```{r}
+##Load SIBER Object
+load("Outputs/SIBER/Phys.SIBER.Object.RData")
+
+##Dataframe of Niche Overlap
+Niches<-data.frame(rbind(
+  #KL AC10
+  maxLikOverlap("TP1.KL_AC10_N", "TP1.KL_AC10_T", phys.siber.object, p = 0.95, n = 360),
+  maxLikOverlap("TP2.KL_AC10_N", "TP2.KL_AC10_T", phys.siber.object, p = 0.95, n = 360),
+  maxLikOverlap("TP3.KL_AC10_N", "TP3.KL_AC10_T", phys.siber.object, p = 0.95, n = 360),
+  maxLikOverlap("TP4.KL_AC10_N", "TP4.KL_AC10_T", phys.siber.object, p = 0.95, n = 360),
+  #KL AC12
+  maxLikOverlap("TP1.KL_AC12_N", "TP1.KL_AC12_T", phys.siber.object, p = 0.95, n = 360),
+  maxLikOverlap("TP2.KL_AC12_N", "TP2.KL_AC12_T", phys.siber.object, p = 0.95, n = 360),
+  maxLikOverlap("TP3.KL_AC12_N", "TP3.KL_AC12_T", phys.siber.object, p = 0.95, n = 360),
+  maxLikOverlap("TP4.KL_AC12_N", "TP4.KL_AC12_T", phys.siber.object, p = 0.95, n = 360),
+  #KL AC8
+  maxLikOverlap("TP1.KL_AC8_N", "TP1.KL_AC8_T", phys.siber.object, p = 0.95, n = 360),
+  maxLikOverlap("TP2.KL_AC8_N", "TP2.KL_AC8_T", phys.siber.object, p = 0.95, n = 360),
+  maxLikOverlap("TP3.KL_AC8_N", "TP3.KL_AC8_T", phys.siber.object, p = 0.95, n = 360),
+  maxLikOverlap("TP4.KL_AC8_N", "TP4.KL_AC8_T", phys.siber.object, p = 0.95, n = 360),
+  #SS AC10
+  maxLikOverlap("TP1.SS_AC10_N", "TP1.SS_AC10_T", phys.siber.object, p = 0.95, n = 360),
+  maxLikOverlap("TP2.SS_AC10_N", "TP2.SS_AC10_T", phys.siber.object, p = 0.95, n = 360),
+  maxLikOverlap("TP3.SS_AC10_N", "TP3.SS_AC10_T", phys.siber.object, p = 0.95, n = 360),
+  maxLikOverlap("TP4.SS_AC10_N", "TP4.SS_AC10_T", phys.siber.object, p = 0.95, n = 360),
+  #SS AC12
+  maxLikOverlap("TP1.SS_AC12_N", "TP1.SS_AC12_T", phys.siber.object, p = 0.95, n = 360),
+  maxLikOverlap("TP2.SS_AC12_N", "TP2.SS_AC12_T", phys.siber.object, p = 0.95, n = 360),
+  maxLikOverlap("TP3.SS_AC12_N", "TP3.SS_AC12_T", phys.siber.object, p = 0.95, n = 360),
+  maxLikOverlap("TP4.SS_AC12_N", "TP4.SS_AC12_T", phys.siber.object, p = 0.95, n = 360),
+  #SS AC8
+  maxLikOverlap("TP1.SS_AC8_N", "TP1.SS_AC8_T", phys.siber.object, p = 0.95, n = 360),
+  maxLikOverlap("TP2.SS_AC8_N", "TP2.SS_AC8_T", phys.siber.object, p = 0.95, n = 360),
+  maxLikOverlap("TP3.SS_AC8_N", "TP3.SS_AC8_T", phys.siber.object, p = 0.95, n = 360),
+  maxLikOverlap("TP4.SS_AC8_N", "TP4.SS_AC8_T", phys.siber.object, p = 0.95, n = 360)
+  ))
+
+names(Niches)<-c("Native", "Transplant", "Overlap")
+Niches$Site<-c(rep("KL", 12), rep("SS", 12))
+Niches$Genotype<-c(rep(c(rep("AC10",4), rep("AC12",4), rep("AC8",4)),2))
+Niches$TimeP<-rep(c("TP1", "TP2", "TP3", "TP4"),6)
+
+```
+
+
+
+#### Calculate Overlap
+Proportion of niche overlap = Area of overlap between Native and Transplant physiological niches / Area of the Native niche
+
+Using Native niche area as the denominator which may be more informative as the baseline niche space
+```{r}
+##Proportion of Native Niche Area
+Niches$pOverlap<-Niches$Overlap/Niches$Native
+
+##Write out dataframe
+write.csv(Niches, "Outputs/SIBER_p.Overlap.csv", row.names=FALSE)
+
+##Read in
+Niches<-read.csv("Outputs/SIBER_p.Overlap.csv", header=TRUE)
+
+##Set factor variables
+Niches$Site<-factor(Niches$Site, levels=c("KL", "SS"))
+Niches$Genotype<-factor(Niches$Genotype, levels=c("AC8", "AC10", "AC12"))
+Niches$TimeP<-factor(Niches$TimeP)
+
+```
+
+
+### Plot Overlap over Time
+
+#### By Genotype
+```{r Plot Overlap over Time}
+##Plot Niche Overlap across Timepoints
+Overlap.plot<-ggplot(Niches, aes(x=TimeP, y=pOverlap, colour=Genotype, group=Genotype)) + 
+  geom_line(linewidth=bar.sz)+
+  geom_point(size=point.sz)+
+  scale_colour_manual(values =Geno.colors.o)+
+  theme_classic()+
+  theme(axis.title.x = element_text(size = axis.title.sz), 
+        axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
+        axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.txt.sz), 
+        legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"),
+        legend.position="top",
+        strip.text=element_text(size=axis.title.sz))+
+  labs(x="Timepoint", y="Physiological Niche Overlap")+
+  facet_wrap(~Site); Overlap.plot
+```
+
+
+#### Across Genotypes
+```{r Plot Average Overlap over Time}
+##Summary statistics by Site and Origin
+pOverlap.sum<-summarySE(Niches, measurevar="pOverlap", groupvars=c("Site", "TimeP"), na.rm=TRUE)
+
+##Plot Average Niche Overlap across Timepoints
+Overlap_Avg.plot<-ggplot(pOverlap.sum, aes(x=TimeP, y=pOverlap, colour=Site, group=1)) + 
+  scale_colour_manual(values=Site.colors.o)+
+  geom_errorbar(aes(ymin=pOverlap-se, ymax=pOverlap+se), width=cap.sz, linewidth=bar.sz) +
+  geom_line(linewidth=bar.sz)+
+  geom_point(size=point.sz)+
+  theme_classic()+
+  theme(axis.title.x = element_text(size = axis.title.sz), 
+        axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
+        axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.position="none",
+        strip.text=element_text(size=axis.title.sz))+
+  labs(x="Timepoint", y="Physiological Niche Overlap")+
+  facet_wrap(~Site); Overlap_Avg.plot
+
+```
+
+
+#### KL
+```{r}
+##Plot Average Niche Overlap across Timepoints
+Overlap_Avg_KL.plot<-ggplot(pOverlap.sum[which(pOverlap.sum$Site=="KL"),], aes(x=TimeP, y=pOverlap, colour=Site, group=1)) + 
+  scale_colour_manual(values=Site.colors.o[1])+
+  geom_errorbar(aes(ymin=pOverlap-se, ymax=pOverlap+se), width=cap.sz, linewidth=bar.sz) +
+  geom_line(linewidth=bar.sz)+
+  geom_point(size=point.sz)+
+  theme_classic()+
+  theme(axis.title.x = element_text(size = axis.title.sz), 
+        axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
+        axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.position="none")+
+  labs(x="Timepoint", y="Physiological Niche Overlap")+
+  ylim(0.05,1.05); Overlap_Avg_KL.plot
+
+```
+
+
+#### SS
+```{r}
+##Plot Average Niche Overlap across Timepoints
+Overlap_Avg_SS.plot<-ggplot(pOverlap.sum[which(pOverlap.sum$Site=="SS"),], aes(x=TimeP, y=pOverlap, colour=Site, group=1)) + 
+  scale_colour_manual(values=Site.colors.o[2])+
+  geom_errorbar(aes(ymin=pOverlap-se, ymax=pOverlap+se), width=cap.sz, linewidth=bar.sz) +
+  geom_line(linewidth=bar.sz)+
+  geom_point(size=point.sz)+
+  theme_classic()+
+  theme(axis.title.x = element_text(size = axis.title.sz), 
+        axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
+        axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.position="none")+
+  labs(x="Timepoint", y="Physiological Niche Overlap")+
+  ylim(0.05,1.05); Overlap_Avg_SS.plot
+
+```
+
+
+### Differences in Overlap
+
+#### Across Time and Space
+```{r}
+##Check Normality
+hist(Niches$pOverlap)
+shapiro.test(Niches$pOverlap)
+#Normal
+
+##Model Overlap as a function of Site and Origin, with Genotype as a Random effect
+#Interaction between Site and Timepoint
+Overlap.lme<-lmer(pOverlap~TimeP*Site+(1|Genotype), data=Niches)
+
+##Check residuals
+Overlap.lme_res <- simulateResiduals(fittedModel = Overlap.lme, plot = F)
+plot(Overlap.lme_res)
+
+##Model results
+summary(Overlap.lme)
+anova(Overlap.lme)
+
+```
+
+
+#### Pairwise Comparisons
+```{r}
+##Timepoints within Sites
+emmeans(Overlap.lme, pairwise~TimeP | Site)
+
+##p Values
+Overlap.lme.contrast<-data.frame(emmeans(Overlap.lme, pairwise~TimeP | Site)$contrasts)
+Overlap.lme.contrast<-Overlap.lme.contrast %>% separate_wider_delim(cols=contrast, names=c("group1", "group2"), delim=" - ", cols_remove=TRUE)
+Overlap.lme.contrast$group1<-paste(Overlap.lme.contrast$Site, Overlap.lme.contrast$group1, sep="_")
+Overlap.lme.contrast$group2<-paste(Overlap.lme.contrast$Site, Overlap.lme.contrast$group2, sep="_")
+```
+
+
+
+# Visualize Niche Ellipses
+
+```{r}
+##Subset by Site
+phys.nmds.data_KL<-subset(phys.nmds.samples.plot.data, Site=="KL")
+phys.nmds.data_SS<-subset(phys.nmds.samples.plot.data, Site=="SS")
+
+```
+
+
+### By Genotype
+Plotting 95% prediction ellipses of the physiological niche space for each group, consistent with SIBER ellipse and overlap calculations.
+
+#### KL
+```{r}
+ellipse.plot_KL<-ggplot(data = phys.nmds.data_KL, aes(x = MDS1, y = MDS2)) +
+  geom_point(aes(colour = Genotype, shape=Origin), size = point.sz-2)+
+  stat_ellipse(data = phys.nmds.data_KL, geom = "polygon", level = 0.95,  aes(fill=Genotype, alpha=Origin, colour=Genotype), lwd=bar.sz-.5)+
+  scale_fill_manual(values =Geno.colors.o)+
+  scale_colour_manual(values =Geno.colors.o)+
+  scale_alpha_manual(values=c(0.6,0.2))+
+  scale_shape_manual(values=c(19,21))+
+  theme_bw()+
+   theme(axis.title.x = element_text(size = axis.title.sz), 
+        axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
+        axis.text.y=element_text(size=axis.txt.sz, colour="black"),
+        legend.title=element_text(size=leg.title.sz),
+        legend.text=element_text(size=leg.txt.sz), 
+        legend.box.background = element_rect(color = "black"),
+        legend.position="top", 
+        strip.text = element_text(size=axis.title.sz), 
+        strip.background=element_rect(fill="white"))+
+  labs(x=paste0('NMDS 1 (',NMDS1,"%)"), y=paste0('NMDS 2 (',NMDS2,"%)"))+
+  facet_grid(Genotype~TimeP); ellipse.plot_KL
+```
+
+
+#### SS
+```{r}
+ellipse.plot_SS<-ggplot(data = phys.nmds.data_SS, aes(x = MDS1, y = MDS2)) + 
+   geom_point(aes(colour = Genotype, shape=Origin), size = point.sz-2)+
+  stat_ellipse(data = phys.nmds.data_SS, geom = "polygon", level = 0.95,  aes(fill=Genotype, alpha=Origin, colour=Genotype), lwd=bar.sz-.5)+
+  scale_fill_manual(values =Geno.colors.o)+
+  scale_colour_manual(values =Geno.colors.o)+
+  scale_alpha_manual(values=c(0.6,0.2))+
+  scale_shape_manual(values=c(19,21))+
+  theme_bw()+
+   theme(axis.title.x = element_text(size = axis.title.sz), 
+        axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
+        axis.text.y=element_text(size=axis.txt.sz, colour="black"),
+        legend.title=element_text(size=leg.title.sz),
+        legend.text=element_text(size=leg.txt.sz), 
+        legend.box.background = element_rect(color = "black"),
+        legend.position="top", 
+        strip.text = element_text(size=axis.title.sz), 
+        strip.background=element_rect(fill="white"))+
+  labs(x=paste0('NMDS 1 (',NMDS1,"%)"), y=paste0('NMDS 2 (',NMDS2,"%)"))+
+  facet_grid(Genotype~TimeP); ellipse.plot_SS
+```
+
+
+
+### By Origin
+Plotting 95% confidence intervals of the physiological niche space for each group for visualization of PERMANOVA and PERMDISP results.
+
+#### KL
+```{r}
+phys.nmds.plot_KL<-ggplot(data = phys.nmds.data_KL, aes(x = MDS1, y = MDS2)) + 
+  stat_conf_ellipse(geom = "polygon", level = 0.95, alpha = 0.7, aes(fill= Origin))+
+  scale_fill_manual(values =Orig.colors.o[1:2])+
+  theme_bw()+
+   theme(axis.title.x = element_text(size = axis.title.sz), 
+        axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
+        axis.text.y=element_text(size=axis.txt.sz, colour="black"),
+        legend.title=element_text(size=leg.title.sz),
+        legend.text=element_text(size=leg.txt.sz), 
+        legend.box.background = element_rect(color = "black"),
+        legend.position="top", 
+        strip.text = element_text(size=axis.title.sz), 
+        strip.background=element_rect(fill="white"))+
+  labs(x=paste0('NMDS 1 (',NMDS1,"%)"), y=paste0('NMDS 2 (',NMDS2,"%)"))+
+  facet_wrap(~TimeP, nrow=1); phys.nmds.plot_KL
+
+```
+
+
+### SS
+```{r}
+phys.nmds.plot_SS<-ggplot(data = phys.nmds.data_SS, aes(x = MDS1, y = MDS2)) + 
+  stat_conf_ellipse(geom = "polygon", level = 0.95, alpha = 0.7, aes(fill= Origin))+
+  scale_fill_manual(values =Orig.colors.o[3:4])+
+  theme_bw()+
+   theme(axis.title.x = element_text(size = axis.title.sz), 
+        axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
+        axis.text.y=element_text(size=axis.txt.sz, colour="black"),
+        legend.title=element_text(size=leg.title.sz),
+        legend.text=element_text(size=leg.txt.sz), 
+        legend.box.background = element_rect(color = "black"),
+        legend.position="top", 
+        strip.text = element_text(size=axis.title.sz), 
+        strip.background=element_rect(fill="white"))+
+  labs(x=paste0('NMDS 1 (',NMDS1,"%)"), y=paste0('NMDS 2 (',NMDS2,"%)"))+
+  facet_wrap(~TimeP, nrow=1); phys.nmds.plot_SS
+
+```
+
+
+# Figures
+
+### Figure 3
+```{r}
+##Create Panel
+NicheOverlap_fig<-plot_grid(phys.nmds.plot_KL, Overlap_Avg_KL.plot, 
+                      phys.nmds.plot_SS, Overlap_Avg_SS.plot,
+                    rel_widths=c(1, .4, 1, .4), 
+                    rel_heights = c(1, 1, 1, 1),
+                    nrow=2, ncol=2, byrow=T, 
+                    labels = c("A", "C", "B", "D"), 
+                    label_size=panel.lab.sz)
+
+##Save Figure
+ggsave(filename="Figures/02_Physiology/Fig3_AverageNicheOverlap.png", plot=NicheOverlap_fig, dpi=300, width=14, height=9, units="in")
+
+```
+
+
+### Figure S3
+```{r}
+##Create Panel
+PhysNiche_fig<-plot_grid(phys.nmds.plot, Overlap.plot, 
+                    rel_widths=c(1, 0.7), 
+                    rel_heights = 1,
+                    nrow=1, ncol=2, byrow=T, 
+                    labels = c("A", "B"), 
+                    label_size=panel.lab.sz)
+
+##Save Figure
+ggsave(filename="Figures/02_Physiology/FigS3_PhysiologicalNiche.png", plot=PhysNiche_fig, dpi=300, width=12, height=6, units="in")
+
+```
+
+
+### Figure S4
+```{r}
+##Adjust for Panel
+ellipse.plot_KL<-ellipse.plot_KL + ggtitle("Klein Bonaire") + 
+  theme(plot.title = element_text(colour="black", size=panel.lab.sz, face="bold", hjust=0.5))
+
+ellipse.plot_SS<-ellipse.plot_KL + ggtitle("Something Special") + 
+  theme(plot.title = element_text(colour="black", size=panel.lab.sz, face="bold", hjust=0.5))
+
+##Create Panel
+Ellipse_fig<-plot_grid(ellipse.plot_KL, ellipse.plot_SS, 
+                    rel_widths=1, 
+                    rel_heights = 1,
+                    nrow=2, ncol=1, byrow=T, 
+                    labels = NULL)
+
+##Save Figure
+ggsave(filename="Figures/02_Physiology/FigS4_PhysiologicalNicheEllipse.png", plot=Ellipse_fig, dpi=300, width=8, height=14, units="in")
+
+```
+
