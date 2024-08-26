@@ -32,6 +32,7 @@ if (!require("tidyverse")) install.packages("tidyverse")
 if (!require("Rmisc")) install.packages("Rmisc")
 if (!require("ggpubr")) install.packages("ggpubr")
 if (!require("lme4")) install.packages("lme4")
+if (!require("lmerTest")) install.packages("lmerTest")
 if (!require("DHARMa")) install.packages("DHARMa")
 if (!require("emmeans")) install.packages("emmeans")
 
@@ -45,7 +46,8 @@ library(corrplot) #Required for correlation plot
 library(tidyverse) #Required for data manipulation
 library(Rmisc) #Required for data summary
 library(ggpubr) #Required for stat_conf_ellipse
-library(lme4) #required for mixed effects models
+library(lme4) #Required for mixed effects models
+library(lmerTest) #Required for significance in mixed effects models
 library(DHARMa) #Required to check residuals of mixed effects models
 library(emmeans) #Required for pairwise comparisons 
 
@@ -417,6 +419,13 @@ plot(Overlap.lme_res)
 summary(Overlap.lme)
 anova(Overlap.lme)
 
+##Save results
+Overlap.res<-data.frame(anova(Overlap.lme))
+Overlap.res$Predictor<-c("Time", "Site", "Time x Site")
+Overlap.res$Response<-rep("Niche Overlap", nrow(Overlap.res))
+Overlap.res<-Overlap.res %>% dplyr::rename(p = Pr..F., F = F.value, SS = Sum.Sq, MS = Mean.Sq)
+
+
 ```
 
 
@@ -547,7 +556,7 @@ phys.nmds.plot_SS<-ggplot(data = phys.nmds.data_SS, aes(x = MDS1, y = MDS2)) +
 
 # Figures
 
-### Figure 3
+### Figure 2
 ```{r}
 ##Create Panel
 NicheOverlap_fig<-plot_grid(phys.nmds.plot_KL, Overlap_Avg_KL.plot, 
@@ -559,7 +568,7 @@ NicheOverlap_fig<-plot_grid(phys.nmds.plot_KL, Overlap_Avg_KL.plot,
                     label_size=panel.lab.sz)
 
 ##Save Figure
-ggsave(filename="Figures/02_Physiology/Fig3_AverageNicheOverlap.png", plot=NicheOverlap_fig, dpi=300, width=14, height=9, units="in")
+ggsave(filename="Figures/02_Physiology/Fig2_AverageNicheOverlap.png", plot=NicheOverlap_fig, dpi=300, width=14, height=9, units="in")
 
 ```
 
@@ -586,7 +595,7 @@ ggsave(filename="Figures/02_Physiology/FigS3_PhysiologicalNiche.png", plot=PhysN
 ellipse.plot_KL<-ellipse.plot_KL + ggtitle("Klein Bonaire") + 
   theme(plot.title = element_text(colour="black", size=panel.lab.sz, face="bold", hjust=0.5))
 
-ellipse.plot_SS<-ellipse.plot_KL + ggtitle("Something Special") + 
+ellipse.plot_SS<-ellipse.plot_SS + ggtitle("Something Special") + 
   theme(plot.title = element_text(colour="black", size=panel.lab.sz, face="bold", hjust=0.5))
 
 ##Create Panel
@@ -598,6 +607,27 @@ Ellipse_fig<-plot_grid(ellipse.plot_KL, ellipse.plot_SS,
 
 ##Save Figure
 ggsave(filename="Figures/02_Physiology/FigS4_PhysiologicalNicheEllipse.png", plot=Ellipse_fig, dpi=300, width=8, height=14, units="in")
+
+```
+
+
+# Tables
+
+### Table S3B Niche Overlap
+```{r}
+TableS3B_NicheOver<-Overlap.res
+
+##Organize
+TableS3B_NicheOver<-TableS3B_NicheOver[,c("Response", "Predictor", "SS", "MS", "NumDF", "DenDF", "F", "p")]
+
+##Round to 3 digits
+TableS3B_NicheOver$SS<-round(TableS3B_NicheOver$SS, 3)
+TableS3B_NicheOver$MS<-round(TableS3B_NicheOver$MS, 3)
+TableS3B_NicheOver$F<-round(TableS3B_NicheOver$F, 3)
+TableS3B_NicheOver$p<-round(TableS3B_NicheOver$p, 3)
+
+##Write Out Table
+write.csv(TableS3B_NicheOver, "Tables/TableS3B_Niche_Overlap_Results.csv", row.names=FALSE)
 
 ```
 
