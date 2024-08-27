@@ -215,38 +215,9 @@ PERM_T1.site.res$p_DISP<-c(TP1.KL.disp_orig$`Pr(>F)`[1], TP1.SS.disp_orig$`Pr(>F
 
 ##Combine results 
 PERM_T1.res<-rbind(PERM_T1.res, PERM_T1.site.res)
-PERM_T1.res$Timepoint<-rep("T1", nrow(PERM_T1.res))
+PERM_T1.res$Timepoint<-rep("TP1", nrow(PERM_T1.res))
 
 ```
-
-#### Variance Partitioning
-```{r}
-##Variance Partitioning
-Coral.TP1.vp<-varpart(Coral.log_TP1[,c(11:14, 16)], Coral.log_TP1$Origin, Coral.log_TP1$Site, Coral.log_TP1$Genotype)
-Coral.TP1.vp$part
-
-##Check model significance
-anova(rda(Coral.log_TP1[,c(11:14, 16)]~ Coral.log_TP1$Origin + Coral.log_TP1$Site + Coral.log_TP1$Genotype))
-
-##Check variance explained by model
-RsquareAdj(rda(Coral.log_TP1[,c(11:14, 16)]~ Coral.log_TP1$Origin + Coral.log_TP1$Site + Coral.log_TP1$Genotype))$adj.r.squared*100
-
-##Check effect of Origin 
-anova(rda(Coral.log_TP1[,c(11:14, 16)], Coral.log_TP1$Origin))
-anova(rda(Coral.log_TP1[,c(11:14, 16)], Coral.log_TP1$Origin, Coral.log_TP1[,c(4:5)]))
-
-##Check effect of Site 
-anova(rda(Coral.log_TP1[,c(11:14, 16)], Coral.log_TP1$Site))
-anova(rda(Coral.log_TP1[,c(11:14, 16)], Coral.log_TP1$Site, Coral.log_TP1[,c(5,7)]))
-
-##Check effect of Genotype 
-anova(rda(Coral.log_TP1[,c(11:14, 16)], Coral.log_TP1$Genotype))
-anova(rda(Coral.log_TP1[,c(11:14, 16)], Coral.log_TP1$Genotype, Coral.log_TP1[,c(4,7)]))
-
-
-```
-The model is significant (p = 0.001) and explains 35.14% of the variance of physiology. The effect of Origin (controlling for Site and Genotype) is significant (p = 0.013) and explains 3.92%. The effect of Site (controlling for Origin and Genotype) is significant (p = 0.001) and explains 5.73%. The effect of Genotype (controlling for Origin and Site) is significant (p = 0.001) and explains 27.27%. 
-
 
 ### TP2
 ```{r}
@@ -316,7 +287,7 @@ PERM_T2.site.res$p_DISP<-c(TP2.KL.disp_orig$`Pr(>F)`[1], TP2.SS.disp_orig$`Pr(>F
 
 ##Combine results 
 PERM_T2.res<-rbind(PERM_T2.res, PERM_T2.site.res)
-PERM_T2.res$Timepoint<-rep("T2", nrow(PERM_T2.res))
+PERM_T2.res$Timepoint<-rep("TP2", nrow(PERM_T2.res))
 
 ```
 
@@ -389,7 +360,7 @@ PERM_T3.site.res$p_DISP<-c(TP3.KL.disp_orig$`Pr(>F)`[1], TP3.SS.disp_orig$`Pr(>F
 
 ##Combine results 
 PERM_T3.res<-rbind(PERM_T3.res, PERM_T3.site.res)
-PERM_T3.res$Timepoint<-rep("T3", nrow(PERM_T3.res))
+PERM_T3.res$Timepoint<-rep("TP3", nrow(PERM_T3.res))
 
 
 ```
@@ -463,7 +434,7 @@ PERM_T4.site.res$p_DISP<-c(TP4.KL.disp_orig$`Pr(>F)`[1], TP4.SS.disp_orig$`Pr(>F
 
 ##Combine results 
 PERM_T4.res<-rbind(PERM_T4.res, PERM_T4.site.res)
-PERM_T4.res$Timepoint<-rep("T4", nrow(PERM_T4.res))
+PERM_T4.res$Timepoint<-rep("TP4", nrow(PERM_T4.res))
 
 ```
 
@@ -834,7 +805,7 @@ TP1_Chl.plot<-ggplot(TP1_Chl.sum, aes(x=Site, y=Chl_ug.cm2, colour=Site.Orig)) +
 Phys_T1.res<-rbind(Prot.C_TP1.res, Prot.S_TP1.res, Bio.C_TP1.res, Bio.S_TP1.res, Chl_TP1.res)
 
 ##Add Timepoint
-Phys_T1.res$TimeP<-rep("T1", nrow(Phys_T1.res))
+Phys_T1.res$TimeP<-rep("TP1", nrow(Phys_T1.res))
 
 ```
 
@@ -1201,7 +1172,7 @@ TP2_Chl.plot<-ggplot(TP2_Chl.sum, aes(x=Site, y=Chl_ug.cm2, colour=Site.Orig)) +
 Phys_T2.res<-rbind(Prot.C_TP2.res, Prot.S_TP2.res, Bio.C_TP2.res, Bio.S_TP2.res, Chl_TP2.res)
 
 ##Add Timepoint
-Phys_T2.res$TimeP<-rep("T2", nrow(Phys_T2.res))
+Phys_T2.res$TimeP<-rep("TP2", nrow(Phys_T2.res))
 
 ```
 
@@ -1574,7 +1545,7 @@ TP3_Chl.plot<-ggplot(TP3_Chl.sum, aes(x=Site, y=Chl_ug.cm2, colour=Site.Orig)) +
 Phys_T3.res<-rbind(Prot.C_TP3.res, Prot.S_TP3.res, Bio.C_TP3.res, Bio.S_TP3.res, Chl_TP3.res)
 
 ##Add Timepoint
-Phys_T3.res$TimeP<-rep("T3", nrow(Phys_T3.res))
+Phys_T3.res$TimeP<-rep("TP3", nrow(Phys_T3.res))
 
 ```
 
@@ -1944,7 +1915,7 @@ TP4_Chl.plot<-ggplot(TP4_Chl.sum, aes(x=Site, y=Chl_ug.cm2, colour=Site.Orig)) +
 Phys_T4.res<-rbind(Prot.C_TP4.res, Prot.S_TP4.res, Bio.C_TP4.res, Bio.S_TP4.res, Chl_TP4.res)
 
 ##Add Timepoint
-Phys_T4.res$TimeP<-rep("T4", nrow(Phys_T4.res))
+Phys_T4.res$TimeP<-rep("TP4", nrow(Phys_T4.res))
 
 ```
 
