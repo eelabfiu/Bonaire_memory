@@ -226,6 +226,14 @@ Better residuals with the log+1 transformed lmer model.
 summary(TLE_T1.2.lme)
 
 eta_squared(TLE_T1.2.lme)
+
+##Save model results
+TLE_T1.2.res<-data.frame(summary(TLE_T1.2.lme)$coefficients[-1,])
+TLE_T1.2.res$Predictor<-c("Origin", "Site", "Origin x Site")
+TLE_T1.2.res$EtaSq<-c(eta_squared(TLE_T1.2.lme)$Eta2)
+TLE_T1.2.res$Response<-rep("Growth", nrow(TLE_T1.2.res))
+TLE_T1.2.res$Timepoint<-rep("TP1_2", nrow(TLE_T1.2.res))
+
 ```
 
 
@@ -241,6 +249,18 @@ eta_squared(TLE_T1.2.lme_KL)
 TLE_T1.2.lme_SS<-lmer(log(TLE_cm.day+1)~Origin+(1|Genotype), data=Growth_T1.2[which(Growth_T1.2$Site=="SS"),])
 summary(TLE_T1.2.lme_SS)
 eta_squared(TLE_T1.2.lme_SS)
+
+
+##Save results
+TLE_T1.2.site.res<-data.frame(rbind(summary(TLE_T1.2.lme_KL)$coefficients[-1,],
+                                     summary(TLE_T1.2.lme_SS)$coefficients[-1,]))
+TLE_T1.2.site.res$Predictor<-c("KL Origin", "SS Origin")
+TLE_T1.2.site.res$EtaSq<-c(eta_squared(TLE_T1.2.lme_KL)$Eta2, eta_squared(TLE_T1.2.lme_SS)$Eta2)
+TLE_T1.2.site.res$Response<-rep("Growth", nrow(TLE_T1.2.site.res))
+TLE_T1.2.site.res$Timepoint<-rep("TP1_2", nrow(TLE_T1.2.site.res))
+
+##Combine results 
+TLE_T1.2.res<-rbind(TLE_T1.2.res, TLE_T1.2.site.res)
 
 ```
 
@@ -406,6 +426,14 @@ Better residuals with the log+1 transformed lmer model.
 summary(TLE_T3.4.lme)
 
 eta_squared(TLE_T3.4.lme)
+
+##Save model results
+TLE_T3.4.res<-data.frame(summary(TLE_T3.4.lme)$coefficients[-1,])
+TLE_T3.4.res$Predictor<-c("Origin", "Site", "Origin x Site")
+TLE_T3.4.res$EtaSq<-c(eta_squared(TLE_T3.4.lme)$Eta2)
+TLE_T3.4.res$Response<-rep("Growth", nrow(TLE_T3.4.res))
+TLE_T3.4.res$Timepoint<-rep("TP3_4", nrow(TLE_T3.4.res))
+
 ```
 
 
@@ -421,6 +449,17 @@ eta_squared(TLE_T3.4.lme_KL)
 TLE_T3.4.lme_SS<-lmer(log(TLE_cm.day+1)~Origin+(1|Genotype), data=Growth_T3.4[which(Growth_T3.4$Site=="SS"),])
 summary(TLE_T3.4.lme_SS)
 eta_squared(TLE_T3.4.lme_SS)
+
+##Save results
+TLE_T3.4.site.res<-data.frame(rbind(summary(TLE_T3.4.lme_KL)$coefficients[-1,],
+                                     summary(TLE_T3.4.lme_SS)$coefficients[-1,]))
+TLE_T3.4.site.res$Predictor<-c("KL Origin", "SS Origin")
+TLE_T3.4.site.res$EtaSq<-c(eta_squared(TLE_T3.4.lme_KL)$Eta2, eta_squared(TLE_T3.4.lme_SS)$Eta2)
+TLE_T3.4.site.res$Response<-rep("Growth", nrow(TLE_T3.4.site.res))
+TLE_T3.4.site.res$Timepoint<-rep("TP3_4", nrow(TLE_T3.4.site.res))
+
+##Combine results 
+TLE_T3.4.res<-rbind(TLE_T3.4.res, TLE_T3.4.site.res)
 
 ```
 
@@ -576,6 +615,19 @@ emmeans(Sym.lme_IN, pairwise ~ Site | Treatment)
 
 emmeans(Sym.lme_IN, pairwise ~ Treatment | Site)
 
+##Save model results
+Sym_IN.res<-data.frame(summary(Sym.lme_IN)$coefficients[-1,])
+
+##Add pairwise
+names(Sym_IN.res)<-names(data.frame(emmeans(Sym.lme_IN, pairwise ~ Site | Treatment)$contrasts))[-c(1:2)]
+Sym_IN.res<-rbind(Sym_IN.res,
+data.frame(rbind(emmeans(Sym.lme_IN, pairwise ~ Site | Treatment)$contrasts[1], emmeans(Sym.lme_IN, pairwise ~ Site | Treatment)$contrasts[2], emmeans(Sym.lme_IN, pairwise ~ Treatment | Site)$contrasts[1], emmeans(Sym.lme_IN, pairwise ~ Treatment | Site)$contrasts[2]))[,-c(1:3)])
+
+##Metadata
+Sym_IN.res$Predictor<-c("Site", "Treatment", "Site x Treatment", "Control Site", "Heated Site", "KL Treatment", "SS Treatment")
+Sym_IN.res$Response<-rep("Symbionts", nrow(Sym_IN.res))
+Sym_IN.res$EtaSq<-c(eta_squared(Sym.lme_IN)$Eta2, rep(NA, 4))
+
 ```
 
 
@@ -626,6 +678,20 @@ eta_squared(Chl.lme_IN)
 emmeans(Chl.lme_IN, pairwise ~ Site | Treatment)
 
 emmeans(Chl.lme_IN, pairwise ~ Treatment | Site)
+
+
+##Save model results
+Chl_IN.res<-data.frame(summary(Chl.lme_IN)$coefficients[-1,])
+
+##Add pairwise
+names(Chl_IN.res)<-names(data.frame(emmeans(Chl.lme_IN, pairwise ~ Site | Treatment)$contrasts))[-c(1:2)]
+Chl_IN.res<-rbind(Chl_IN.res,
+data.frame(rbind(emmeans(Chl.lme_IN, pairwise ~ Site | Treatment)$contrasts[1], emmeans(Chl.lme_IN, pairwise ~ Site | Treatment)$contrasts[2], emmeans(Chl.lme_IN, pairwise ~ Treatment | Site)$contrasts[1], emmeans(Chl.lme_IN, pairwise ~ Treatment | Site)$contrasts[2]))[,-c(1:3)])
+
+##Metadata
+Chl_IN.res$Predictor<-c("Site", "Treatment", "Site x Treatment", "Control Site", "Heated Site", "KL Treatment", "SS Treatment")
+Chl_IN.res$Response<-rep("Chlorophyll", nrow(Chl_IN.res))
+Chl_IN.res$EtaSq<-c(eta_squared(Chl.lme_IN)$Eta2, rep(NA, 4))
 
 ```
 
@@ -678,6 +744,20 @@ emmeans(PAM.lme_IN, pairwise ~ Site | Treatment)
 
 emmeans(PAM.lme_IN, pairwise ~ Treatment | Site)
 
+
+##Save model results
+PAM_IN.res<-data.frame(summary(PAM.lme_IN)$coefficients[-1,])
+
+##Add pairwise
+names(PAM_IN.res)<-names(data.frame(emmeans(PAM.lme_IN, pairwise ~ Site | Treatment)$contrasts))[-c(1:2)]
+PAM_IN.res<-rbind(PAM_IN.res,
+data.frame(rbind(emmeans(PAM.lme_IN, pairwise ~ Site | Treatment)$contrasts[1], emmeans(PAM.lme_IN, pairwise ~ Site | Treatment)$contrasts[2], emmeans(PAM.lme_IN, pairwise ~ Treatment | Site)$contrasts[1], emmeans(PAM.lme_IN, pairwise ~ Treatment | Site)$contrasts[2]))[,-c(1:3)])
+
+##Metadata
+PAM_IN.res$Predictor<-c("Site", "Treatment", "Site x Treatment", "Control Site", "Heated Site", "KL Treatment", "SS Treatment")
+PAM_IN.res$Response<-rep("FvFm", nrow(PAM_IN.res))
+PAM_IN.res$EtaSq<-c(eta_squared(PAM.lme_IN)$Eta2, rep(NA, 4))
+
 ```
 Not normal, but model residuals are OK.
 
@@ -724,6 +804,15 @@ summary(Tol_Sym.lme_IN)
 
 eta_squared(Tol_Sym.lme_IN)
 
+##Save model results
+Tol_Sym_IN.res<-data.frame(summary(Tol_Sym.lme_IN)$coefficients)
+names(Tol_Sym_IN.res)<-names(Sym_IN.res)[1:5]
+Tol_Sym_IN.res$Predictor<-rep("Site", nrow(Tol_Sym_IN.res))
+Tol_Sym_IN.res$Response<-rep("Symbiont Retention", nrow(Tol_Sym_IN.res))
+Tol_Sym_IN.res$EtaSq<-c(eta_squared(Tol_Sym.lme_IN)$Eta2)
+
+##Combine results
+Sym_IN.res<-rbind(Sym_IN.res, Tol_Sym_IN.res[2,])
 ```
 
 
@@ -767,6 +856,15 @@ summary(Tol_Chl.lme_IN)
 
 eta_squared(Tol_Chl.lme_IN)
 
+##Save model results
+Tol_Chl_IN.res<-data.frame(summary(Tol_Chl.lme_IN)$coefficients)
+names(Tol_Chl_IN.res)<-names(Chl_IN.res)[1:5]
+Tol_Chl_IN.res$Predictor<-rep("Site", nrow(Tol_Chl_IN.res))
+Tol_Chl_IN.res$Response<-rep("Chlorophyll Retention", nrow(Tol_Chl_IN.res))
+Tol_Chl_IN.res$EtaSq<-c(eta_squared(Tol_Chl.lme_IN)$Eta2)
+
+##Combine results
+Chl_IN.res<-rbind(Chl_IN.res, Tol_Chl_IN.res[2,])
 ```
 
 
@@ -813,6 +911,15 @@ summary(Tol_PAM.lme_IN)
 
 eta_squared(Tol_PAM.lme_IN)
 
+##Save model results
+Tol_PAM_IN.res<-data.frame(summary(Tol_PAM.lme_IN)$coefficients)
+names(Tol_PAM_IN.res)<-names(PAM_IN.res)[1:5]
+Tol_PAM_IN.res$Predictor<-rep("Site", nrow(Tol_PAM_IN.res))
+Tol_PAM_IN.res$Response<-rep("FvFm Retention", nrow(Tol_PAM_IN.res))
+Tol_PAM_IN.res$EtaSq<-c(eta_squared(Tol_PAM.lme_IN)$Eta2)
+
+##Combine results
+PAM_IN.res<-rbind(PAM_IN.res, Tol_PAM_IN.res[2,])
 ```
 Not normal, but model residuals are OK.
 
@@ -872,6 +979,11 @@ summary(Tol_Sym.lme_TP1)
 
 eta_squared(Tol_Sym.lme_TP1)
 
+##Save model results
+Tol_Sym_TP1.res<-data.frame(summary(Tol_Sym.lme_TP1)$coefficients[-1,])
+Tol_Sym_TP1.res$Predictor<-c("Origin", "Site", "Origin x Site")
+Tol_Sym_TP1.res$EtaSq<-c(eta_squared(Tol_Sym.lme_TP1)$Eta2)
+
 ```
 Not normal, but model residuals are OK.
 
@@ -888,6 +1000,17 @@ eta_squared(Tol_Sym.lme_TP1_KL)
 Tol_Sym.lme_TP1_SS<-lmer(log(Sym.prop+1)~Origin+(1|Genotype), data=Therm_TP1[which(Therm_TP1$Site=="SS"),])
 summary(Tol_Sym.lme_TP1_SS)
 eta_squared(Tol_Sym.lme_TP1_SS)
+
+
+##Save results
+Tol_Sym_TP1.site.res<-data.frame(rbind(summary(Tol_Sym.lme_TP1_KL)$coefficients[-1,],
+                                     summary(Tol_Sym.lme_TP1_SS)$coefficients[-1,]))
+Tol_Sym_TP1.site.res$Predictor<-c("KL Origin", "SS Origin")
+Tol_Sym_TP1.site.res$EtaSq<-c(eta_squared(Tol_Sym.lme_TP1_KL)$Eta2, eta_squared(Tol_Sym.lme_TP1_SS)$Eta2)
+
+##Combine results 
+Tol_Sym_TP1.res<-rbind(Tol_Sym_TP1.res, Tol_Sym_TP1.site.res)
+Tol_Sym_TP1.res$Response<-rep("Symbiont Retention", nrow(Tol_Sym_TP1.res))
 
 ```
 
@@ -937,6 +1060,11 @@ summary(Tol_Chl.lme_TP1)
 
 eta_squared(Tol_Chl.lme_TP1)
 
+##Save model results
+Tol_Chl_TP1.res<-data.frame(summary(Tol_Chl.lme_TP1)$coefficients[-1,])
+Tol_Chl_TP1.res$Predictor<-c("Origin", "Site", "Origin x Site")
+Tol_Chl_TP1.res$EtaSq<-c(eta_squared(Tol_Chl.lme_TP1)$Eta2)
+
 ```
 
 
@@ -952,6 +1080,17 @@ eta_squared(Tol_Chl.lme_TP1_KL)
 Tol_Chl.lme_TP1_SS<-lmer(log(Chl.prop+1)~Origin+(1|Genotype), data=Therm_TP1[which(Therm_TP1$Site=="SS"),])
 summary(Tol_Chl.lme_TP1_SS)
 eta_squared(Tol_Chl.lme_TP1_SS)
+
+
+##Save results
+Tol_Chl_TP1.site.res<-data.frame(rbind(summary(Tol_Chl.lme_TP1_KL)$coefficients[-1,],
+                                     summary(Tol_Chl.lme_TP1_SS)$coefficients[-1,]))
+Tol_Chl_TP1.site.res$Predictor<-c("KL Origin", "SS Origin")
+Tol_Chl_TP1.site.res$EtaSq<-c(eta_squared(Tol_Chl.lme_TP1_KL)$Eta2, eta_squared(Tol_Chl.lme_TP1_SS)$Eta2)
+
+##Combine results 
+Tol_Chl_TP1.res<-rbind(Tol_Chl_TP1.res, Tol_Chl_TP1.site.res)
+Tol_Chl_TP1.res$Response<-rep("Chlorophyll Retention", nrow(Tol_Chl_TP1.res))
 
 ```
 
@@ -1000,6 +1139,11 @@ summary(Tol_PAM.lme_TP1)
 
 eta_squared(Tol_PAM.lme_TP1)
 
+##Save model results
+Tol_PAM_TP1.res<-data.frame(summary(Tol_PAM.lme_TP1)$coefficients[-1,])
+Tol_PAM_TP1.res$Predictor<-c("Origin", "Site", "Origin x Site")
+Tol_PAM_TP1.res$EtaSq<-c(eta_squared(Tol_PAM.lme_TP1)$Eta2)
+
 ```
 Not normal, but model residuals are OK.
 
@@ -1016,6 +1160,17 @@ eta_squared(Tol_PAM.lme_TP1_KL)
 Tol_PAM.lme_TP1_SS<-lmer(PAM.prop~Origin+(1|Genotype), data=Therm_TP1[which(Therm_TP1$Site=="SS"),])
 summary(Tol_PAM.lme_TP1_SS)
 eta_squared(Tol_PAM.lme_TP1_SS)
+
+
+##Save results
+Tol_PAM_TP1.site.res<-data.frame(rbind(summary(Tol_PAM.lme_TP1_KL)$coefficients[-1,],
+                                     summary(Tol_PAM.lme_TP1_SS)$coefficients[-1,]))
+Tol_PAM_TP1.site.res$Predictor<-c("KL Origin", "SS Origin")
+Tol_PAM_TP1.site.res$EtaSq<-c(eta_squared(Tol_PAM.lme_TP1_KL)$Eta2, eta_squared(Tol_PAM.lme_TP1_SS)$Eta2)
+
+##Combine results 
+Tol_PAM_TP1.res<-rbind(Tol_PAM_TP1.res, Tol_PAM_TP1.site.res)
+Tol_PAM_TP1.res$Response<-rep("FvFm Retention", nrow(Tol_PAM_TP1.res))
 
 ```
 
@@ -1037,6 +1192,17 @@ TP1_TolPAM.plot<-ggplot(TP1_TolPAM.sum, aes(x=Site, y=PAM.prop, colour=Site.Orig
   labs(x="Site and Origin", y="Photochemical Efficiency Retention", colour="Origin")+
   ylim(0.6, 1)+
   annotate("text", x=1, y=1, label="**", size=sig.sz, fontface="bold"); TP1_TolPAM.plot
+```
+
+
+#### Save Results
+```{r}
+##Combine Results
+Tol_T1.res<-rbind(Tol_PAM_TP1.res, Tol_Sym_TP1.res, Tol_Chl_TP1.res)
+
+##Add Timepoint
+Tol_T1.res$TimeP<-rep("TP1", nrow(Tol_T1.res))
+
 ```
 
 
@@ -1072,6 +1238,11 @@ summary(Tol_Sym.lme_TP2)
 
 eta_squared(Tol_Sym.lme_TP2)
 
+##Save model results
+Tol_Sym_TP2.res<-data.frame(summary(Tol_Sym.lme_TP2)$coefficients[-1,])
+Tol_Sym_TP2.res$Predictor<-c("Origin", "Site", "Origin x Site")
+Tol_Sym_TP2.res$EtaSq<-c(eta_squared(Tol_Sym.lme_TP2)$Eta2)
+
 ```
 Not normal, but model residuals are OK.
 
@@ -1088,6 +1259,17 @@ eta_squared(Tol_Sym.lme_TP2_KL)
 Tol_Sym.lme_TP2_SS<-lmer(Sym.prop~Origin+(1|Genotype), data=Therm_TP2[which(Therm_TP2$Site=="SS"),])
 summary(Tol_Sym.lme_TP2_SS)
 eta_squared(Tol_Sym.lme_TP2_SS)
+
+
+##Save results
+Tol_Sym_TP2.site.res<-data.frame(rbind(summary(Tol_Sym.lme_TP2_KL)$coefficients[-1,],
+                                     summary(Tol_Sym.lme_TP2_SS)$coefficients[-1,]))
+Tol_Sym_TP2.site.res$Predictor<-c("KL Origin", "SS Origin")
+Tol_Sym_TP2.site.res$EtaSq<-c(eta_squared(Tol_Sym.lme_TP2_KL)$Eta2, eta_squared(Tol_Sym.lme_TP2_SS)$Eta2)
+
+##Combine results 
+Tol_Sym_TP2.res<-rbind(Tol_Sym_TP2.res, Tol_Sym_TP2.site.res)
+Tol_Sym_TP2.res$Response<-rep("Symbiont Retention", nrow(Tol_Sym_TP2.res))
 
 ```
 
@@ -1132,6 +1314,11 @@ summary(Tol_Chl.lme_TP2)
 
 eta_squared(Tol_Chl.lme_TP2)
 
+##Save model results
+Tol_Chl_TP2.res<-data.frame(summary(Tol_Chl.lme_TP2)$coefficients[-1,])
+Tol_Chl_TP2.res$Predictor<-c("Origin", "Site", "Origin x Site")
+Tol_Chl_TP2.res$EtaSq<-c(eta_squared(Tol_Chl.lme_TP2)$Eta2)
+
 ```
 
 
@@ -1147,6 +1334,17 @@ eta_squared(Tol_Chl.lme_TP2_KL)
 Tol_Chl.lme_TP2_SS<-lmer(Chl.prop~Origin+(1|Genotype), data=Therm_TP2[which(Therm_TP2$Site=="SS"),])
 summary(Tol_Chl.lme_TP2_SS)
 eta_squared(Tol_Chl.lme_TP2_SS)
+
+
+##Save results
+Tol_Chl_TP2.site.res<-data.frame(rbind(summary(Tol_Chl.lme_TP2_KL)$coefficients[-1,],
+                                     summary(Tol_Chl.lme_TP2_SS)$coefficients[-1,]))
+Tol_Chl_TP2.site.res$Predictor<-c("KL Origin", "SS Origin")
+Tol_Chl_TP2.site.res$EtaSq<-c(eta_squared(Tol_Chl.lme_TP2_KL)$Eta2, eta_squared(Tol_Chl.lme_TP2_SS)$Eta2)
+
+##Combine results 
+Tol_Chl_TP2.res<-rbind(Tol_Chl_TP2.res, Tol_Chl_TP2.site.res)
+Tol_Chl_TP2.res$Response<-rep("Chlorophyll Retention", nrow(Tol_Chl_TP2.res))
 
 ```
 
@@ -1195,6 +1393,11 @@ summary(Tol_PAM.lme_TP2)
 
 eta_squared(Tol_PAM.lme_TP2)
 
+##Save model results
+Tol_PAM_TP2.res<-data.frame(summary(Tol_PAM.lme_TP2)$coefficients[-1,])
+Tol_PAM_TP2.res$Predictor<-c("Origin", "Site", "Origin x Site")
+Tol_PAM_TP2.res$EtaSq<-c(eta_squared(Tol_PAM.lme_TP2)$Eta2)
+
 ```
 Not normal, but model residuals are OK.
 
@@ -1211,6 +1414,17 @@ eta_squared(Tol_PAM.lme_TP2_KL)
 Tol_PAM.lme_TP2_SS<-lmer(PAM.prop~Origin+(1|Genotype), data=Therm_TP2[which(Therm_TP2$Site=="SS"),])
 summary(Tol_PAM.lme_TP2_SS)
 eta_squared(Tol_PAM.lme_TP2_SS)
+
+
+##Save results
+Tol_PAM_TP2.site.res<-data.frame(rbind(summary(Tol_PAM.lme_TP2_KL)$coefficients[-1,],
+                                     summary(Tol_PAM.lme_TP2_SS)$coefficients[-1,]))
+Tol_PAM_TP2.site.res$Predictor<-c("KL Origin", "SS Origin")
+Tol_PAM_TP2.site.res$EtaSq<-c(eta_squared(Tol_PAM.lme_TP2_KL)$Eta2, eta_squared(Tol_PAM.lme_TP2_SS)$Eta2)
+
+##Combine results 
+Tol_PAM_TP2.res<-rbind(Tol_PAM_TP2.res, Tol_PAM_TP2.site.res)
+Tol_PAM_TP2.res$Response<-rep("FvFm Retention", nrow(Tol_PAM_TP2.res))
 
 ```
 
@@ -1232,6 +1446,17 @@ TP2_TolPAM.plot<-ggplot(TP2_TolPAM.sum, aes(x=Site, y=PAM.prop, colour=Site.Orig
   labs(x="Site and Origin", y="Photochemical Efficiency Retention", colour="Origin")+
   ylim(0.6, 1)+
   annotate("text", x=1, y=1, label="*", size=sig.sz, fontface="bold"); TP2_TolPAM.plot
+```
+
+
+#### Save Results
+```{r}
+##Combine Results
+Tol_T2.res<-rbind(Tol_PAM_TP2.res, Tol_Sym_TP2.res, Tol_Chl_TP2.res)
+
+##Add Timepoint
+Tol_T2.res$TimeP<-rep("TP2", nrow(Tol_T2.res))
+
 ```
 
 
@@ -1267,6 +1492,11 @@ summary(Tol_Sym.lme_TP3)
 
 eta_squared(Tol_Sym.lme_TP3)
 
+##Save model results
+Tol_Sym_TP3.res<-data.frame(summary(Tol_Sym.lme_TP3)$coefficients[-1,])
+Tol_Sym_TP3.res$Predictor<-c("Origin", "Site", "Origin x Site")
+Tol_Sym_TP3.res$EtaSq<-c(eta_squared(Tol_Sym.lme_TP3)$Eta2)
+
 ```
 Not normal, but model residuals are OK.
 
@@ -1283,6 +1513,17 @@ eta_squared(Tol_Sym.lme_TP3_KL)
 Tol_Sym.lme_TP3_SS<-lmer(log(Sym.prop+1)~Origin+(1|Genotype), data=Therm_TP3[which(Therm_TP3$Site=="SS"),])
 summary(Tol_Sym.lme_TP3_SS)
 eta_squared(Tol_Sym.lme_TP3_SS)
+
+
+##Save results
+Tol_Sym_TP3.site.res<-data.frame(rbind(summary(Tol_Sym.lme_TP3_KL)$coefficients[-1,],
+                                     summary(Tol_Sym.lme_TP3_SS)$coefficients[-1,]))
+Tol_Sym_TP3.site.res$Predictor<-c("KL Origin", "SS Origin")
+Tol_Sym_TP3.site.res$EtaSq<-c(eta_squared(Tol_Sym.lme_TP3_KL)$Eta2, eta_squared(Tol_Sym.lme_TP3_SS)$Eta2)
+
+##Combine results 
+Tol_Sym_TP3.res<-rbind(Tol_Sym_TP3.res, Tol_Sym_TP3.site.res)
+Tol_Sym_TP3.res$Response<-rep("Symbiont Retention", nrow(Tol_Sym_TP3.res))
 
 ```
 
@@ -1331,6 +1572,11 @@ summary(Tol_Chl.lme_TP3)
 
 eta_squared(Tol_Chl.lme_TP3)
 
+##Save model results
+Tol_Chl_TP3.res<-data.frame(summary(Tol_Chl.lme_TP3)$coefficients[-1,])
+Tol_Chl_TP3.res$Predictor<-c("Origin", "Site", "Origin x Site")
+Tol_Chl_TP3.res$EtaSq<-c(eta_squared(Tol_Chl.lme_TP3)$Eta2)
+
 ```
 Not normal, but model residuals are OK.
 
@@ -1347,6 +1593,17 @@ eta_squared(Tol_Chl.lme_TP3_KL)
 Tol_Chl.lme_TP3_SS<-lmer(log(Chl.prop+1)~Origin+(1|Genotype), data=Therm_TP3[which(Therm_TP3$Site=="SS"),])
 summary(Tol_Chl.lme_TP3_SS)
 eta_squared(Tol_Chl.lme_TP3_SS)
+
+
+##Save results
+Tol_Chl_TP3.site.res<-data.frame(rbind(summary(Tol_Chl.lme_TP3_KL)$coefficients[-1,],
+                                     summary(Tol_Chl.lme_TP3_SS)$coefficients[-1,]))
+Tol_Chl_TP3.site.res$Predictor<-c("KL Origin", "SS Origin")
+Tol_Chl_TP3.site.res$EtaSq<-c(eta_squared(Tol_Chl.lme_TP3_KL)$Eta2, eta_squared(Tol_Chl.lme_TP3_SS)$Eta2)
+
+##Combine results 
+Tol_Chl_TP3.res<-rbind(Tol_Chl_TP3.res, Tol_Chl_TP3.site.res)
+Tol_Chl_TP3.res$Response<-rep("Chlorophyll Retention", nrow(Tol_Chl_TP3.res))
 
 ```
 
@@ -1391,6 +1648,11 @@ summary(Tol_PAM.lme_TP3)
 
 eta_squared(Tol_PAM.lme_TP3)
 
+##Save model results
+Tol_PAM_TP3.res<-data.frame(summary(Tol_PAM.lme_TP3)$coefficients[-1,])
+Tol_PAM_TP3.res$Predictor<-c("Origin", "Site", "Origin x Site")
+Tol_PAM_TP3.res$EtaSq<-c(eta_squared(Tol_PAM.lme_TP3)$Eta2)
+
 ```
 
 
@@ -1406,6 +1668,17 @@ eta_squared(Tol_PAM.lme_TP3_KL)
 Tol_PAM.lme_TP3_SS<-lmer(PAM.prop~Origin+(1|Genotype), data=Therm_TP3[which(Therm_TP3$Site=="SS"),])
 summary(Tol_PAM.lme_TP3_SS)
 eta_squared(Tol_PAM.lme_TP3_SS)
+
+
+##Save results
+Tol_PAM_TP3.site.res<-data.frame(rbind(summary(Tol_PAM.lme_TP3_KL)$coefficients[-1,],
+                                     summary(Tol_PAM.lme_TP3_SS)$coefficients[-1,]))
+Tol_PAM_TP3.site.res$Predictor<-c("KL Origin", "SS Origin")
+Tol_PAM_TP3.site.res$EtaSq<-c(eta_squared(Tol_PAM.lme_TP3_KL)$Eta2, eta_squared(Tol_PAM.lme_TP3_SS)$Eta2)
+
+##Combine results 
+Tol_PAM_TP3.res<-rbind(Tol_PAM_TP3.res, Tol_PAM_TP3.site.res)
+Tol_PAM_TP3.res$Response<-rep("FvFm Retention", nrow(Tol_PAM_TP3.res))
 
 ```
 
@@ -1426,6 +1699,17 @@ TP3_TolPAM.plot<-ggplot(TP3_TolPAM.sum, aes(x=Site, y=PAM.prop, colour=Site.Orig
         legend.box.background = element_rect(color = "black"))+
   labs(x="Site and Origin", y="Photochemical Efficiency Retention", colour="Origin")+
   ylim(0.7, 1); TP3_TolPAM.plot
+```
+
+
+#### Save Results
+```{r}
+##Combine Results
+Tol_T3.res<-rbind(Tol_PAM_TP3.res, Tol_Sym_TP3.res, Tol_Chl_TP3.res)
+
+##Add Timepoint
+Tol_T3.res$TimeP<-rep("TP3", nrow(Tol_T3.res))
+
 ```
 
 
@@ -1461,6 +1745,11 @@ summary(Tol_Sym.lme_TP4)
 
 eta_squared(Tol_Sym.lme_TP4)
 
+##Save model results
+Tol_Sym_TP4.res<-data.frame(summary(Tol_Sym.lme_TP4)$coefficients[-1,])
+Tol_Sym_TP4.res$Predictor<-c("Origin", "Site", "Origin x Site")
+Tol_Sym_TP4.res$EtaSq<-c(eta_squared(Tol_Sym.lme_TP4)$Eta2)
+
 ```
 
 
@@ -1476,6 +1765,17 @@ eta_squared(Tol_Sym.lme_TP4_KL)
 Tol_Sym.lme_TP4_SS<-lmer(log(Sym.prop+1)~Origin+(1|Genotype), data=Therm_TP4[which(Therm_TP4$Site=="SS"),])
 summary(Tol_Sym.lme_TP4_SS)
 eta_squared(Tol_Sym.lme_TP4_SS)
+
+
+##Save results
+Tol_Sym_TP4.site.res<-data.frame(rbind(summary(Tol_Sym.lme_TP4_KL)$coefficients[-1,],
+                                     summary(Tol_Sym.lme_TP4_SS)$coefficients[-1,]))
+Tol_Sym_TP4.site.res$Predictor<-c("KL Origin", "SS Origin")
+Tol_Sym_TP4.site.res$EtaSq<-c(eta_squared(Tol_Sym.lme_TP4_KL)$Eta2, eta_squared(Tol_Sym.lme_TP4_SS)$Eta2)
+
+##Combine results 
+Tol_Sym_TP4.res<-rbind(Tol_Sym_TP4.res, Tol_Sym_TP4.site.res)
+Tol_Sym_TP4.res$Response<-rep("Symbiont Retention", nrow(Tol_Sym_TP4.res))
 
 ```
 
@@ -1524,6 +1824,11 @@ summary(Tol_Chl.lme_TP4)
 
 eta_squared(Tol_Chl.lme_TP4)
 
+##Save model results
+Tol_Chl_TP4.res<-data.frame(summary(Tol_Chl.lme_TP4)$coefficients[-1,])
+Tol_Chl_TP4.res$Predictor<-c("Origin", "Site", "Origin x Site")
+Tol_Chl_TP4.res$EtaSq<-c(eta_squared(Tol_Chl.lme_TP4)$Eta2)
+
 ```
 
 
@@ -1539,6 +1844,17 @@ eta_squared(Tol_Chl.lme_TP4_KL)
 Tol_Chl.lme_TP4_SS<-lmer(log(Chl.prop+1)~Origin+(1|Genotype), data=Therm_TP4[which(Therm_TP4$Site=="SS"),])
 summary(Tol_Chl.lme_TP4_SS)
 eta_squared(Tol_Chl.lme_TP4_SS)
+
+
+##Save results
+Tol_Chl_TP4.site.res<-data.frame(rbind(summary(Tol_Chl.lme_TP4_KL)$coefficients[-1,],
+                                     summary(Tol_Chl.lme_TP4_SS)$coefficients[-1,]))
+Tol_Chl_TP4.site.res$Predictor<-c("KL Origin", "SS Origin")
+Tol_Chl_TP4.site.res$EtaSq<-c(eta_squared(Tol_Chl.lme_TP4_KL)$Eta2, eta_squared(Tol_Chl.lme_TP4_SS)$Eta2)
+
+##Combine results 
+Tol_Chl_TP4.res<-rbind(Tol_Chl_TP4.res, Tol_Chl_TP4.site.res)
+Tol_Chl_TP4.res$Response<-rep("Chlorophyll Retention", nrow(Tol_Chl_TP4.res))
 
 ```
 
@@ -1587,6 +1903,11 @@ summary(Tol_PAM.lme_TP4)
 
 eta_squared(Tol_PAM.lme_TP4)
 
+##Save model results
+Tol_PAM_TP4.res<-data.frame(summary(Tol_PAM.lme_TP4)$coefficients[-1,])
+Tol_PAM_TP4.res$Predictor<-c("Origin", "Site", "Origin x Site")
+Tol_PAM_TP4.res$EtaSq<-c(eta_squared(Tol_PAM.lme_TP4)$Eta2)
+
 ```
 
 
@@ -1602,6 +1923,17 @@ eta_squared(Tol_PAM.lme_TP4_KL)
 Tol_PAM.lme_TP4_SS<-lmer(PAM.prop~Origin+(1|Genotype), data=Therm_TP4[which(Therm_TP4$Site=="SS"),])
 summary(Tol_PAM.lme_TP4_SS)
 eta_squared(Tol_PAM.lme_TP4_SS)
+
+
+##Save results
+Tol_PAM_TP4.site.res<-data.frame(rbind(summary(Tol_PAM.lme_TP4_KL)$coefficients[-1,],
+                                     summary(Tol_PAM.lme_TP4_SS)$coefficients[-1,]))
+Tol_PAM_TP4.site.res$Predictor<-c("KL Origin", "SS Origin")
+Tol_PAM_TP4.site.res$EtaSq<-c(eta_squared(Tol_PAM.lme_TP4_KL)$Eta2, eta_squared(Tol_PAM.lme_TP4_SS)$Eta2)
+
+##Combine results 
+Tol_PAM_TP4.res<-rbind(Tol_PAM_TP4.res, Tol_PAM_TP4.site.res)
+Tol_PAM_TP4.res$Response<-rep("FvFm Retention", nrow(Tol_PAM_TP4.res))
 
 ```
 
@@ -1625,70 +1957,45 @@ TP4_TolPAM.plot<-ggplot(TP4_TolPAM.sum, aes(x=Site, y=PAM.prop, colour=Site.Orig
 ```
 
 
+#### Save Results
+```{r}
+##Combine Results
+Tol_T4.res<-rbind(Tol_PAM_TP4.res, Tol_Sym_TP4.res, Tol_Chl_TP4.res)
+
+##Add Timepoint
+Tol_T4.res$TimeP<-rep("TP4", nrow(Tol_T4.res))
+
+```
+
+
 ### Effect Size over Time
 
+### Effect Size over Time
 ```{r}
 ##Dataframe of effect size results
-Tol.ES<-data.frame(TimeP=c(rep("TP1",6), rep("TP2",6), rep("TP3",6), rep("TP4",6)), 
-                    Site=c(rep(c("KL", "SS"),12)),
-                    Metric=c(rep(c("Sym.prop", "Sym.prop", "Chl.prop", "Chl.prop", "PAM.prop", "PAM.prop"),4)),
-                    EtaSq=c(eta_squared(Tol_Sym.lme_TP1_KL)$Eta2_partial,
-                             eta_squared(Tol_Sym.lme_TP1_SS)$Eta2_partial,
-                             eta_squared(Tol_Chl.lme_TP1_KL)$Eta2_partial,
-                             eta_squared(Tol_Chl.lme_TP1_SS)$Eta2_partial,
-                             eta_squared(Tol_PAM.lme_TP1_KL)$Eta2_partial,
-                             eta_squared(Tol_PAM.lme_TP1_SS)$Eta2_partial, 
-                     eta_squared(Tol_Sym.lme_TP2_KL)$Eta2_partial,
-                             eta_squared(Tol_Sym.lme_TP2_SS)$Eta2_partial,
-                             eta_squared(Tol_Chl.lme_TP2_KL)$Eta2_partial,
-                             eta_squared(Tol_Chl.lme_TP2_SS)$Eta2_partial,
-                             eta_squared(Tol_PAM.lme_TP2_KL)$Eta2_partial,
-                             eta_squared(Tol_PAM.lme_TP2_SS)$Eta2_partial,
-                     eta_squared(Tol_Sym.lme_TP3_KL)$Eta2_partial,
-                             eta_squared(Tol_Sym.lme_TP3_SS)$Eta2_partial,
-                             eta_squared(Tol_Chl.lme_TP3_KL)$Eta2_partial,
-                             eta_squared(Tol_Chl.lme_TP3_SS)$Eta2_partial,
-                             eta_squared(Tol_PAM.lme_TP3_KL)$Eta2_partial,
-                             eta_squared(Tol_PAM.lme_TP3_SS)$Eta2_partial,
-                     eta_squared(Tol_Sym.lme_TP4_KL)$Eta2_partial,
-                             eta_squared(Tol_Sym.lme_TP4_SS)$Eta2_partial,
-                             eta_squared(Tol_Chl.lme_TP4_KL)$Eta2_partial,
-                             eta_squared(Tol_Chl.lme_TP4_SS)$Eta2_partial,
-                             eta_squared(Tol_PAM.lme_TP4_KL)$Eta2_partial,
-                             eta_squared(Tol_PAM.lme_TP4_SS)$Eta2_partial),
-                    Pvalue=c(summary(Tol_Sym.lme_TP1_KL)$coefficients[10],
-                             summary(Tol_Sym.lme_TP1_SS)$coefficients[10],
-                             summary(Tol_Chl.lme_TP1_KL)$coefficients[10],
-                             summary(Tol_Chl.lme_TP1_SS)$coefficients[10],
-                             summary(Tol_PAM.lme_TP1_KL)$coefficients[10],
-                             summary(Tol_PAM.lme_TP1_SS)$coefficients[10], 
-                     summary(Tol_Sym.lme_TP2_KL)$coefficients[10],
-                             summary(Tol_Sym.lme_TP2_SS)$coefficients[10],
-                             summary(Tol_Chl.lme_TP2_KL)$coefficients[10],
-                             summary(Tol_Chl.lme_TP2_SS)$coefficients[10],
-                             summary(Tol_PAM.lme_TP2_KL)$coefficients[10],
-                             summary(Tol_PAM.lme_TP2_SS)$coefficients[10],
-                     summary(Tol_Sym.lme_TP3_KL)$coefficients[10],
-                             summary(Tol_Sym.lme_TP3_SS)$coefficients[10],
-                             summary(Tol_Chl.lme_TP3_KL)$coefficients[10],
-                             summary(Tol_Chl.lme_TP3_SS)$coefficients[10],
-                             summary(Tol_PAM.lme_TP3_KL)$coefficients[10],
-                             summary(Tol_PAM.lme_TP3_SS)$coefficients[10],
-                     summary(Tol_Sym.lme_TP4_KL)$coefficients[10],
-                             summary(Tol_Sym.lme_TP4_SS)$coefficients[10],
-                             summary(Tol_Chl.lme_TP4_KL)$coefficients[10],
-                             summary(Tol_Chl.lme_TP4_SS)$coefficients[10],
-                             summary(Tol_PAM.lme_TP4_KL)$coefficients[10],
-                             summary(Tol_PAM.lme_TP4_SS)$coefficients[10]))
+Tol.ES<-rbind(Tol_T1.res, Tol_T2.res, Tol_T2.res, Tol_T4.res)
+Tol.ES<-Tol.ES %>% dplyr::rename(p = Pr...t..)
+Tol.ES<-Tol.ES[,c("TimeP", "Predictor", "Response", "EtaSq", "p")]
 
+##Site specific results
+Tol.ES<-Tol.ES[which(Tol.ES$Predictor=="KL Origin" | Tol.ES$Predictor=="SS Origin"),]
+Tol.ES<-Tol.ES %>% separate_wider_delim(cols="Predictor", delim=" ", names=c("Site", "Predictor"), cols_remove = TRUE)
 
-Tol.ES$Sig<-ifelse(Tol.ES$Pvalue<0.001, "***", ifelse(Tol.ES$Pvalue<0.01, "**", ifelse(Tol.ES$Pvalue<0.05, "*", ifelse(Tol.ES$Pvalue<0.1, "-", NA))))
+##Add Metric names
+Tol.ES$Metric<-ifelse(Tol.ES$Response== "FvFm Retention", "FvFm", ifelse(
+  Tol.ES$Response== "Symbiont Retention", "Symbionts", ifelse(
+    Tol.ES$Response=="Chlorophyll Retention", "Chlorophyll", NA)))
+
+##Add Significance levels
+Tol.ES$Sig<-ifelse(Tol.ES$p<0.001, "***", ifelse(Tol.ES$p<0.01, "**", 
+            ifelse(Tol.ES$p<0.05, "*", ifelse(Tol.ES$p<0.1, "-", NA))))
+
 ```
 
 
 #### Symbionts
 ```{r Plot Effect Size Symbiont Retention}
-Tol_Sym.ES.plot<-ggplot(Tol.ES[which(Tol.ES$Metric=="Sym.prop"),], aes(x=TimeP, y=EtaSq, fill=Site))+
+Tol_Sym.ES.plot<-ggplot(Tol.ES[which(Tol.ES$Metric=="Symbionts"),], aes(x=TimeP, y=EtaSq, fill=Site))+
   geom_bar(stat="identity", position=position_dodge())+
     scale_fill_manual(values=Site.colors.o)+
 theme_classic()+
@@ -1705,7 +2012,7 @@ theme_classic()+
 
 #### Chlorophyll
 ```{r Plot Effect Size Chlorophyll Retention}
-Tol_Chl.ES.plot<-ggplot(Tol.ES[which(Tol.ES$Metric=="Chl.prop"),], aes(x=TimeP, y=EtaSq, fill=Site))+
+Tol_Chl.ES.plot<-ggplot(Tol.ES[which(Tol.ES$Metric=="Chlorophyll"),], aes(x=TimeP, y=EtaSq, fill=Site))+
   geom_bar(stat="identity", position=position_dodge())+
     scale_fill_manual(values=Site.colors.o)+
 theme_classic()+
@@ -1722,7 +2029,7 @@ theme_classic()+
 
 #### FvFm
 ```{r Plot Effect Size FvFm Retention}
-Tol_PAM.ES.plot<-ggplot(Tol.ES[which(Tol.ES$Metric=="PAM.prop"),], aes(x=TimeP, y=EtaSq, fill=Site))+
+Tol_PAM.ES.plot<-ggplot(Tol.ES[which(Tol.ES$Metric=="FvFm"),], aes(x=TimeP, y=EtaSq, fill=Site))+
   geom_bar(stat="identity", position=position_dodge())+
     scale_fill_manual(values=Site.colors.o)+
 theme_classic()+
@@ -1738,7 +2045,7 @@ theme_classic()+
 
 
 # Trade Offs
-
+Update below here
 ## Initial T1 and T2
 
 ### Average Performance
@@ -2002,65 +2309,45 @@ T3.4_TLE_PAM.plot<-ggplot(T3.4_Perf_Set, aes(x=TLE_cm.day, y=PAM.prop)) +
 
 # Figures
 
-### Figure 3 Growth
+### Figure 4 Growth
 
 #### Adjust Figures for Panel
 ```{r}
-##Growth
-TP1.2_Growth.plot.cut<-ggplot(TP1.2_Growth.sum, aes(x=Site, y=TLE_cm.day, colour=Site.Orig)) + 
-  scale_colour_manual(values=Orig.colors.o)+
-  geom_errorbar(aes(ymin=TLE_cm.day-se, ymax=TLE_cm.day+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
-  geom_point(size=point.sz, position=position_dodge(width=0.5))+
-  theme_classic()+
-  theme(axis.title.x = element_text(size = axis.title.sz), 
-        axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
-        axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
-        legend.text=element_text(size=leg.txt.sz),
-        legend.title=element_text(size=leg.title.sz), 
-        legend.box.background = element_rect(color = "black"),
-        legend.position=c(0.2, 0.8))+
-  labs(x="Site and Origin", y=expression(paste('Growth Rate (cm day'^-1*")")), colour="Origin")+
-  ylim(0, 0.3)+
-    annotate("text", x=2, y=0.24, label="*", size=sig.sz, fontface="bold")+
-  geom_bracket(xmin=1, xmax=2, y.position=0.01, label.size=levels.sz, label="**", inherit.aes = FALSE)
+##TP 1 to TP 2
+TP1.2_Growth.plot<-TP1.2_Growth.plot+ ggtitle("TP1 to TP2")+
+  theme(plot.title = element_text(colour="black", 
+                                  size=panel.lab.sz, hjust=0.5), 
+        legend.position=c(0.25, 0.85), legend.direction="horizontal")+
+  labs(colour=NULL)+
+  guides(color=guide_legend(nrow=2, byrow=FALSE)) 
 
 
-TP3.4_Growth.plot.cut<-ggplot(TP3.4_Growth.sum, aes(x=Site, y=TLE_cm.day, colour=Site.Orig)) + 
-  scale_colour_manual(values=Orig.colors.o)+
-  geom_errorbar(aes(ymin=TLE_cm.day-se, ymax=TLE_cm.day+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
-  geom_point(size=point.sz, position=position_dodge(width=0.5))+
-  theme_classic()+
-  theme(axis.title.x = element_text(size = axis.title.sz), 
-        axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
-        axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
-        legend.position="none")+
-  labs(x="Site and Origin", y=expression(paste('Growth Rate (cm day'^-1*")")), colour="Origin")+
-  ylim(0, 0.25)+
-  annotate("text", x=1, y=0.24, label="-", size=sig.sz, fontface="bold")+
-  annotate("text", x=2, y=0.2, label="**", size=sig.sz, fontface="bold")+
-  geom_bracket(xmin=1, xmax=2, y.position=0.01, label.size=levels.sz, label="***", inherit.aes = FALSE)
+##TP 3 to TP 4
+TP3.4_Growth.plot<-TP3.4_Growth.plot+ ggtitle("TP3 to TP4")+
+  theme(plot.title = element_text(colour="black", 
+                                  size=panel.lab.sz, hjust=0.5), 
+        legend.position="none")
 
 ```
 
 
-#### Figure 3
+#### Figure 4
 ```{r}
 ##Create Panel
-Growth_fig<-plot_grid(TP1.2_Growth.plot.cut, TP3.4_Growth.plot.cut, 
+Growth_fig<-plot_grid(TP1.2_Growth.plot, TP3.4_Growth.plot, 
                     rel_widths=1, rel_heights = 1,
-                    nrow=1, ncol=2, byrow=T, labels = c("A", "B"))
+                    nrow=1, ncol=2, byrow=T, labels = c("A", "B"), 
+                    label_size=panel.lab.sz)
 
 ##Save Figure
-ggsave(filename="Figures/03_Performance/Fig3_Growth.png", plot=Growth_fig, dpi=300, width=10, height=4, units="in")
+ggsave(filename="Figures/03_Performance/Fig4_Growth.png", plot=Growth_fig, dpi=300, width=10, height=4.5, units="in")
 
 ```
 
 
 
-### Figure 4 Tolerance ES
-
+### Figure 5 Tolerance ES
+Update and combine with old Fig S5
 #### Adjust Figures for Panel
 ```{r}
 ##FvFm Retention
@@ -2118,8 +2405,8 @@ ggsave(filename="Figures/03_Performance/Fig4_Tolerance.png", plot=Tolerance_fig,
 ```
 
 
-### Figure 5 Growth vs Tolerance
-
+### Figure 6 Growth vs Tolerance
+Update
 #### Adjust Figures for Panel
 ```{r}
 ##Growth vs FvFm Retention T1.2
@@ -2209,90 +2496,38 @@ ggsave(filename="Figures/03_Performance/Fig4_TradeOff.png", plot=TradeOff_fig, d
 #### Adjust Figures for Panel
 ```{r}
 ##FvFm
-IN_PAM.plot.cut<-ggplot(IN_PAM.sum, aes(x=Site.Treat, y=Fv_Fm, colour=Site)) + 
-  scale_colour_manual(values=Site.colors.o)+
-  geom_errorbar(aes(ymin=Fv_Fm-se, ymax=Fv_Fm+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
-  geom_point(aes(shape=Treatment), size=point.sz, position=position_dodge(width=0.5))+
-  scale_shape_manual(values=c(1,16))+
-  theme_classic()+
-  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
-        legend.position="none")+
-  labs(x="", y="Fv/Fm", colour="Site")+
-  ylim(0.5, 0.655)
+IN_PAM.plot<-IN_PAM.plot + labs(x="", y="Fv/Fm") + theme(legend.position="none") + ylim(0.5, 0.655)
 
-IN_TolPAM.plot.cut<-ggplot(IN_TolPAM.sum, aes(x=Site, y=PAM.prop, colour=Site)) + 
-  scale_colour_manual(values=Site.colors.o)+
-  geom_errorbar(aes(ymin=PAM.prop-se, ymax=PAM.prop+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
-  geom_point(size=point.sz, position=position_dodge(width=0.5))+
-  theme_classic()+
-  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
-        legend.position="none")+
-  labs(x="", y="Retention", colour="Site")+
-  ylim(0.75, 1)+
-  annotate("text", x=1.5, y=0.95, label="*", size=sig.sz, fontface="bold")
+IN_TolPAM.plot<-IN_TolPAM.plot + labs(x="", y="Retention") + 
+  theme(legend.position="none") + ylim(0.75, 1)
 
 ##Symbionts
-IN_Sym.plot.cut<-ggplot(IN_Sym.sum, aes(x=Site.Treat, y=Sym10.6_cm2, colour=Site)) + 
-  scale_colour_manual(values=Site.colors.o)+
-  geom_errorbar(aes(ymin=Sym10.6_cm2-se, ymax=Sym10.6_cm2+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
-  geom_point(aes(shape=Treatment), size=point.sz, position=position_dodge(width=0.5))+
-  scale_shape_manual(values=c(1,16))+
-  theme_classic()+
-  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
-        legend.position="none")+
-  labs(x="", y=expression(paste('Symbionts ('*10^6,'cells cm'^-2*")")), colour="Site")+
-  ylim(0, 1)
+IN_Sym.plot<-IN_Sym.plot + labs(x="", y="Symbionts") + theme(legend.position="none") + ylim(0,1)
 
-IN_TolSym.plot.cut<-ggplot(IN_TolSym.sum, aes(x=Site, y=Sym.prop, colour=Site)) + 
-  scale_colour_manual(values=Site.colors.o)+
-  geom_errorbar(aes(ymin=Sym.prop-se, ymax=Sym.prop+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
-  geom_point(size=point.sz, position=position_dodge(width=0.5))+
-  theme_classic()+
-  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
-        legend.position="none")+
-  labs(x="", y="Retention", colour="Site")+
-  ylim(.25, .75)+
-  annotate("text", x=1.5, y=0.7, label="-", size=sig.sz, fontface="bold")
+IN_TolSym.plot<-IN_TolSym.plot + labs(x="", y="Retention") + 
+  theme(legend.position="none") + ylim(.25, .75)
 
 ##Chlorophyll
-IN_Chl.plot.cut<-ggplot(IN_Chl.sum, aes(x=Site.Treat, y=Chl_ug.cm2, colour=Site)) + 
-  scale_colour_manual(values=Site.colors.o)+
-  geom_errorbar(aes(ymin=Chl_ug.cm2-se, ymax=Chl_ug.cm2+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
-  geom_point(aes(shape=Treatment), size=point.sz, position=position_dodge(width=0.5))+
-  scale_shape_manual(values=c(1,16))+
-  theme_classic()+
-  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
-        legend.position="none")+
-  labs(x="Site and Treatment", y=expression(paste('Chlorophyll (\u03BCg cm'^-2*")")), colour="Site")+
-  ylim(0, 1.25)
+IN_Chl.plot<-IN_Chl.plot + labs(x="Site and Treatment", y="Chlorophyll") + 
+  theme(legend.position="none") + ylim(0,1.25)
 
-IN_TolChl.plot.cut<-ggplot(IN_TolChl.sum, aes(x=Site, y=Chl.prop, colour=Site)) + 
-  scale_colour_manual(values=Site.colors.o)+
-  geom_errorbar(aes(ymin=Chl.prop-se, ymax=Chl.prop+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
-  geom_point(size=point.sz, position=position_dodge(width=0.5))+
-  theme_classic()+
-  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
-        legend.position="none")+
-  labs(x="Site", y="Retention", colour="Site")+
-  ylim(0, 0.25)
+IN_TolChl.plot<-IN_TolChl.plot + labs(x="Site", y="Retention") + 
+  theme(legend.position="none") + ylim(0, 0.25)
+
 ```
 
 
 #### Figure S4
 ```{r}
 ##Create Panel
-IN_HeatAssay_fig<-plot_grid(IN_PAM.plot.cut, IN_TolPAM.plot.cut, 
-                      IN_Sym.plot.cut, IN_TolSym.plot.cut,
-                      IN_Chl.plot.cut, IN_TolChl.plot.cut,
+IN_HeatAssay_fig<-plot_grid(IN_PAM.plot, IN_TolPAM.plot, 
+                      IN_Sym.plot, IN_TolSym.plot,
+                      IN_Chl.plot, IN_TolChl.plot,
                     rel_widths=c(1, 0.75), 
                     rel_heights = c(1, 1, 1),
-                    nrow=3, ncol=2, byrow=T, labels = c("A", "B", "C", "D", "E", "F"))
+                    nrow=3, ncol=2, byrow=T, 
+                    labels = c("A", "B", "C", "D", "E", "F"), 
+                    label_size=panel.lab.sz)
 
 ##Save Figure
 ggsave(filename="Figures/03_Performance/FigS4_InitialHeatAssay.png", plot=IN_HeatAssay_fig, dpi=300, width=8, height=11, units="in")
@@ -2474,7 +2709,13 @@ ggsave(filename="Figures/03_Performance/FigS5_ToleranceMetrics.png", plot=Tol_fi
 
 # Tables
 
-### Table S5
+### Table S5 Growth and Tolerance LM
+Update
+```{r}
+##Combine Results Tables
+TableS5A_Growth<-data.frame(rbind(TLE_T1.2.res, TLE_T3.4.res))
+```
+
 
 ```{r}
 ##Dataframe of Performance Results 
@@ -2566,38 +2807,28 @@ write.csv(TableS5, "Outputs/TableS5.csv", row.names=FALSE)
 ```
 
 
-### Table S6
+### Table S6 Initial Heat Assay LM
 ```{r}
-##Dataframe of Initial Thermal Tolerance Assay Results 
-##Model Results
-TableS6.model<-data.frame(rbind(
-  summary(PAM.lme_IN)$coefficients[-1,], summary(Sym.lme_IN)$coefficients[-1,], summary(Chl.lme_IN)$coefficients[-1,]))
+##Combine Results Tables
+TableS6_IN_Tolerance<-data.frame(rbind(PAM_IN.res, Sym_IN.res, Chl_IN.res))
 
-names(TableS6.model)<-c("Estimate", "SE", "DF", "t", "p") 
+##Organize
+names(TableS6_IN_Tolerance)
+TableS6_IN_Tolerance<-TableS6_IN_Tolerance %>% dplyr::rename(Estimate = estimate, DF = df, t = t.ratio, p = p.value, EffectSize = EtaSq)
+TableS6_IN_Tolerance<-TableS6_IN_Tolerance[,c("Response", "Predictor", "Estimate", "SE", "DF", "t", "p", "EffectSize")]
 
-TableS6.emmeans<-data.frame(rbind(
-data.frame(rbind(emmeans(PAM.lme_IN, pairwise ~ Site | Treatment)$contrasts[1], emmeans(PAM.lme_IN, pairwise ~ Site | Treatment)$contrasts[2], emmeans(PAM.lme_IN, pairwise ~ Treatment | Site)$contrasts[1], emmeans(PAM.lme_IN, pairwise ~ Treatment | Site)$contrasts[2]))[,-c(1:3)], 
-data.frame(rbind(emmeans(Sym.lme_IN, pairwise ~ Site | Treatment)$contrasts[1], emmeans(Sym.lme_IN, pairwise ~ Site | Treatment)$contrasts[2], emmeans(Sym.lme_IN, pairwise ~ Treatment | Site)$contrasts[1], emmeans(Sym.lme_IN, pairwise ~ Treatment | Site)$contrasts[2]))[,-c(1:3)],
-data.frame(rbind(emmeans(Chl.lme_IN, pairwise ~ Site | Treatment)$contrasts[1], emmeans(Chl.lme_IN, pairwise ~ Site | Treatment)$contrasts[2], emmeans(Chl.lme_IN, pairwise ~ Treatment | Site)$contrasts[1], emmeans(Chl.lme_IN, pairwise ~ Treatment | Site)$contrasts[2]))[,-c(1:3)]))
+#Round to 3 digits
+TableS6_IN_Tolerance$Estimate<-round(TableS6_IN_Tolerance$Estimate, 3)
+TableS6_IN_Tolerance$SE<-round(TableS6_IN_Tolerance$SE, 3)
+TableS6_IN_Tolerance$DF<-round(TableS6_IN_Tolerance$DF, 3)
+TableS6_IN_Tolerance$t<-round(TableS6_IN_Tolerance$t, 3)
+TableS6_IN_Tolerance$p<-round(TableS6_IN_Tolerance$p, 3)
 
-names(TableS6.emmeans)<-c("Estimate", "SE", "DF", "t", "p") 
+#Integer
+TableS6_IN_Tolerance$DF<-round(TableS6_IN_Tolerance$DF, 0)
 
-TableS6<-rbind(TableS6.model[1:3,], TableS6.emmeans[1:4,], TableS6.model[4:6,], TableS6.emmeans[5:8,], TableS6.model[7:9,], TableS6.emmeans[9:12,])
+##Write Out Table
+write.csv(TableS6_IN_Tolerance, "Tables/TableS6_Initial_Tolerance_LM_Results.csv", row.names=FALSE)
 
-##Metadata 
-TableS6$Metric<-c(rep("FvFm", 7), rep("Symbionts", 7), rep("Chlorophyll", 7))
-TableS6$Predictor<-c(rep(c("Site", "Treatment", "Site x Treatment", "Control Site", "Heated Site", "KL Treatment", "SS Treatment"), 3))
-
-
-##Effect Size  
-TableS6$EtaSq<-c(eta_squared(PAM.lme_IN)$Eta2_partial, NA, NA, NA, NA, eta_squared(Sym.lme_IN)$Eta2_partial, NA, NA, NA, NA, eta_squared(Chl.lme_IN)$Eta2_partial, NA, NA, NA, NA)
-
-TableS6<-TableS6[,c(6:7, 1:5, 8)]
-
-rownames(TableS6)<-NULL
-
-##Save Table
-write.csv(TableS6, "Outputs/TableS6.csv", row.names=FALSE)
-  
 ```
 
