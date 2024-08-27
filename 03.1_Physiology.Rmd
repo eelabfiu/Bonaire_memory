@@ -2067,7 +2067,7 @@ theme_classic()+
 
 # Figures
 
-### Figure 2 Univariate Physiology
+### Figure 3 Univariate Physiology
 
 #### Adjust for Panel
 ```{r}
@@ -2126,7 +2126,7 @@ Chl.ES.plot<-Chl.ES.plot + theme(legend.position="none")
 ```
 
 
-#### Figure 2
+#### Figure 3
 ```{r}
 ##Create Panel
 Phys_fig<-plot_grid(TP1_BioHost.plot, TP2_BioHost.plot, 
@@ -2141,32 +2141,32 @@ Phys_fig<-plot_grid(TP1_BioHost.plot, TP2_BioHost.plot,
                     nrow=4, ncol=5, byrow=T, labels = NULL)
 
 ##Save Figure
-ggsave(filename="Figures/02_Physiology/Fig2_Physiology.png", plot=Phys_fig, dpi=300, width=16, height=16, units="in")
+ggsave(filename="Figures/02_Physiology/Fig3_Physiology.png", plot=Phys_fig, dpi=300, width=16, height=16, units="in")
 
 ```
 
 
 # Tables 
 
-### Table S3 Physiology PERMANOVA and PERMDISP
+### Table S3A Physiology PERMANOVA and PERMDISP
 ```{r}
 ##Combine Results Tables
-TableS3_Phys.PERM<-data.frame(rbind(PERM_T1.res, PERM_T2.res, PERM_T3.res, PERM_T4.res))
+TableS3A_Phys.PERM<-data.frame(rbind(PERM_T1.res, PERM_T2.res, PERM_T3.res, PERM_T4.res))
 
 ##Organize
-names(TableS3_Phys.PERM)
-TableS3_Phys.PERM<-TableS3_Phys.PERM %>% dplyr::rename( DF = Df, SS = SumOfSqs, EffectSize = parOmegaSq, p = Pr..F.)
-TableS3_Phys.PERM<-TableS3_Phys.PERM[,c("Timepoint", "Predictor", "DF", "SS", "F",   "EffectSize", "p", "p_DISP")]
+names(TableS3A_Phys.PERM)
+TableS3A_Phys.PERM<-TableS3A_Phys.PERM %>% dplyr::rename( DF = Df, SS = SumOfSqs, EffectSize = parOmegaSq, p = Pr..F.)
+TableS3A_Phys.PERM<-TableS3A_Phys.PERM[,c("Timepoint", "Predictor", "DF", "SS", "F",   "EffectSize", "p", "p_DISP")]
 
 #Round to 3 digits
-TableS3_Phys.PERM$SS<-round(TableS3_Phys.PERM$SS, 3)
-TableS3_Phys.PERM$F<-round(TableS3_Phys.PERM$F, 3)
-TableS3_Phys.PERM$EffectSize<-round(TableS3_Phys.PERM$EffectSize, 3)
-TableS3_Phys.PERM$p<-round(TableS3_Phys.PERM$p, 3)
-TableS3_Phys.PERM$p_DISP<-round(TableS3_Phys.PERM$p_DISP, 3)
+TableS3A_Phys.PERM$SS<-round(TableS3A_Phys.PERM$SS, 3)
+TableS3A_Phys.PERM$F<-round(TableS3A_Phys.PERM$F, 3)
+TableS3A_Phys.PERM$EffectSize<-round(TableS3A_Phys.PERM$EffectSize, 3)
+TableS3A_Phys.PERM$p<-round(TableS3A_Phys.PERM$p, 3)
+TableS3A_Phys.PERM$p_DISP<-round(TableS3A_Phys.PERM$p_DISP, 3)
 
 ##Write Out Table
-write.csv(TableS3_Phys.PERM, "Tables/TableS3_Physiology_PERM_Results.csv", row.names=FALSE)
+write.csv(TableS3A_Phys.PERM, "Tables/TableS3A_Physiology_PERM_Results.csv", row.names=FALSE)
 
 
 ```
