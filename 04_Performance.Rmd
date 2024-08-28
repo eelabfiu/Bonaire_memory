@@ -1969,8 +1969,6 @@ Tol_T4.res$TimeP<-rep("TP4", nrow(Tol_T4.res))
 
 
 ### Effect Size over Time
-
-### Effect Size over Time
 ```{r}
 ##Dataframe of effect size results
 Tol.ES<-rbind(Tol_T1.res, Tol_T2.res, Tol_T2.res, Tol_T4.res)
@@ -2045,10 +2043,10 @@ theme_classic()+
 
 
 # Trade Offs
-Update below here
-## Initial T1 and T2
 
-### Average Performance
+### Initial T1 and T2
+
+#### Average Performance
 Calculating the average of Growth (TP1 to TP2) and Thermal Tolerance (Retention of Symbionts, Chlorophyll, and Photochemical Efficiency at TP1) for each Set (Site, Genotype, Origin).
 
 #### Growth
@@ -2112,8 +2110,9 @@ cor.test(T1.2_Perf_Set$TLE_cm.day, T1.2_Perf_Set$Sym.prop, method="spearman")
 ```{r Plot Growth vs Symbiont Retention T12}
 T1.2_TLE_Sym.plot<-ggplot(T1.2_Perf_Set, aes(x=TLE_cm.day, y=Sym.prop)) + 
    geom_smooth(method="lm", color="#AA185AFF", fill="#F8D7BFFF", se=TRUE)+
-   geom_point(aes(colour=Site.Orig),size=point.sz)+
+   geom_point(aes(colour=Site.Orig, shape=Genotype),size=point.sz)+
     scale_colour_manual(values=Orig.colors.o)+
+  scale_shape_manual(values=Geno.shapes.o)+
    theme_classic()+
   theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
         axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
@@ -2122,7 +2121,7 @@ T1.2_TLE_Sym.plot<-ggplot(T1.2_Perf_Set, aes(x=TLE_cm.day, y=Sym.prop)) +
   labs(x=expression(paste('Growth Rate (cm day'^-1*")")), 
        y="Symbiont Retention", 
        colour="Site Origin")+
-   annotate("text", x = 0.07, y = 0, label=expression(bolditalic(paste(r[S], " = -0.615, p = 0.037"))), size=sig.sz, hjust = 0); T1.2_TLE_Sym.plot
+   annotate("text", x = 0.07, y = -.15, label=expression(bolditalic(paste(r[S], " = -0.615, p = 0.037"))), size=sig.sz, hjust = 0); T1.2_TLE_Sym.plot
 ```
 
 
@@ -2136,8 +2135,9 @@ cor.test(T1.2_Perf_Set$TLE_cm.day, T1.2_Perf_Set$Chl.prop, method="spearman")
 ```{r Plot Growth vs Chlorophyll Retention T12}
 T1.2_TLE_Chl.plot<-ggplot(T1.2_Perf_Set, aes(x=TLE_cm.day, y=Chl.prop)) + 
    geom_smooth(method="lm", color="#AA185AFF", fill="#F8D7BFFF", se=TRUE)+
-   geom_point(aes(colour=Site.Orig),size=point.sz)+
+   geom_point(aes(colour=Site.Orig, shape=Genotype),size=point.sz)+
     scale_colour_manual(values=Orig.colors.o)+
+  scale_shape_manual(values=Geno.shapes.o)+
    theme_classic()+
   theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
         axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
@@ -2146,7 +2146,7 @@ T1.2_TLE_Chl.plot<-ggplot(T1.2_Perf_Set, aes(x=TLE_cm.day, y=Chl.prop)) +
   labs(x=expression(paste('Growth Rate (cm day'^-1*")")), 
        y="Chlorophyll Retention", 
        colour="Site Origin")+
-   annotate("text", x = 0.07, y = 0, label=expression(bolditalic(paste(r[S], " = -0.587, p = 0.049"))), size=sig.sz, hjust = 0); T1.2_TLE_Chl.plot
+   annotate("text", x = 0.07, y = -.05, label=expression(bolditalic(paste(r[S], " = -0.587, p = 0.049"))), size=sig.sz, hjust = 0); T1.2_TLE_Chl.plot
 ```
 
 
@@ -2160,8 +2160,9 @@ cor.test(T1.2_Perf_Set$TLE_cm.day, T1.2_Perf_Set$PAM.prop, method="spearman")
 ```{r Plot Growth vs FvFm Retention T12}
 T1.2_TLE_PAM.plot<-ggplot(T1.2_Perf_Set, aes(x=TLE_cm.day, y=PAM.prop)) + 
    geom_smooth(method="lm", color="#AA185AFF", fill="#F8D7BFFF", se=TRUE)+
-   geom_point(aes(colour=Site.Orig),size=point.sz)+
+   geom_point(aes(colour=Site.Orig, shape=Genotype),size=point.sz)+
     scale_colour_manual(values=Orig.colors.o)+
+  scale_shape_manual(values=Geno.shapes.o)+
    theme_classic()+
   theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
         axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
@@ -2170,13 +2171,13 @@ T1.2_TLE_PAM.plot<-ggplot(T1.2_Perf_Set, aes(x=TLE_cm.day, y=PAM.prop)) +
   labs(x=expression(paste('Growth Rate (cm day'^-1*")")), 
        y="Photo. Effic. Retention", 
        colour="Site Origin")+
-   annotate("text", x = 0.07, y = 0.74, label=expression(bolditalic(paste(r[S], " = -0.678, p = 0.019"))), size=sig.sz, hjust = 0); T1.2_TLE_PAM.plot
+   annotate("text", x = 0.07, y = 0.7, label=expression(bolditalic(paste(r[S], " = -0.678, p = 0.019"))), size=sig.sz, hjust = 0); T1.2_TLE_PAM.plot
 ```
 
 
-## Final T3 and T4
+### Final T3 and T4
 
-### Average Performance
+#### Average Performance
 Calculating the average of Growth (TP3 to TP4) and Thermal Tolerance (Retention of Symbionts, Chlorophyll, and Photochemical Efficiency at TP3) for each Set (Site, Genotype, Origin).
 
 #### Growth
@@ -2240,8 +2241,9 @@ cor.test(T3.4_Perf_Set$TLE_cm.day, T3.4_Perf_Set$Sym.prop, method="spearman")
 ```{r Plot Growth vs Symbiont Retention T34}
 T3.4_TLE_Sym.plot<-ggplot(T3.4_Perf_Set, aes(x=TLE_cm.day, y=Sym.prop)) + 
    geom_smooth(method="lm", color="#AA185AFF", fill="#F8D7BFFF", se=TRUE)+
-   geom_point(aes(colour=Site.Orig),size=point.sz)+
+   geom_point(aes(colour=Site.Orig, shape=Genotype),size=point.sz)+
     scale_colour_manual(values=Orig.colors.o)+
+  scale_shape_manual(values=Geno.shapes.o)+
    theme_classic()+
   theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
         axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
@@ -2250,7 +2252,7 @@ T3.4_TLE_Sym.plot<-ggplot(T3.4_Perf_Set, aes(x=TLE_cm.day, y=Sym.prop)) +
   labs(x=expression(paste('Growth Rate (cm day'^-1*")")), 
        y="Symbiont Retention", 
        colour="Site Origin")+
-   annotate("text", x = 0.07, y = 0, label=expression(italic(paste(r[S], " = -0.552, p = 0.067"))), size=sig.sz, hjust = 0); T3.4_TLE_Sym.plot
+   annotate("text", x = 0.07, y = 0.1, label=expression(italic(paste(r[S], " = -0.552, p = 0.067"))), size=sig.sz, hjust = 0); T3.4_TLE_Sym.plot
 ```
 
 
@@ -2264,8 +2266,9 @@ cor.test(T3.4_Perf_Set$TLE_cm.day, T3.4_Perf_Set$Chl.prop, method="spearman")
 ```{r Plot Growth vs Chlorophyll Retention T34}
 T3.4_TLE_Chl.plot<-ggplot(T3.4_Perf_Set, aes(x=TLE_cm.day, y=Chl.prop)) + 
    geom_smooth(method="lm", color="#AA185AFF", fill="#F8D7BFFF", se=TRUE)+
-   geom_point(aes(colour=Site.Orig),size=point.sz)+
+   geom_point(aes(colour=Site.Orig, shape=Genotype),size=point.sz)+
     scale_colour_manual(values=Orig.colors.o)+
+  scale_shape_manual(values=Geno.shapes.o)+
    theme_classic()+
   theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
         axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
@@ -2274,7 +2277,7 @@ T3.4_TLE_Chl.plot<-ggplot(T3.4_Perf_Set, aes(x=TLE_cm.day, y=Chl.prop)) +
   labs(x=expression(paste('Growth Rate (cm day'^-1*")")), 
        y="Chlorophyll Retention", 
        colour="Site Origin")+
-   annotate("text", x = 0.07, y = 0, label=expression(italic(paste(r[S], " = 0.327, p = 0.327"))), size=sig.sz, hjust = 0); T3.4_TLE_Chl.plot
+   annotate("text", x = 0.07, y = 0.065, label=expression(italic(paste(r[S], " = 0.327, p = 0.327"))), size=sig.sz, hjust = 0); T3.4_TLE_Chl.plot
 ```
 
 
@@ -2288,8 +2291,9 @@ cor.test(T3.4_Perf_Set$TLE_cm.day, T3.4_Perf_Set$PAM.prop, method="spearman")
 ```{r Plot Growth vs FvFm Retention T34}
 T3.4_TLE_PAM.plot<-ggplot(T3.4_Perf_Set, aes(x=TLE_cm.day, y=PAM.prop)) + 
    geom_smooth(method="lm", color="#AA185AFF", fill="#F8D7BFFF", se=TRUE)+
-   geom_point(aes(colour=Site.Orig),size=point.sz)+
+   geom_point(aes(colour=Site.Orig, shape=Genotype),size=point.sz)+
     scale_colour_manual(values=Orig.colors.o)+
+  scale_shape_manual(values=Geno.shapes.o)+
    theme_classic()+
   theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
         axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
@@ -2300,11 +2304,6 @@ T3.4_TLE_PAM.plot<-ggplot(T3.4_Perf_Set, aes(x=TLE_cm.day, y=PAM.prop)) +
        colour="Site Origin")+
    annotate("text", x = 0.07, y = 0.5, label=expression(bolditalic(paste(r[S], " = -0.748, p = 0.007"))), size=sig.sz, hjust = 0); T3.4_TLE_PAM.plot
 ```
-
-
-
-
-
 
 
 # Figures
@@ -2346,132 +2345,55 @@ ggsave(filename="Figures/03_Performance/Fig4_Growth.png", plot=Growth_fig, dpi=3
 
 
 
-### Figure 5 Tolerance ES
-Update and combine with old Fig S5
+### Figure 5 Thermal Tolerance
+
 #### Adjust Figures for Panel
 ```{r}
 ##FvFm Retention
-Tol_PAM.ES.plot.cut<-ggplot(Tol.ES[which(Tol.ES$Metric=="PAM.prop"),], aes(x=TimeP, y=EtaSq, fill=Site))+
-  geom_bar(stat="identity", position=position_dodge())+
-  scale_fill_manual(values=Site.colors.o)+
-  theme_classic()+
-  ggtitle("Photochemical Efficiency")+
-  theme(plot.title = element_text(colour="black", size=panel.lab.sz, hjust=0.5), axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
-        legend.box.background = element_rect(color = "black"), legend.position=c(0.8, 0.8))+
-  labs(x="Time Point", y=expression(paste("Effect Size (p", eta^2, ")")), colour="Site")+
-  ylim(0, 0.35)+
-  geom_text(aes(label=Sig), vjust=-0.02, color="black", position=position_dodge(0.9), size=levels.sz, fontface="bold")
+TP1_TolPAM.plot<-TP1_TolPAM.plot + ggtitle("TP1")+ 
+  labs(x="", y="Photo. Effic. Retention", colour=NULL)+
+  theme(plot.title = element_text(colour="black", size=panel.lab.sz, face="bold", hjust=0.5), 
+        legend.position=c(0.5, 0.15), legend.direction="horizontal")+
+  guides(color=guide_legend(nrow=2, byrow=FALSE))
+
+TP2_TolPAM.plot<-TP2_TolPAM.plot+ ggtitle("TP2")+ labs(x="", y="") +
+  theme(plot.title = element_text(colour="black", size=panel.lab.sz, face="bold", hjust=0.5), 
+        legend.position="none")
+
+TP3_TolPAM.plot<-TP3_TolPAM.plot+ ggtitle("TP3")+ labs(x="", y="") +
+  theme(plot.title = element_text(colour="black", size=panel.lab.sz, face="bold", hjust=0.5), 
+        legend.position="none")
+
+TP4_TolPAM.plot<-TP4_TolPAM.plot+ ggtitle("TP4")+ labs(x="", y="") +
+  theme(plot.title = element_text(colour="black", size=panel.lab.sz, face="bold", hjust=0.5), 
+        legend.position="none")
+
+Tol_PAM.ES.plot<-Tol_PAM.ES.plot + ggtitle("Photo. Effic.") + labs(x="") +
+  theme(legend.position=c(.8, .8))
+
 
 ##Symbiont Retention
-Tol_Sym.ES.plot.cut<-ggplot(Tol.ES[which(Tol.ES$Metric=="Sym.prop"),], aes(x=TimeP, y=EtaSq, fill=Site))+
-  geom_bar(stat="identity", position=position_dodge())+
-  scale_fill_manual(values=Site.colors.o)+
-  theme_classic()+
-  ggtitle("Symbionts")+
-  theme(plot.title = element_text(colour="black", size=panel.lab.sz, hjust=0.5), axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), legend.position="none")+
-  labs(x="Time Point", y=expression(paste("Effect Size (p", eta^2, ")")), colour="Site")+
-  ylim(0, 0.35)+
-  geom_text(aes(label=Sig), vjust=-0.02, color="black", position=position_dodge(0.9), size=levels.sz, fontface="bold")
+TP1_TolSym.plot<- TP1_TolSym.plot + labs(x="") + theme(legend.position="none")
+
+TP2_TolSym.plot<- TP2_TolSym.plot + labs(x="", y= "") + theme(legend.position="none")
+
+TP3_TolSym.plot<- TP3_TolSym.plot + labs(x="", y= "") + theme(legend.position="none")
+
+TP4_TolSym.plot<- TP4_TolSym.plot + labs(x="", y= "") + theme(legend.position="none")
+
+Tol_Sym.ES.plot<-Tol_Sym.ES.plot +  ggtitle("Symbionts") + labs(x="") + theme(legend.position="none")
 
 
 ##Chlorophyll Retention
-Tol_Chl.ES.plot.cut<-ggplot(Tol.ES[which(Tol.ES$Metric=="Chl.prop"),], aes(x=TimeP, y=EtaSq, fill=Site))+
-  geom_bar(stat="identity", position=position_dodge())+
-  scale_fill_manual(values=Site.colors.o)+
-  theme_classic()+
-  ggtitle("Chlorophyll")+
-  theme(plot.title = element_text(colour="black", size=panel.lab.sz, hjust=0.5), axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), legend.position="none")+
-  labs(x="Time Point", y=expression(paste("Effect Size (p", eta^2, ")")), colour="Site")+
-  ylim(0, 0.35)+
-  geom_text(aes(label=Sig), vjust=-0.02, color="black", position=position_dodge(0.9), size=levels.sz, fontface="bold")
+TP1_TolChl.plot<-TP1_TolChl.plot + theme(legend.position="none")
 
-```
+TP2_TolChl.plot<-TP2_TolChl.plot + labs(y="") + theme(legend.position="none")
 
+TP3_TolChl.plot<-TP3_TolChl.plot + labs(y="") + theme(legend.position="none")
 
-#### Figure 4
-```{r}
-##Create Panel
-Tolerance_fig<-plot_grid(Tol_PAM.ES.plot.cut, Tol_Sym.ES.plot.cut, 
-                         Tol_Chl.ES.plot.cut,
-                    rel_widths=1, rel_heights = 1,
-                    nrow=1, ncol=3, byrow=T, labels = c("A", "B", "C"))
+TP4_TolChl.plot<-TP4_TolChl.plot + labs(y="") + theme(legend.position="none")
 
-##Save Figure
-ggsave(filename="Figures/03_Performance/Fig4_Tolerance.png", plot=Tolerance_fig, dpi=300, width=14, height=4, units="in")
-
-```
-
-
-### Figure 6 Growth vs Tolerance
-Update
-#### Adjust Figures for Panel
-```{r}
-##Growth vs FvFm Retention T1.2
-T1.2_TLE_PAM.plot.cut<-ggplot(T1.2_Perf_Set, aes(x=TLE_cm.day, y=PAM.prop)) + 
-   geom_smooth(method="lm", color="#AA185AFF", fill="#F8D7BFFF", se=TRUE)+
-   geom_point(aes(colour=Site.Orig),size=point.sz)+
-    scale_colour_manual(values=Orig.colors.o)+
-   theme_classic()+
-  theme(axis.title.x = element_text(size = axis.title.sz), 
-        axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
-        axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
-        legend.position="none")+
-  labs(x=expression(paste('Growth Rate (cm day'^-1*")")), 
-       y="Photo. Effic. Retention", 
-       colour="Site Origin")+
-   annotate("text", x = 0.07, y = 0.75, label=expression(bolditalic(paste(r[S], " = -0.678, p = 0.019"))), size=sig.sz, hjust = 0)
-
-##Growth vs Symbiont Retention T1.2
-T1.2_TLE_Sym.plot.cut<-ggplot(T1.2_Perf_Set, aes(x=TLE_cm.day, y=Sym.prop)) + 
-   geom_smooth(method="lm", color="#AA185AFF", fill="#F8D7BFFF", se=TRUE)+
-   geom_point(aes(colour=Site.Orig),size=point.sz)+
-    scale_colour_manual(values=Orig.colors.o)+
-   theme_classic()+
-  theme(axis.title.x = element_text(size = axis.title.sz), 
-        axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
-        axis.text.y=element_text(size=axis.txt.sz, colour="black"),
-        legend.position="none")+
-  labs(x=expression(paste('Growth Rate (cm day'^-1*")")), 
-       y="Symbiont Retention", 
-       colour="Site Origin")+
-   annotate("text", x = 0.07, y = 0, label=expression(bolditalic(paste(r[S], " = -0.615, p = 0.037"))), size=sig.sz, hjust = 0)
-
-##Growth vs FvFm Retention T3.4
-T3.4_TLE_PAM.plot.cut<-ggplot(T3.4_Perf_Set, aes(x=TLE_cm.day, y=PAM.prop)) + 
-   geom_smooth(method="lm", color="#AA185AFF", fill="#F8D7BFFF", se=TRUE)+
-   geom_point(aes(colour=Site.Orig),size=point.sz)+
-    scale_colour_manual(values=Orig.colors.o)+
-   theme_classic()+
-  theme(axis.title.x = element_text(size = axis.title.sz), 
-        axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
-        axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
-        legend.position="none")+
-  labs(x=expression(paste('Growth Rate (cm day'^-1*")")), 
-       y="Photo. Effic. Retention", 
-       colour="Site Origin")+
-   annotate("text", x = 0.07, y = 0.5, label=expression(bolditalic(paste(r[S], " = -0.748, p = 0.007"))), size=sig.sz, hjust = 0)
-
-##Growth vs Symbiont Retention T3.4
-T3.4_TLE_Sym.plot.cut<-ggplot(T3.4_Perf_Set, aes(x=TLE_cm.day, y=Sym.prop)) + 
-   geom_smooth(method="lm", color="#AA185AFF", fill="#F8D7BFFF", se=TRUE)+
-   geom_point(aes(colour=Site.Orig),size=point.sz)+
-    scale_colour_manual(values=Orig.colors.o)+
-   theme_classic()+
-  theme(axis.title.x = element_text(size = axis.title.sz), 
-        axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
-        axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
-        legend.position="none")+
-  labs(x=expression(paste('Growth Rate (cm day'^-1*")")), 
-       y="Symbiont Retention", 
-       colour="Site Origin")+
-   annotate("text", x = 0.07, y = 0, label=expression(italic(paste(r[S], " = -0.552, p = 0.067"))), size=sig.sz, hjust = 0)
+Tol_Chl.ES.plot<-Tol_Chl.ES.plot + ggtitle("Chlorophyll")+ theme(legend.position="none")
 
 ```
 
@@ -2479,14 +2401,60 @@ T3.4_TLE_Sym.plot.cut<-ggplot(T3.4_Perf_Set, aes(x=TLE_cm.day, y=Sym.prop)) +
 #### Figure 5
 ```{r}
 ##Create Panel
-TradeOff_fig<-plot_grid(T1.2_TLE_PAM.plot.cut, T1.2_TLE_Sym.plot.cut, T1.2_TLE_Chl.plot,
-                        T3.4_TLE_PAM.plot.cut, T3.4_TLE_Sym.plot.cut, T3.4_TLE_Chl.plot,
-                    rel_widths=c(.75, .75, 1,.75, .75, 1), 
-                    rel_heights = 1,
-                    nrow=2, ncol=3, byrow=T, labels = c("A", "B", "C", "D", "E", "F"))
+Tolerance_fig<-plot_grid(TP1_TolPAM.plot, TP2_TolPAM.plot, 
+                      TP3_TolPAM.plot, TP4_TolPAM.plot, Tol_PAM.ES.plot, 
+                      TP1_TolSym.plot, TP2_TolSym.plot, 
+                      TP3_TolSym.plot, TP4_TolSym.plot, Tol_Sym.ES.plot, 
+                      TP1_TolChl.plot, TP2_TolChl.plot, 
+                      TP3_TolChl.plot, TP4_TolChl.plot, Tol_Chl.ES.plot, 
+                    rel_widths=c(0.8, 0.8, 0.8, 0.8, 1), rel_heights = 1,
+                    nrow=3, ncol=5, byrow=T, labels = NULL)
 
 ##Save Figure
-ggsave(filename="Figures/03_Performance/Fig4_TradeOff.png", plot=TradeOff_fig, dpi=300, width=12, height=8, units="in")
+ggsave(filename="Figures/03_Performance/Fig5_Tolerance.png", plot=Tolerance_fig, dpi=300, width=16, height=12, units="in")
+
+```
+
+
+### Figure 6 Growth vs Tolerance
+
+#### Adjust Figures for Panel
+```{r}
+##Timepoint 1 to 2
+T1.2_TLE_PAM.plot<-T1.2_TLE_PAM.plot + ggtitle("Photo. Effic.")+ labs(x="", y = "Tolerance")+
+  theme(plot.title = element_text(colour="black", size=panel.lab.sz, hjust=0.5), legend.position="none")
+
+T1.2_TLE_Sym.plot<- T1.2_TLE_Sym.plot + ggtitle("Symbionts")+ labs(x="", y = "")+
+  theme(plot.title = element_text(colour="black", size=panel.lab.sz, hjust=0.5), legend.position="none") + ylim(-.15, .8)
+
+T1.2_TLE_Chl.plot<- T1.2_TLE_Chl.plot + ggtitle("Chlorophyll")+ labs(x="", y = "")+
+  theme(plot.title = element_text(colour="black", size=panel.lab.sz, hjust=0.5), legend.position="right")
+
+##Timepoint 3 to 4
+T3.4_TLE_PAM.plot<-T3.4_TLE_PAM.plot + labs(x="Growth", y = "Tolerance") +
+  theme(legend.position="none")
+
+T3.4_TLE_Sym.plot<-T3.4_TLE_Sym.plot + labs(x="Growth", y = "") +
+  theme(legend.position="none")
+
+T3.4_TLE_Chl.plot<-T3.4_TLE_Chl.plot + labs(x="Growth", y = "") +
+  theme(legend.position="right") 
+
+```
+
+
+#### Figure 6
+```{r}
+##Create Panel
+TradeOff_fig<-plot_grid(T1.2_TLE_PAM.plot, T1.2_TLE_Sym.plot, T1.2_TLE_Chl.plot,
+                      T3.4_TLE_PAM.plot, T3.4_TLE_Sym.plot, T3.4_TLE_Chl.plot,
+                    rel_widths=c(.7, .7, 1, .7, .7, 1), rel_heights = c(1, .9),
+                    nrow=2, ncol=3, byrow=T, 
+                    labels = c("A", "B", "C", "D", "E", "F"), 
+                    label_size=panel.lab.sz)
+
+##Save Figure
+ggsave(filename="Figures/03_Performance/Fig6_TradeOff.png", plot=TradeOff_fig, dpi=300, width=12, height=8, units="in")
 
 ```
 
@@ -2535,274 +2503,34 @@ ggsave(filename="Figures/03_Performance/FigS4_InitialHeatAssay.png", plot=IN_Hea
 ```
 
 
-### Figure S5 Univariate Panels
-
-#### Adjust Figures for Panel
-```{r}
-
-##FvFm
-TP1_TolPAM.plot.cut<-ggplot(TP1_TolPAM.sum, aes(x=Site, y=PAM.prop, colour=Site.Orig)) + 
-  scale_colour_manual(values=Orig.colors.o)+
-  geom_errorbar(aes(ymin=PAM.prop-se, ymax=PAM.prop+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
-  geom_point(size=point.sz, position=position_dodge(width=0.5))+
-  theme_classic()+
-  ggtitle("TP1")+
-  theme(plot.title = element_text(colour="black", size=panel.lab.sz, face="bold", hjust=0.5),axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
-        legend.position="none")+
-  labs(x="", y="Photo. Effic. Retention", colour="Origin")+
-  ylim(0.7, 1)+
-  annotate("text", x=1, y=1, label="**", size=sig.sz, fontface="bold")
-
-TP2_TolPAM.plot.cut<-ggplot(TP2_TolPAM.sum, aes(x=Site, y=PAM.prop, colour=Site.Orig)) + 
-  scale_colour_manual(values=Orig.colors.o)+
-  geom_errorbar(aes(ymin=PAM.prop-se, ymax=PAM.prop+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
-  geom_point(size=point.sz, position=position_dodge(width=0.5))+
-  theme_classic()+
-  ggtitle("TP2")+
-  theme(plot.title = element_text(colour="black", size=panel.lab.sz, face="bold", hjust=0.5),axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
-        legend.position="none")+
-  labs(x="", y="", colour="Origin")+
-  ylim(0.7, 1)+
-  annotate("text", x=1, y=1, label="*", size=sig.sz, fontface="bold")
-
-TP3_TolPAM.plot.cut<-ggplot(TP3_TolPAM.sum, aes(x=Site, y=PAM.prop, colour=Site.Orig)) + 
-  scale_colour_manual(values=Orig.colors.o)+
-  geom_errorbar(aes(ymin=PAM.prop-se, ymax=PAM.prop+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
-  geom_point(size=point.sz, position=position_dodge(width=0.5))+
-  theme_classic()+
-  ggtitle("TP3")+
-  theme(plot.title = element_text(colour="black", size=panel.lab.sz, face="bold", hjust=0.5),axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
-        legend.position="none")+
-  labs(x="", y="", colour="Origin")+
-  ylim(0.7, 1)
-
-TP4_TolPAM.plot.cut<-ggplot(TP4_TolPAM.sum, aes(x=Site, y=PAM.prop, colour=Site.Orig)) + 
-  scale_colour_manual(values=Orig.colors.o)+
-  geom_errorbar(aes(ymin=PAM.prop-se, ymax=PAM.prop+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
-  geom_point(size=point.sz, position=position_dodge(width=0.5))+
-  theme_classic()+
-  ggtitle("TP4")+
-  theme(plot.title = element_text(colour="black", size=panel.lab.sz, face="bold", hjust=0.5),axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
-        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
-        legend.box.background = element_rect(color = "black"))+
-  labs(x="", y="", colour="Origin")+
-  ylim(0.7, 1)
-
-
-##Symbionts
-TP1_TolSym.plot.cut<-ggplot(TP1_TolSym.sum, aes(x=Site, y=Sym.prop, colour=Site.Orig)) + 
-  scale_colour_manual(values=Orig.colors.o)+
-  geom_errorbar(aes(ymin=Sym.prop-se, ymax=Sym.prop+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
-  geom_point(size=point.sz, position=position_dodge(width=0.5))+
-  theme_classic()+
-  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
-        legend.position="none")+
-  labs(x="", y="Symbiont Retention", colour="Origin")+
-  ylim(0.2, 1)+
-  annotate("text", x=1, y=0.75, label="*", size=sig.sz, fontface="bold")
-
-TP2_TolSym.plot.cut<-ggplot(TP2_TolSym.sum, aes(x=Site, y=Sym.prop, colour=Site.Orig)) + 
-  scale_colour_manual(values=Orig.colors.o)+
-  geom_errorbar(aes(ymin=Sym.prop-se, ymax=Sym.prop+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
-  geom_point(size=point.sz, position=position_dodge(width=0.5))+
-  theme_classic()+
-  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
-        legend.position="none")+
-  labs(x="", y="", colour="Origin")+
-  ylim(0.2, 1)
-
-TP3_TolSym.plot.cut<-ggplot(TP3_TolSym.sum, aes(x=Site, y=Sym.prop, colour=Site.Orig)) + 
-  scale_colour_manual(values=Orig.colors.o)+
-  geom_errorbar(aes(ymin=Sym.prop-se, ymax=Sym.prop+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
-  geom_point(size=point.sz, position=position_dodge(width=0.5))+
-  theme_classic()+
-  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
-        legend.position="none")+
-  labs(x="", y="", colour="Origin")+
-  ylim(0.2, 1)
-
-TP4_TolSym.plot.cut<-ggplot(TP4_TolSym.sum, aes(x=Site, y=Sym.prop, colour=Site.Orig)) + 
-  scale_colour_manual(values=Orig.colors.o)+
-  geom_errorbar(aes(ymin=Sym.prop-se, ymax=Sym.prop+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
-  geom_point(size=point.sz, position=position_dodge(width=0.5))+
-  theme_classic()+
-  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
-        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
-        legend.box.background = element_rect(color = "black"))+
-  labs(x="", y="", colour="Origin")+
-  ylim(0.2, 1)
-
-
-##Chlorophyll
-TP1_TolChl.plot.cut<-ggplot(TP1_TolChl.sum, aes(x=Site, y=Chl.prop, colour=Site.Orig)) + 
-  scale_colour_manual(values=Orig.colors.o)+
-  geom_errorbar(aes(ymin=Chl.prop-se, ymax=Chl.prop+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
-  geom_point(size=point.sz, position=position_dodge(width=0.5))+
-  theme_classic()+
-  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
-        legend.position="none")+
-  labs(x="Site and Origin", y="Chlorophyll Retention", colour="Origin")+
-  ylim(0, .8)
-
-TP2_TolChl.plot.cut<-ggplot(TP2_TolChl.sum, aes(x=Site, y=Chl.prop, colour=Site.Orig)) + 
-  scale_colour_manual(values=Orig.colors.o)+
-  geom_errorbar(aes(ymin=Chl.prop-se, ymax=Chl.prop+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
-  geom_point(size=point.sz, position=position_dodge(width=0.5))+
-  theme_classic()+
-  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
-        legend.position="none")+
-  labs(x="Site and Origin", y="", colour="Origin")+
-  ylim(0, .8)
-
-TP3_TolChl.plot.cut<-ggplot(TP3_TolChl.sum, aes(x=Site, y=Chl.prop, colour=Site.Orig)) + 
-  scale_colour_manual(values=Orig.colors.o)+
-  geom_errorbar(aes(ymin=Chl.prop-se, ymax=Chl.prop+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
-  geom_point(size=point.sz, position=position_dodge(width=0.5))+
-  theme_classic()+
-  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
-        legend.position="none")+
-  labs(x="Site and Origin", y="", colour="Origin")+
-  ylim(0, .8)
-
-TP4_TolChl.plot.cut<-ggplot(TP4_TolChl.sum, aes(x=Site, y=Chl.prop, colour=Site.Orig)) + 
-  scale_colour_manual(values=Orig.colors.o)+
-  geom_errorbar(aes(ymin=Chl.prop-se, ymax=Chl.prop+se), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
-  geom_point(size=point.sz, position=position_dodge(width=0.5))+
-  theme_classic()+
-  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
-        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
-        legend.box.background = element_rect(color = "black"))+
-  labs(x="Site and Origin", y="", colour="Origin")+
-  ylim(0, .8)
-
-```
-
-
-#### Figure S5
-```{r}
-##Create Panel
-Tol_fig<-plot_grid(
-  TP1_TolPAM.plot.cut,TP2_TolPAM.plot.cut,TP3_TolPAM.plot.cut,TP4_TolPAM.plot.cut,
-  TP1_TolSym.plot.cut,TP2_TolSym.plot.cut,TP3_TolSym.plot.cut,TP4_TolSym.plot.cut,
-  TP1_TolChl.plot.cut,TP2_TolChl.plot.cut,TP3_TolChl.plot.cut,TP4_TolChl.plot.cut,
-                    rel_widths=c(rep(c(0.7, 0.7, 0.7,1),3)), 
-                    rel_heights = c(1,0.85,0.85),
-                    nrow=3, ncol=4, byrow=T, labels = NULL)
-
-##Save Figure
-ggsave(filename="Figures/03_Performance/FigS5_ToleranceMetrics.png", plot=Tol_fig, dpi=300, width=12, height=10, units="in")
-
-```
-
-
 # Tables
 
-### Table S5 Growth and Tolerance LM
-Update
+### Table S5 Performance LM
 ```{r}
 ##Combine Results Tables
 TableS5A_Growth<-data.frame(rbind(TLE_T1.2.res, TLE_T3.4.res))
-```
+TableS5B_Tolerance<-data.frame(rbind(Tol_T1.res, Tol_T2.res, Tol_T2.res, Tol_T4.res))
+names(TableS5B_Tolerance)[9]<-"Timepoint"
 
+TableS5_Perf.LM<-rbind(TableS5A_Growth, TableS5B_Tolerance)
+  
+##Organize
+names(TableS5_Perf.LM)
+TableS5_Perf.LM<-TableS5_Perf.LM %>% dplyr::rename(SE = Std..Error, DF = df, t = t.value, p = Pr...t.., EffectSize = EtaSq)
+TableS5_Perf.LM<-TableS5_Perf.LM[,c("Timepoint", "Response", "Predictor", "Estimate", "SE", "DF", "t", "p", "EffectSize")]
 
-```{r}
-##Dataframe of Performance Results 
-##Model Results
-TableS5<-data.frame(rbind(
-   summary(TLE_T1.2.lme)$coefficients[-1,],summary(TLE_T1.2.lme_KL)$coefficients[-1,],
-   summary(TLE_T1.2.lme_SS)$coefficients[-1,],
-   summary(TLE_T3.4.lme)$coefficients[-1,],summary(TLE_T3.4.lme_KL)$coefficients[-1,],
-   summary(TLE_T3.4.lme_SS)$coefficients[-1,],
-   
-   summary(Tol_PAM.lme_TP1)$coefficients[-1,],summary(Tol_PAM.lme_TP1_KL)$coefficients[-1,],
-   summary(Tol_PAM.lme_TP1_SS)$coefficients[-1,],
-   summary(Tol_Sym.lme_TP1)$coefficients[-1,],summary(Tol_Sym.lme_TP1_KL)$coefficients[-1,],
-   summary(Tol_Sym.lme_TP1_SS)$coefficients[-1,], 
-   summary(Tol_Chl.lme_TP1)$coefficients[-1,],summary(Tol_Chl.lme_TP1_KL)$coefficients[-1,],
-   summary(Tol_Chl.lme_TP1_SS)$coefficients[-1,], 
-   
-    summary(Tol_PAM.lme_TP2)$coefficients[-1,],summary(Tol_PAM.lme_TP2_KL)$coefficients[-1,],
-   summary(Tol_PAM.lme_TP2_SS)$coefficients[-1,],
-   summary(Tol_Sym.lme_TP2)$coefficients[-1,],summary(Tol_Sym.lme_TP2_KL)$coefficients[-1,],
-   summary(Tol_Sym.lme_TP2_SS)$coefficients[-1,], 
-   summary(Tol_Chl.lme_TP2)$coefficients[-1,],summary(Tol_Chl.lme_TP2_KL)$coefficients[-1,],
-   summary(Tol_Chl.lme_TP2_SS)$coefficients[-1,], 
-   
-      summary(Tol_PAM.lme_TP3)$coefficients[-1,],summary(Tol_PAM.lme_TP3_KL)$coefficients[-1,],
-   summary(Tol_PAM.lme_TP3_SS)$coefficients[-1,],
-   summary(Tol_Sym.lme_TP3)$coefficients[-1,],summary(Tol_Sym.lme_TP3_KL)$coefficients[-1,],
-   summary(Tol_Sym.lme_TP3_SS)$coefficients[-1,], 
-   summary(Tol_Chl.lme_TP3)$coefficients[-1,],summary(Tol_Chl.lme_TP3_KL)$coefficients[-1,],
-   summary(Tol_Chl.lme_TP3_SS)$coefficients[-1,], 
-   
-      summary(Tol_PAM.lme_TP4)$coefficients[-1,],summary(Tol_PAM.lme_TP4_KL)$coefficients[-1,],
-   summary(Tol_PAM.lme_TP4_SS)$coefficients[-1,],
-   summary(Tol_Sym.lme_TP4)$coefficients[-1,],summary(Tol_Sym.lme_TP4_KL)$coefficients[-1,],
-   summary(Tol_Sym.lme_TP4_SS)$coefficients[-1,], 
-   summary(Tol_Chl.lme_TP4)$coefficients[-1,],summary(Tol_Chl.lme_TP4_KL)$coefficients[-1,],
-   summary(Tol_Chl.lme_TP4_SS)$coefficients[-1,]))
+#Round to 3 digits
+TableS5_Perf.LM$Estimate<-round(TableS5_Perf.LM$Estimate, 3)
+TableS5_Perf.LM$SE<-round(TableS5_Perf.LM$SE, 3)
+TableS5_Perf.LM$t<-round(TableS5_Perf.LM$t, 3)
+TableS5_Perf.LM$p<-round(TableS5_Perf.LM$p, 3)
+TableS5_Perf.LM$EffectSize<-round(TableS5_Perf.LM$EffectSize, 3)
 
-names(TableS5)<-c("Estimate", "SE", "DF", "t", "p") 
+#Integer
+TableS5_Perf.LM$DF<-round(TableS5_Perf.LM$DF, 0)
 
-##Metadata 
-TableS5$Type<-c(rep("Growth", 10), rep("Tolerance", 60))
-TableS5$Metric<-c(rep("Growth", 10), rep(c(rep("FvFm", 5), rep("Symbionts", 5), rep("Chlorophyll", 5)), 4))
-TableS5$TimeP<-c(rep("TP1.2", 5),rep("TP3.4", 5), rep("TP1",15), rep("TP2",15), rep("TP3",15), rep("TP4",15))
-TableS5$Predictor<-c(rep(c("Origin", "Site", "Origin x Site", "KL Origin", "SS Origin"), 14))
-
-##Effect Size  
-TableS5$EtaSq<-c(
-  eta_squared(TLE_T1.2.lme)$Eta2_partial,eta_squared(TLE_T1.2.lme_KL)$Eta2_partial,
-   eta_squared(TLE_T1.2.lme_SS)$Eta2_partial,
-  eta_squared(TLE_T3.4.lme)$Eta2_partial,eta_squared(TLE_T3.4.lme_KL)$Eta2_partial,
-   eta_squared(TLE_T3.4.lme_SS)$Eta2_partial,
-   
-   eta_squared(Tol_PAM.lme_TP1)$Eta2_partial,eta_squared(Tol_PAM.lme_TP1_KL)$Eta2_partial,
-   eta_squared(Tol_PAM.lme_TP1_SS)$Eta2_partial,
-   eta_squared(Tol_Sym.lme_TP1)$Eta2_partial,eta_squared(Tol_Sym.lme_TP1_KL)$Eta2_partial,
-   eta_squared(Tol_Sym.lme_TP1_SS)$Eta2_partial, 
-   eta_squared(Tol_Chl.lme_TP1)$Eta2_partial,eta_squared(Tol_Chl.lme_TP1_KL)$Eta2_partial,
-   eta_squared(Tol_Chl.lme_TP1_SS)$Eta2_partial, 
-   
-    eta_squared(Tol_PAM.lme_TP2)$Eta2_partial,eta_squared(Tol_PAM.lme_TP2_KL)$Eta2_partial,
-   eta_squared(Tol_PAM.lme_TP2_SS)$Eta2_partial,
-   eta_squared(Tol_Sym.lme_TP2)$Eta2_partial,eta_squared(Tol_Sym.lme_TP2_KL)$Eta2_partial,
-   eta_squared(Tol_Sym.lme_TP2_SS)$Eta2_partial, 
-   eta_squared(Tol_Chl.lme_TP2)$Eta2_partial,eta_squared(Tol_Chl.lme_TP2_KL)$Eta2_partial,
-   eta_squared(Tol_Chl.lme_TP2_SS)$Eta2_partial, 
-   
-      eta_squared(Tol_PAM.lme_TP3)$Eta2_partial,eta_squared(Tol_PAM.lme_TP3_KL)$Eta2_partial,
-   eta_squared(Tol_PAM.lme_TP3_SS)$Eta2_partial,
-   eta_squared(Tol_Sym.lme_TP3)$Eta2_partial,eta_squared(Tol_Sym.lme_TP3_KL)$Eta2_partial,
-   eta_squared(Tol_Sym.lme_TP3_SS)$Eta2_partial, 
-   eta_squared(Tol_Chl.lme_TP3)$Eta2_partial,eta_squared(Tol_Chl.lme_TP3_KL)$Eta2_partial,
-   eta_squared(Tol_Chl.lme_TP3_SS)$Eta2_partial, 
-   
-      eta_squared(Tol_PAM.lme_TP4)$Eta2_partial,eta_squared(Tol_PAM.lme_TP4_KL)$Eta2_partial,
-   eta_squared(Tol_PAM.lme_TP4_SS)$Eta2_partial,
-   eta_squared(Tol_Sym.lme_TP4)$Eta2_partial,eta_squared(Tol_Sym.lme_TP4_KL)$Eta2_partial,
-   eta_squared(Tol_Sym.lme_TP4_SS)$Eta2_partial, 
-   eta_squared(Tol_Chl.lme_TP4)$Eta2_partial,eta_squared(Tol_Chl.lme_TP4_KL)$Eta2_partial,
-   eta_squared(Tol_Chl.lme_TP4_SS)$Eta2_partial)
-
-TableS5<-TableS5[,c(6:9, 1:5, 10)]
-
-rownames(TableS5)<-NULL
-
-##Save Table
-write.csv(TableS5, "Outputs/TableS5.csv", row.names=FALSE)
+##Write Out Table
+write.csv(TableS5_Perf.LM, "Tables/TableS5_Performance_LM_Results.csv", row.names=FALSE)
 
 ```
 
@@ -2820,9 +2548,9 @@ TableS6_IN_Tolerance<-TableS6_IN_Tolerance[,c("Response", "Predictor", "Estimate
 #Round to 3 digits
 TableS6_IN_Tolerance$Estimate<-round(TableS6_IN_Tolerance$Estimate, 3)
 TableS6_IN_Tolerance$SE<-round(TableS6_IN_Tolerance$SE, 3)
-TableS6_IN_Tolerance$DF<-round(TableS6_IN_Tolerance$DF, 3)
 TableS6_IN_Tolerance$t<-round(TableS6_IN_Tolerance$t, 3)
 TableS6_IN_Tolerance$p<-round(TableS6_IN_Tolerance$p, 3)
+TableS6_IN_Tolerance$EffectSize<-round(TableS6_IN_Tolerance$EffectSize, 3)
 
 #Integer
 TableS6_IN_Tolerance$DF<-round(TableS6_IN_Tolerance$DF, 0)

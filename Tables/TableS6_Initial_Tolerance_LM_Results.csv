@@ -1,25 +1,25 @@
 "Response","Predictor","Estimate","SE","DF","t","p","EffectSize"
-"FvFm","Site",0.014,0.008,43,1.676,0.101,0.291100050901909
-"FvFm","Treatment",-0.044,0.009,43,-5.182,0,0.41747986916297
-"FvFm","Site x Treatment",0.022,0.012,43,1.858,0.07,0.0743116843265678
+"FvFm","Site",0.014,0.008,43,1.676,0.101,0.291
+"FvFm","Treatment",-0.044,0.009,43,-5.182,0,0.417
+"FvFm","Site x Treatment",0.022,0.012,43,1.858,0.07,0.074
 "FvFm","Control Site",-0.014,0.008,41,-1.676,0.405,NA
 "FvFm","Heated Site",-0.036,0.009,41,-4.229,0.001,NA
 "FvFm","KL Treatment",0.044,0.009,41,5.171,0,NA
 "FvFm","SS Treatment",0.022,0.008,41,2.641,0.047,NA
-"FvFm Retention","Site",0.052,0.025,19,2.103,0.049,0.188762422987512
-"Symbionts","Site",0.195,0.062,41,3.147,0.003,0.301111446712016
-"Symbionts","Treatment",-0.204,0.063,41,-3.213,0.003,0.358415109434139
-"Symbionts","Site x Treatment",-0.017,0.089,41,-0.194,0.847,0.000920231268641703
+"FvFm Retention","Site",0.052,0.025,19,2.103,0.049,0.189
+"Symbionts","Site",0.195,0.062,41,3.147,0.003,0.301
+"Symbionts","Treatment",-0.204,0.063,41,-3.213,0.003,0.358
+"Symbionts","Site x Treatment",-0.017,0.089,41,-0.194,0.847,0.001
 "Symbionts","Control Site",-0.195,0.062,41,-3.147,0.012,NA
 "Symbionts","Heated Site",-0.178,0.063,41,-2.801,0.031,NA
 "Symbionts","KL Treatment",0.204,0.063,41,3.209,0.01,NA
 "Symbionts","SS Treatment",0.221,0.062,41,3.564,0.004,NA
-"Symbiont Retention","Site",0.143,0.073,19,1.964,0.064,0.168661012761919
-"Chlorophyll","Site",0.278,0.036,40,7.65,0,0.58459090742195
-"Chlorophyll","Treatment",-0.373,0.037,40,-10.024,0,0.881468519696247
-"Chlorophyll","Site x Treatment",-0.161,0.053,40,-3.061,0.004,0.189775095137176
+"Symbiont Retention","Site",0.143,0.073,19,1.964,0.064,0.169
+"Chlorophyll","Site",0.278,0.036,40,7.65,0,0.585
+"Chlorophyll","Treatment",-0.373,0.037,40,-10.024,0,0.881
+"Chlorophyll","Site x Treatment",-0.161,0.053,40,-3.061,0.004,0.19
 "Chlorophyll","Control Site",-0.278,0.036,40,-7.65,0,NA
 "Chlorophyll","Heated Site",-0.117,0.038,40,-3.07,0.015,NA
 "Chlorophyll","KL Treatment",0.373,0.037,40,10.022,0,NA
 "Chlorophyll","SS Treatment",0.534,0.037,40,14.353,0,NA
-"Chlorophyll Retention","Site",0.043,0.025,18,1.713,0.104,0.139701691123596
+"Chlorophyll Retention","Site",0.043,0.025,18,1.713,0.104,0.14
