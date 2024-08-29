@@ -25,6 +25,7 @@ if (!require("ggplot2")) install.packages("ggplot2")
 if (!require("cowplot")) install.packages("cowplot")
 if (!require("Rmisc")) install.packages("Rmisc")
 if (!require("lme4")) install.packages("lme4")
+if (!require("lmerTest")) install.packages("lmerTest")
 if (!require("vegan")) install.packages("vegan")
 if (!require("corrplot")) install.packages("corrplot")
 if (!require("DHARMa")) install.packages("DHARMa")
@@ -39,6 +40,7 @@ library(ggplot2) #Required for ggplots
 library(cowplot) #Required for plotting panel figures
 library(Rmisc) #Required for SummarySE function
 library(lme4) #Required for mixed effects modeling
+library(lmerTest) #Required for p values with lme4 model summaries
 library(vegan) #Required for multivariate analysis PERM
 library(corrplot) #Required for correlation plot
 library(DHARMa) #Required to check residuals of mixed effects models
@@ -2060,7 +2062,7 @@ TP4_BioHost.plot<-TP4_BioHost.plot+ ggtitle("TP4")+ labs(x="", y="") +
   theme(plot.title = element_text(colour="black", size=panel.lab.sz, face="bold", hjust=0.5), 
         legend.position="none")
 
-Bio.C.ES.plot<-Bio.C.ES.plot + theme(legend.position=c(.15, .8))
+Bio.C.ES.plot<-Bio.C.ES.plot + labs(x="") + theme(legend.position=c(.15, .8))
 
 ##Biomass Symbiont
 TP1_BioSym.plot<-TP1_BioSym.plot + labs(x="") + theme(legend.position="none")
@@ -2071,7 +2073,7 @@ TP3_BioSym.plot<-TP3_BioSym.plot + labs(x="", y="") + theme(legend.position="non
 
 TP4_BioSym.plot<-TP4_BioSym.plot + labs(x="", y="") + theme(legend.position="none")
 
-Bio.S.ES.plot<-Bio.S.ES.plot + theme(legend.position="none") 
+Bio.S.ES.plot<-Bio.S.ES.plot + labs(x="") + theme(legend.position="none") 
 
 ##Protein Symbiont
 TP1_ProtSym.plot<-TP1_ProtSym.plot + labs(x="") + theme(legend.position="none")
@@ -2082,7 +2084,7 @@ TP3_ProtSym.plot<-TP3_ProtSym.plot + labs(x="", y="") + theme(legend.position="n
 
 TP4_ProtSym.plot<-TP4_ProtSym.plot + labs(x="", y="") + theme(legend.position="none")
 
-Prot.S.ES.plot<-Prot.S.ES.plot + theme(legend.position="none") 
+Prot.S.ES.plot<-Prot.S.ES.plot + labs(x="") + theme(legend.position="none") 
 
 ##Chlorophyll
 TP1_Chl.plot<-TP1_Chl.plot + theme(legend.position="none")
