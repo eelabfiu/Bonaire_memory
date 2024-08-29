@@ -530,6 +530,25 @@ std.error(TP3.4_Growth.KL$Perc.Inc)
 ```
 
 
+# Write Out Growth Data
+```{r}
+##Growth Data dataframe
+GrowthData<-Growth_T1.2
+
+##Specify Timepoints
+GrowthData<-GrowthData %>% dplyr::rename(T1.2_Ext_cm = Ext_cm, T1.2_TLE_cm.day = TLE_cm.day)
+
+##Merge with Timepoints 3 to 4
+GrowthData<-merge(GrowthData, Growth_T3.4, all=TRUE)
+
+##Specify Timepoints
+GrowthData<-GrowthData %>% dplyr::rename(T3.4_Ext_cm = Ext_cm, T3.4_TLE_cm.day = TLE_cm.day)
+
+##Growth Data
+write.csv(GrowthData, "Outputs/GrowthData.csv", row.names=FALSE)
+```
+
+
 # Thermal Tolerance
 
 ### Percent Retention
