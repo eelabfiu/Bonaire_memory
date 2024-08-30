@@ -1990,7 +1990,7 @@ Tol_T4.res$TimeP<-rep("TP4", nrow(Tol_T4.res))
 ### Effect Size over Time
 ```{r}
 ##Dataframe of effect size results
-Tol.ES<-rbind(Tol_T1.res, Tol_T2.res, Tol_T2.res, Tol_T4.res)
+Tol.ES<-rbind(Tol_T1.res, Tol_T2.res, Tol_T3.res, Tol_T4.res)
 Tol.ES<-Tol.ES %>% dplyr::rename(p = Pr...t..)
 Tol.ES<-Tol.ES[,c("TimeP", "Predictor", "Response", "EtaSq", "p")]
 
@@ -2478,7 +2478,7 @@ ggsave(filename="Figures/03_Performance/Fig6_TradeOff.png", plot=TradeOff_fig, d
 ```
 
 
-### Figure S4 Initial Heat Assay
+### Figure S6 Initial Heat Assay
 
 #### Adjust Figures for Panel
 ```{r}
@@ -2504,7 +2504,7 @@ IN_TolChl.plot<-IN_TolChl.plot + labs(x="Site", y="Retention") +
 ```
 
 
-#### Figure S4
+#### Figure S6
 ```{r}
 ##Create Panel
 IN_HeatAssay_fig<-plot_grid(IN_PAM.plot, IN_TolPAM.plot, 
@@ -2517,7 +2517,7 @@ IN_HeatAssay_fig<-plot_grid(IN_PAM.plot, IN_TolPAM.plot,
                     label_size=panel.lab.sz)
 
 ##Save Figure
-ggsave(filename="Figures/03_Performance/FigS4_InitialHeatAssay.png", plot=IN_HeatAssay_fig, dpi=300, width=8, height=11, units="in")
+ggsave(filename="Figures/03_Performance/FigS6_InitialHeatAssay.png", plot=IN_HeatAssay_fig, dpi=300, width=8, height=11, units="in")
 
 ```
 
@@ -2528,7 +2528,7 @@ ggsave(filename="Figures/03_Performance/FigS4_InitialHeatAssay.png", plot=IN_Hea
 ```{r}
 ##Combine Results Tables
 TableS5A_Growth<-data.frame(rbind(TLE_T1.2.res, TLE_T3.4.res))
-TableS5B_Tolerance<-data.frame(rbind(Tol_T1.res, Tol_T2.res, Tol_T2.res, Tol_T4.res))
+TableS5B_Tolerance<-data.frame(rbind(Tol_T1.res, Tol_T2.res, Tol_T3.res, Tol_T4.res))
 names(TableS5B_Tolerance)[9]<-"Timepoint"
 
 TableS5_Perf.LM<-rbind(TableS5A_Growth, TableS5B_Tolerance)

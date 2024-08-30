@@ -39,21 +39,21 @@
 "TP2","Chlorophyll Retention","Origin x Site",0.062,0.047,42,1.321,0.194,0.04
 "TP2","Chlorophyll Retention","KL Origin",-0.038,0.032,20,-1.189,0.248,0.066
 "TP2","Chlorophyll Retention","SS Origin",0.023,0.027,20,0.853,0.404,0.035
-"TP2","FvFm Retention","Origin",0.075,0.026,42,2.847,0.007,0.038
-"TP2","FvFm Retention","Site",0.065,0.026,42,2.454,0.018,0.013
-"TP2","FvFm Retention","Origin x Site",-0.102,0.037,42,-2.73,0.009,0.151
-"TP2","FvFm Retention","KL Origin",0.075,0.033,20,2.285,0.033,0.207
-"TP2","FvFm Retention","SS Origin",-0.027,0.016,20,-1.626,0.12,0.117
-"TP2","Symbiont Retention","Origin",-0.108,0.079,42,-1.362,0.181,0.078
-"TP2","Symbiont Retention","Site",-0.178,0.079,42,-2.252,0.03,0.19
-"TP2","Symbiont Retention","Origin x Site",0.005,0.112,42,0.046,0.963,0
-"TP2","Symbiont Retention","KL Origin",-0.108,0.076,20,-1.415,0.172,0.091
-"TP2","Symbiont Retention","SS Origin",-0.103,0.086,20,-1.201,0.244,0.067
-"TP2","Chlorophyll Retention","Origin",-0.038,0.033,42,-1.165,0.251,0.003
-"TP2","Chlorophyll Retention","Site",-0.065,0.033,42,-1.973,0.055,0.049
-"TP2","Chlorophyll Retention","Origin x Site",0.062,0.047,42,1.321,0.194,0.04
-"TP2","Chlorophyll Retention","KL Origin",-0.038,0.032,20,-1.189,0.248,0.066
-"TP2","Chlorophyll Retention","SS Origin",0.023,0.027,20,0.853,0.404,0.035
+"TP3","FvFm Retention","Origin",0.009,0.012,42,0.734,0.467,0
+"TP3","FvFm Retention","Site",0.004,0.012,42,0.323,0.748,0.01
+"TP3","FvFm Retention","Origin x Site",-0.019,0.017,42,-1.101,0.277,0.028
+"TP3","FvFm Retention","KL Origin",0.009,0.012,20,0.76,0.456,0.028
+"TP3","FvFm Retention","SS Origin",-0.01,0.013,22,-0.789,0.438,0.028
+"TP3","Symbiont Retention","Origin",0.04,0.025,42,1.56,0.126,0.041
+"TP3","Symbiont Retention","Site",0.059,0.025,42,2.311,0.026,0.121
+"TP3","Symbiont Retention","Origin x Site",-0.031,0.036,42,-0.868,0.39,0.018
+"TP3","Symbiont Retention","KL Origin",0.04,0.028,20,1.402,0.176,0.089
+"TP3","Symbiont Retention","SS Origin",0.008,0.022,22,0.392,0.699,0.007
+"TP3","Chlorophyll Retention","Origin",0.032,0.052,44,0.617,0.54,0.006
+"TP3","Chlorophyll Retention","Site",0.039,0.052,44,0.747,0.459,0.011
+"TP3","Chlorophyll Retention","Origin x Site",-0.025,0.073,44,-0.344,0.732,0.003
+"TP3","Chlorophyll Retention","KL Origin",0.032,0.038,20,0.847,0.407,0.035
+"TP3","Chlorophyll Retention","SS Origin",0.007,0.06,22,0.112,0.912,0.001
 "TP4","FvFm Retention","Origin",0.032,0.041,42,0.783,0.438,0
 "TP4","FvFm Retention","Site",0.028,0.041,42,0.672,0.505,0
 "TP4","FvFm Retention","Origin x Site",-0.058,0.059,42,-0.991,0.327,0.023
