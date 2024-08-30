@@ -79,6 +79,10 @@ show_col(viridis_pal(option = "turbo")(30))
 Geno.colors.o<-c("#458AFCFF", "#1FE9AFFF",  "#FE942AFF")
 #Genotypes: AC8, AC10, AC12
 
+##Genotype Shapes
+Geno.shapes.o<-c(15, 17, 19)
+#Genotypes: AC8, AC10, AC12
+
 
 ##Heat Assay Treatments
 show_col(viridis_pal(option = "turbo")(25))
@@ -86,9 +90,9 @@ HC.colors.o<-c("#3BA0FDFF", "#BA1E02FF")
 #Heat Assay Treatments: Control, Heated
 
 
-####Set Shapes for Genotypes
-Geno.shapes.o<-c(15, 17, 19)
-#Genotypes: AC8, AC10, AC12
+##Set Shapes for Seasons
+Seas.shapes.o<-c(19, 17, 16, 18)
+#Seasons: Fall, Winter, Spring, Summer
 
 
 ####Plot Feature Sizes
@@ -583,37 +587,50 @@ anova(betadisper(vegdist(EnvData.cut[,3:9], "euclidean"), EnvData.cut$Site))
 
 
 #### PCA
-```{r Plot Environment PCA}
+```{r}
 ##Rename Variables
 EnvData.clean<-EnvData.cut %>% dplyr::rename("Avg Temp" = Temp.a, "Avg Cond" = Cond.a, "Temp SD" = Temp.sd, "Cond SD" = Cond.sd, "Sat PAR" = Sat.hr, "N:P" = N.P, "DIN" = DIN_uM)
 
+
+##Add Months and Seasons
+EnvData.clean$Month<-ifelse(EnvData.clean$BiMonth=="M0.2" | EnvData.clean$BiMonth=="M12.1", "Aug",
+                            ifelse(EnvData.clean$BiMonth=="M1.1" | EnvData.clean$BiMonth=="M1.2", "Sep", 
+                            ifelse(EnvData.clean$BiMonth=="M2.1" | EnvData.clean$BiMonth=="M2.2", "Oct",
+                            ifelse(EnvData.clean$BiMonth=="M3.1" | EnvData.clean$BiMonth=="M3.2", "Nov",
+                            ifelse(EnvData.clean$BiMonth=="M4.1" | EnvData.clean$BiMonth=="M4.2", "Dec",
+                            ifelse(EnvData.clean$BiMonth=="M5.1" | EnvData.clean$BiMonth=="M5.2", "Jan",
+                            ifelse(EnvData.clean$BiMonth=="M6.1" | EnvData.clean$BiMonth=="M6.2", "Feb",
+                            ifelse(EnvData.clean$BiMonth=="M7.1" | EnvData.clean$BiMonth=="M7.2", "Mar",
+                            ifelse(EnvData.clean$BiMonth=="M8.1" | EnvData.clean$BiMonth=="M8.2", "Apr",
+                            ifelse(EnvData.clean$BiMonth=="M9.1" | EnvData.clean$BiMonth=="M9.2", "May",
+                            ifelse(EnvData.clean$BiMonth=="M10.1" | EnvData.clean$BiMonth=="M10.2", "Jun",
+                            ifelse(EnvData.clean$BiMonth=="M11.1" | EnvData.clean$BiMonth=="M11.2", "Jul",
+                                   NA))))))))))))
+
+EnvData.clean$Season<-ifelse(EnvData.clean$Month=="Sep" | EnvData.clean$Month=="Oct" |
+                               EnvData.clean$Month=="Nov", "Fall", 
+                      ifelse(EnvData.clean$Month=="Dec" | EnvData.clean$Month=="Jan" |
+                               EnvData.clean$Month=="Feb", "Winter",
+                      ifelse(EnvData.clean$Month=="Mar" | EnvData.clean$Month=="Apr" |
+                               EnvData.clean$Month=="May", "Spring",
+                      ifelse(EnvData.clean$Month=="Jun" | EnvData.clean$Month=="Jul" |
+                               EnvData.clean$Month=="Aug", "Summer", NA))))
+EnvData.clean$Season<-factor(EnvData.clean$Season, levels=c("Fall", "Winter", "Spring", "Summer"), ordered=TRUE)
+
 ##PCA
-Env.pca<-prcomp(EnvData.clean[,-c(1:2)], scale=TRUE)
+Env.pca<-prcomp(EnvData.clean[,c(3:9)], scale=TRUE)
 
 summary(Env.pca)
-
-##Plot PCA
-Env.pca.plot<-autoplot(Env.pca, data=EnvData.cut, colour="Site", loadings=TRUE,
-         loadings.label=TRUE, loadings.colour="black", loadings.label.colour="black", loadings.label.size=sig.sz, size=point.sz)+
-    scale_colour_manual(values =Site.colors.o)+
-  theme_classic()+
-   theme(axis.title.x = element_text(size = axis.title.sz), 
-         axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
-        axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
-        legend.text=element_text(size=leg.title.sz), 
-        legend.title=element_text(size=leg.title.sz), 
-        legend.box.background = element_rect(color = "black"))+
-  annotate("text", x=0.01, y=-0.32,label = "Site PERMANOVA p=0.018", size=sig.sz-1, fontface="bold.italic", hjust=0)+
-  annotate("text", x=0.01, y=-0.37,label = "Site PERMDISP p=0.507", size=sig.sz-1, fontface="italic", hjust=0); Env.pca.plot
 
 ```
 
 
-```{r}
-fviz_pca_biplot(Env.pca, repel=TRUE, geom = "point", col.var="black", labelsize=sig.sz)+
-  geom_point(aes(colour=EnvData.clean$Site),size=point.sz)+
+```{r Plot Environment PCA}
+Env.pca.plot<-fviz_pca_biplot(Env.pca, repel=TRUE, geom = "point", col.var="black", labelsize=sig.sz)+
+  geom_point(aes(colour=EnvData.clean$Site, shape=EnvData.clean$Season, size=EnvData.clean$Season))+
   scale_colour_manual(values =Site.colors.o)+
+  scale_shape_manual(values=Seas.shapes.o)+
+  scale_size_manual(values=c(rep(point.sz, 3), point.sz+2))+
   theme_classic()+
    theme(axis.title.x = element_text(size = axis.title.sz), 
          axis.title.y = element_text(size = axis.title.sz), 
@@ -622,24 +639,65 @@ fviz_pca_biplot(Env.pca, repel=TRUE, geom = "point", col.var="black", labelsize=
         legend.text=element_text(size=leg.title.sz), 
         legend.title=element_text(size=leg.title.sz), 
         legend.box.background = element_rect(color = "black"))+
-  labs(colour="Site", title=NULL)
+  labs(x="PC 1 (31.85%)", y="PC 2 (24.03%)", colour="Site", shape="Season", size=NULL, title=NULL)+
+  guides(size="none", colour = guide_legend(override.aes = list(size=point.sz)), 
+         shape = guide_legend(override.aes = list(size=c(rep(point.sz, 3), point.sz+2))))+
+  annotate("text", x=0.25, y=-2.75,label = "Site PERMANOVA p=0.015", 
+           size=sig.sz-1, fontface="bold.italic", hjust=0)+
+  annotate("text", x=0.25, y=-3.25,label = "Site PERMDISP p=0.507", 
+           size=sig.sz-1, fontface="italic", hjust=0);Env.pca.plot
 ```
 
 
 Check variable contributions
-```{r}
-##PC1
-fviz_contrib(Env.pca, choice = "var", axes = 1, top = 10)
-
-##PC2
-fviz_contrib(Env.pca, choice = "var", axes = 2, top = 10)
-
-##PC1 and 2
-fviz_contrib(Env.pca, choice = "var", axes = 1:2, top = 10)
-
+```{r Plot PCA Variable Contributions}
 ##Variables by PC's
 Env.pca_var<-get_pca_var(Env.pca)
 corrplot(Env.pca_var$contrib, is.corr=FALSE)
+Env.pca_var$contrib
+
+##PC1
+Env.pca.var.PC1.plot<-fviz_contrib(Env.pca, choice = "var", axes = 1, top = 10)+
+  ggtitle("PC 1")+
+   theme(axis.title.x = element_text(size = axis.title.sz), 
+         axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
+        axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.title.sz), 
+        legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"),
+        plot.title = element_text(colour="black", size=panel.lab.sz, hjust=0.5))+
+  labs(x="Environmental Parameter");Env.pca.var.PC1.plot
+
+
+##PC2
+Env.pca.var.PC2.plot<-fviz_contrib(Env.pca, choice = "var", axes = 2, top = 10)+
+  ggtitle("PC 2")+
+   theme(axis.title.x = element_text(size = axis.title.sz), 
+         axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
+        axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.title.sz), 
+        legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"),
+        plot.title = element_text(colour="black", size=panel.lab.sz, hjust=0.5))+
+  labs(x="Environmental Parameter");Env.pca.var.PC2.plot
+
+
+##PC1 and 2
+Env.pca.var.plot<-fviz_contrib(Env.pca, choice = "var", axes = 1:2, top = 10)+
+  ggtitle("PC 1 and 2")+
+   theme(axis.title.x = element_text(size = axis.title.sz), 
+         axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
+        axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.title.sz), 
+        legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"),
+        plot.title = element_text(colour="black", size=panel.lab.sz, hjust=0.5))+
+  labs(x="Environmental Parameter");Env.pca.var.plot
+
+
 ```
 
 
@@ -883,12 +941,38 @@ Study.Design_fig<-plot_grid(Env.pca.plot, HA_Design.plot,
                         label_size=panel.lab.sz)
 
 ##Save Figure
-ggsave(filename="Figures/01_Design/Fig1BC_Study_Design.png", plot=Study.Design_fig, dpi=300, width=6, height=8, units="in")
+ggsave(filename="Figures/01_Design/Fig1BC_Study_Design.png", plot=Study.Design_fig, dpi=300, width=7, height=8, units="in")
 
 ```
 
 
-### Figure S1 Environmental Conditions
+### Figure S1 PCA Environmental Variables
+
+#### Adjust Figures for Panel
+```{r}
+Env.pca.var.plot<-Env.pca.var.plot + labs(x="") + theme(legend.position="none")
+
+Env.pca.var.PC1.plot<-Env.pca.var.PC1.plot + labs(y=NULL) + theme(legend.position="none")
+
+Env.pca.var.PC2.plot<-Env.pca.var.PC2.plot + labs(x="", y=NULL)
+```
+
+
+#### Figure S1
+```{r}
+##Create Panel
+PCA.Env.Var_fig<-plot_grid(Env.pca.var.plot, Env.pca.var.PC1.plot, Env.pca.var.PC2.plot,
+                        rel_widths=1, rel_heights=1, 
+                        ncol=3, byrow=T, labels = c('A', 'B', 'C'), 
+                        label_size=panel.lab.sz-1)
+
+##Save Figure
+ggsave(filename="Figures/01_Design/FigS1_PCA_Environmental_Variables.png", plot=PCA.Env.Var_fig, dpi=300, width=12, height=5, units="in", bg="white")
+
+```
+
+
+### Figure S2 Environmental Conditions
 
 #### Adjust Figures for Panel
 ```{r}
@@ -904,57 +988,7 @@ DIN.plot<-DIN.plot + labs(y="DIN (\u03BCM)") + theme(legend.position="none")
 ```
 
 
-```{r}
-Temp.plot.cut<-ggplot()+
-  geom_line(data=na.omit(TempCond), aes(color=Site, x=Date.Time, y=Temp_C), linewidth=bar.sz-.25, alpha=0.7) +  
-  theme_bw()+
-  theme(axis.title.x = element_blank(), axis.title.y = element_text(size = axis.txt.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
-        legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), legend.box.background = element_rect(color = "black"),  legend.direction = "horizontal", legend.position=c(0.5,0.8))+
-  scale_color_manual(values = c(Site.colors.o))+
-    labs(x=NULL, y="Temperature (\u00B0C)")
-
-Cond.plot.cut<-ggplot()+
-  geom_line(data=na.omit(TempCond), aes(color=Site, x=Date.Time, y=Cond_uS.cm), linewidth=bar.sz-.25, alpha=0.7) +  
-  theme_bw()+
-  theme(axis.title.x = element_blank(), axis.title.y = element_text(size = axis.txt.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
-        legend.position="none")+
-  scale_color_manual(values = c(Site.colors.o))+
-    labs(x=NULL, y="Conductivity (\u03BCS/cm)")
-
-Light.plot.cut<-ggplot()+
-  geom_line(data=na.omit(PAR), aes(color=Site, x=Date.Time, y=PAR_umol.m2.s), linewidth=bar.sz-.25, alpha=0.7) +  
-  theme_bw()+
-  theme(axis.title.x = element_blank(), axis.title.y = element_text(size = axis.txt.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
-        legend.position="none")+
-  scale_color_manual(values = c(Site.colors.o))+
-    labs(x=NULL, y="PAR (\u03BCmol/m^2/s)")
-
-N.P.plot.cut<-ggplot()+
-  geom_line(data=na.omit(Nutrients.o), aes(color=Site, x=Date, y=N.P), linewidth=bar.sz) +  
-  geom_point(data=na.omit(Nutrients.o), aes(color=Site, x=Date, y=N.P), size=point.sz-1) +  
-  theme_bw()+
-  theme(axis.title.x = element_blank(), axis.title.y = element_text(size = axis.txt.sz),
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
-        legend.position="none")+
-  scale_color_manual(values = c(Site.colors.o))+
-    labs(x=NULL, y="Total N:P")
-
-DIN.plot.cut<-ggplot()+
-  geom_line(data=na.omit(Nutrients.o), aes(color=Site, x=Date, y=DIN_uM), linewidth=bar.sz) +  
-  geom_point(data=na.omit(Nutrients.o), aes(color=Site, x=Date, y=DIN_uM), size=point.sz-1) +  
-  theme_bw()+
-  theme(axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.txt.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
-        legend.position="none")+
-  scale_color_manual(values = c(Site.colors.o))+
-    labs(x="Date", y="DIN (\u03BCM)")
-```
-
-
-#### Figure S1
+#### Figure S2
 ```{r}
 ##Create Panel
 Env.Param_fig<-plot_grid(Temp.plot, Cond.plot, Light.plot, N.P.plot, DIN.plot,
@@ -963,15 +997,15 @@ Env.Param_fig<-plot_grid(Temp.plot, Cond.plot, Light.plot, N.P.plot, DIN.plot,
                         label_size=panel.lab.sz-1)
 
 ##Save Figure
-ggsave(filename="Figures/01_Design/FigS1_Environmental_Conditions.png", plot=Env.Param_fig, dpi=300, width=10, height=16, units="in")
+ggsave(filename="Figures/01_Design/FigS2_Environmental_Conditions.png", plot=Env.Param_fig, dpi=300, width=10, height=16, units="in")
 
 ```
 
 
-### Figure S2B Thermal Tolerance Temperatures
-Note: Figure S2A is thermal tolerance assessment tank diagram. 
+### Figure S3B Thermal Tolerance Temperatures
+Note: Figure S3A is thermal tolerance assessment tank diagram. 
 ```{r}
 ##Save figure
-ggsave(filename="Figures/01_Design/FigS2B_Heat_Assay_Temperatures.png", plot=HCTemp.plot, dpi=300, width=4, height=8, units="in")
+ggsave(filename="Figures/01_Design/FigS3B_Heat_Assay_Temperatures.png", plot=HCTemp.plot, dpi=300, width=4, height=8, units="in")
 ```
 
