@@ -573,7 +573,7 @@ ggsave(filename="Figures/02_Physiology/Fig2_AverageNicheOverlap.png", plot=Niche
 ```
 
 
-### Figure S3
+### Figure S4
 ```{r}
 ##Create Panel
 PhysNiche_fig<-plot_grid(phys.nmds.plot, Overlap.plot, 
@@ -584,12 +584,12 @@ PhysNiche_fig<-plot_grid(phys.nmds.plot, Overlap.plot,
                     label_size=panel.lab.sz)
 
 ##Save Figure
-ggsave(filename="Figures/02_Physiology/FigS3_PhysiologicalNiche.png", plot=PhysNiche_fig, dpi=300, width=12, height=6, units="in")
+ggsave(filename="Figures/02_Physiology/FigS4_PhysiologicalNiche.png", plot=PhysNiche_fig, dpi=300, width=12, height=6, units="in")
 
 ```
 
 
-### Figure S4
+### Figure S5
 ```{r}
 ##Adjust for Panel
 ellipse.plot_KL<-ellipse.plot_KL + ggtitle("Klein Bonaire") + 
@@ -606,7 +606,7 @@ Ellipse_fig<-plot_grid(ellipse.plot_KL, ellipse.plot_SS,
                     labels = NULL)
 
 ##Save Figure
-ggsave(filename="Figures/02_Physiology/FigS4_PhysiologicalNicheEllipse.png", plot=Ellipse_fig, dpi=300, width=8, height=14, units="in")
+ggsave(filename="Figures/02_Physiology/FigS5_PhysiologicalNicheEllipse.png", plot=Ellipse_fig, dpi=300, width=8, height=14, units="in")
 
 ```
 
