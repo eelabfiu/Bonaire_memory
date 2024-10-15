@@ -188,10 +188,10 @@ Prot.Un$TP_ug.cm2<-Prot.Un$TP_ug/Prot.Un$SA_cm2
 
 ##Separate Coral and Symbiont Fractions
 Prot.C<- subset(Prot.Un, Fraction=="C")
-Prot.C<-rename(Prot.C, c("TP_ug.cm2" = "TP_ug.cm2_C"))
+Prot.C<-rename(Prot.C, c("TP_ug.cm2_C" = "TP_ug.cm2"))
 
 Prot.S<- subset(Prot.Un, Fraction=="S")
-Prot.S<-rename(Prot.S, c("TP_ug.cm2" = "TP_ug.cm2_S"))
+Prot.S<-rename(Prot.S, c("TP_ug.cm2_S" = "TP_ug.cm2"))
 ```
 
 
@@ -367,10 +367,10 @@ Bio$AFDW_mg.cm2 <- Bio$AFDW_g.cm2 * 1000
 
 ##Separate Coral and Symbiont Fractions
 Bio.C<-subset(Bio, Fraction=="C")
-Bio.C<-rename(Bio.C, c("AFDW_mg.cm2" = "AFDW_mg.cm2_C"))
+Bio.C<-rename(Bio.C, c("AFDW_mg.cm2_C" = "AFDW_mg.cm2"))
 
 Bio.S<-subset(Bio, Fraction=="Z")
-Bio.S<-rename(Bio.S, c("AFDW_mg.cm2" = "AFDW_mg.cm2_S"))
+Bio.S<-rename(Bio.S, c("AFDW_mg.cm2_S" = "AFDW_mg.cm2"))
 
 ```
 
@@ -491,13 +491,13 @@ Add host and symbiont fractions for a total holobiont value to be used for downs
 
 ```{r}
 #### Add Host and Symbiont for Holobiont 
-Bio.Hol<-merge(Bio.C.o, Bio.S.o, all.x=TRUE)
+Bio.Hol<-merge(Bio.C.o[,c("ID", "RandN",  "AFDW_mg.cm2_C")], Bio.S.o[,c("ID", "AFDW_mg.cm2_S")], all.x=TRUE)
 Bio.Hol$AFDW_mg.cm2<-(Bio.Hol$AFDW_mg.cm2_C + Bio.Hol$AFDW_mg.cm2_S)
 
 ####Merge Averaged Holobiont Biomass Data with Coral Main Data
 #Merges by ID column and adds AFDW (mg/cm^2) (AFDW_mg.cm2) column from Biomass dataframe
 #Retains all Main samples
-CoralData<-merge(CoralData, Bio.Hol[,c(1:2, 28)], all.x=TRUE)
+CoralData<-merge(CoralData, Bio.Hol[,c(1:2, 5)], all.x=TRUE)
 
 ```
 
