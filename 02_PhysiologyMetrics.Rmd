@@ -316,6 +316,8 @@ ggplot(Prot.S.o, aes(x=Set, y=TP_ug.cm2_S)) +
 
 
 ### Add Protein to Main Coral Data
+Add host and symbiont fractions for a total holobiont value to be used for downstream analysis.
+
 ```{r}
 ####Average Across Replicate Readings ("Rep" column: A, B, C)
 names(Prot.C.o)
@@ -326,15 +328,16 @@ names(Prot.S.o)
 Prot.S.a<-aggregate(Prot.S.o$TP_ug.cm2_S, list(Prot.S.o$RandN, Prot.S.o$ID), mean)
 names(Prot.S.a)<-c("RandN", "ID", "TP_ug.cm2_S")
 
+#### Add Host and Symbiont for Holobiont 
+Prot.Hol<-merge(Prot.C.a, Prot.S.a, all.x=TRUE)
+Prot.Hol$TP_ug.cm2<-(Prot.Hol$TP_ug.cm2_C + Prot.Hol$TP_ug.cm2_S)
 
-####Merge Averaged Protein Data of Coral Host (C) and Symbiont (S) with Coral Main Data
+####Merge Averaged Holobiont Protein Data with Coral Main Data
 #Merges by Random Number (RandN) and ID columns
 #Retains all Main samples
 #Retains RandN, ID, TimeP, Site, Genotype, Orig, Origin, Set, and SA_cm2 from Corals_Main
 names(Corals_Main)
-
-CoralData<-merge(Corals_Main[,c(1:5, 8:9, 13:14, 16)], Prot.C.a, all.x=TRUE)
-CoralData<-merge(CoralData, Prot.S.a, all.x=TRUE)
+CoralData<-merge(Corals_Main[,c(1:5, 8:9, 13:14, 16)], Prot.Hol[,c(1:2, 5)], all.x=TRUE)
 
 ```
 
@@ -484,17 +487,17 @@ ggplot(Bio.S.o, aes(x=Set, y=AFDW_mg.cm2_S)) +
 
 
 ### Add Biomass to Main Coral Data
-```{r}
-##Merge Cleaned Biomass Data of Coral Host (C) and Symbiont (S) with Coral Main Data
-#Merges by ID column and adds AFDW (mg/cm^2) (AFDW_mg.cm2_C or _S) columns from Biomass dataframes
-#Retains all Main samples
-names(Bio.C.o)
-CoralData<-merge(CoralData, Bio.C.o[,c(1, 26)], all.x=TRUE)
-names(Bio.S.o)
-CoralData<-merge(CoralData, Bio.S.o[,c(1, 26)], all.x=TRUE)
+Add host and symbiont fractions for a total holobiont value to be used for downstream analysis.
 
-##Calculate Symbiont:Host Ratio of Biomass
-CoralData$AFDW_mg.cm2_S.C<-CoralData$AFDW_mg.cm2_S/CoralData$AFDW_mg.cm2_C
+```{r}
+#### Add Host and Symbiont for Holobiont 
+Bio.Hol<-merge(Bio.C.o, Bio.S.o, all.x=TRUE)
+Bio.Hol$AFDW_mg.cm2<-(Bio.Hol$AFDW_mg.cm2_C + Bio.Hol$AFDW_mg.cm2_S)
+
+####Merge Averaged Holobiont Biomass Data with Coral Main Data
+#Merges by ID column and adds AFDW (mg/cm^2) (AFDW_mg.cm2) column from Biomass dataframe
+#Retains all Main samples
+CoralData<-merge(CoralData, Bio.Hol[,c(1:2, 5)], all.x=TRUE)
 
 ```
 
