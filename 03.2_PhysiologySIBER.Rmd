@@ -76,51 +76,35 @@ rownames(Phys)<-Phys$ID
 ```
 
 
-### Check Correlation
-```{r}
-##Remove NA's
-names(Phys)
-Phys.rm<-na.omit(Phys)
-
-##Log +1 transform 
-Phys.log<-Phys.rm
-Phys.log[,-c(1:10)]<-log(Phys.rm[,-c(1:10)]+1)
-  
-Phys.corr<-rcorr(as.matrix(Phys.log[,-c(1:10)]), type="pearson")
-Phys.corr
-
-diag(Phys.corr$P)<-0
-
-corrplot(Phys.corr$r, type="upper", order="hclust", 
-         p.mat = Phys.corr$P, sig.level = 0.01, insig = "blank", tl.col="black")
-
-```
-Physiological variables of interest: Protein (Coral and Symbiont), Biomass (Coral and Symbiont), and Chlorophyll.
-
-
 # SIBER Ellipses
 
 ### Prepare Input Data
 
 #### NMDS Ordination
-SIBER runs on a two dimensional data set. So first, we need to reduce the dimensionality of the physiology data. We're going to do this via Non-Metric Multidimensional Scaling (NMDS) on log+1 transformed physiological metrics of interest.
+SIBER runs on a two dimensional data set. So first, we need to reduce the dimensionality of the physiology data. We're going to do this via Non-Metric Multidimensional Scaling (NMDS) on the scaled physiological metrics of interest.
 ```{r}
+##Remove NA's
+Phys.rm<-na.omit(Phys)
+
+##Standardize Variables for similar scales
+Phys.St <- Phys.rm %>% mutate_at(c("TP_ug.cm2", "AFDW_mg.cm2", "Chl_ug.cm2"), ~(scale(.) %>% as.vector))
+
 #Select only the physiology columns of interest (without covariates) to put into the NMDS
-names(Phys.log)
-phys.log.num <- Phys.log[,c(11:14, 16)]
+names(Phys.St)
+phys.num <- Phys.St[,c(11:13)]
 
 #Run NMDS
-phys.nmds <- metaMDS(phys.log.num, distance = "euclidean", k = 2, autotransform = F)
+phys.nmds <- metaMDS(phys.num, distance = "euclidean", k = 2, autotransform = F)
 
 #Quick plot of NMDS output
-ordiplot(phys.nmds)
+plot(phys.nmds)
 ```
 
 
 #### NMDS Model
 ```{r}
 ##Correlation with Physiology Metrics
-phys.envi.fit <- envfit(phys.nmds, phys.log.num)
+phys.envi.fit <- envfit(phys.nmds, phys.num)
 phys.envi.fit
 phys.envi.vectors <- phys.envi.fit[["vectors"]][["arrows"]]
 
@@ -133,7 +117,7 @@ NMDS.stress
 # Not a true % variance explained, but an estimate from
 # correlating the original distance matrix with the ordination distance
 phys.ord.dist <- vegdist(phys.nmds$points[,1:2], method = "euclidean")
-phys.distance<-vegdist(phys.log.num, method="euclidean")
+phys.distance<-vegdist(phys.num, method="euclidean")
 plot(phys.distance,phys.ord.dist, xlab = "Original Distance", ylab = "Ordination Distance")
 phys.dist.cor<-cor(phys.distance,phys.ord.dist)^2
 phys.var.label<-sprintf("Estimated Variance = %.2f", phys.dist.cor*100)
@@ -150,9 +134,9 @@ NMDS2<-sprintf("%1.2f",(cor(phys.distance,phys.ax2_dist)^2)*100)
 NMDS2
 
 #Prepare for Plotting
-phys.nmds.samples.plot.data <- cbind(phys.log.num, phys.nmds$points) 
+phys.nmds.samples.plot.data <- cbind(phys.num, phys.nmds$points) 
 phys.nmds.samples.plot.data$ID<-rownames(phys.nmds.samples.plot.data)
-phys.nmds.samples.plot.data<-merge(phys.nmds.samples.plot.data, Phys.rm[,c(1,3:9)])
+phys.nmds.samples.plot.data<-merge(phys.nmds.samples.plot.data, Phys.rm[,c(1:9)])
 phys.nmds.samples.plot.data$Geno.Orig<-paste(phys.nmds.samples.plot.data$Genotype, phys.nmds.samples.plot.data$Orig, sep=".")
 phys.nmds.samples.plot.data$Geno.Orig<-factor(phys.nmds.samples.plot.data$Geno.Orig, levels=c("AC8.N","AC8.T", "AC10.N", "AC10.T", "AC12.N", "AC12.T"), ordered=TRUE)
   
@@ -160,7 +144,7 @@ phys.nmds.covariates.plot.data <- data.frame(phys.envi.vectors)
 phys.nmds.covariates.plot.data$Covariate<-c(rownames(phys.envi.vectors))
 names(phys.nmds.covariates.plot.data)[1:2]<-c("MDS1", "MDS2")
 phys.nmds.covariates.plot.data$Covariate
-phys.nmds.covariates.plot.data$Metric<-c("Protein_C", "Protein_S", "Biomass_C", "Biomass_S", "Chlorophyll")
+phys.nmds.covariates.plot.data$Metric<-c("Protein", "Biomass", "Chlorophyll")
 
 ```
 
@@ -172,8 +156,8 @@ phys.nmds.plot<-ggplot(data = phys.nmds.samples.plot.data, aes(x = MDS1, y = MDS
   scale_colour_manual(values =Orig.colors.o)+
   scale_shape_manual(values=Geno.shapes.o)+
   theme_classic()+
-  scale_x_continuous(limits = c(-1.1, 1.1))+
-  scale_y_continuous(limits = c(-1.2, 1))+
+  scale_x_continuous(limits = c(-4, 4))+
+  scale_y_continuous(limits = c(-4, 4))+
    theme(axis.title.x = element_text(size = axis.title.sz), 
         axis.title.y = element_text(size = axis.title.sz), 
         axis.text.x=element_text(size=axis.txt.sz, colour="black"),
@@ -181,7 +165,7 @@ phys.nmds.plot<-ggplot(data = phys.nmds.samples.plot.data, aes(x = MDS1, y = MDS
         legend.text=element_text(size=leg.txt.sz), 
         legend.title=element_text(size=leg.title.sz),
         legend.box.background = element_rect(color = "black"), 
-        legend.position=c(.9, .3))+
+        legend.position="top")+
   geom_segment(aes(x = 0, y = 0, xend = MDS1, yend = MDS2), 
                data = phys.nmds.covariates.plot.data, 
                linewidth =bar.sz, alpha = 0.8, colour = "grey30") +
@@ -190,7 +174,8 @@ phys.nmds.plot<-ggplot(data = phys.nmds.samples.plot.data, aes(x = MDS1, y = MDS
                 hjust=0.15*(1-sign(MDS1)),vjust=0.6*(1-sign(MDS2))), 
             colour = "grey20", size=sig.sz)+
   labs(x=paste0('NMDS 1 (',NMDS1,"%)"), y=paste0('NMDS 2 (',NMDS2,"%)"), color="Site.Origin")+
-  annotate("text", x = -1.1, y = -1.2, label = NMDS.stress, hjust=0, size=sig.sz); phys.nmds.plot
+  guides(color=guide_legend(nrow=2, byrow=TRUE)) +
+  annotate("text", x = -4, y = -4, label = NMDS.stress, hjust=0, size=sig.sz); phys.nmds.plot
 ```
 
 
@@ -289,12 +274,12 @@ Niches$TimeP<-rep(c("TP1", "TP2", "TP3", "TP4"),6)
 
 
 #### Calculate Overlap
-Proportion of niche overlap = Area of overlap between Native and Transplant physiological niches / Area of the Native niche
+Proportion of niche overlap = Area of overlap between Native and Transplant physiological niches / Area of the Transplant niche
 
-Using Native niche area as the denominator which may be more informative as the baseline niche space
+Proportion of the Transplant Niche area that is overlapping with that of the "expected" Native niche (if there was no lasting effect of Origin)
 ```{r}
-##Proportion of Native Niche Area
-Niches$pOverlap<-Niches$Overlap/Niches$Native
+##Proportion of Transplant Niche Area that is overlapping with Native niche
+Niches$pOverlap<-Niches$Overlap/Niches$Transplant
 
 ##Write out dataframe
 write.csv(Niches, "Outputs/SIBER/SIBER_p.Overlap.csv", row.names=FALSE)
@@ -373,7 +358,7 @@ Overlap_Avg_KL.plot<-ggplot(pOverlap.sum[which(pOverlap.sum$Site=="KL"),], aes(x
         axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
         legend.position="none")+
   labs(x="Timepoint", y="Physiological Niche Overlap")+
-  ylim(0.05,1.05); Overlap_Avg_KL.plot
+  ylim(0.05,0.85); Overlap_Avg_KL.plot
 
 ```
 
@@ -393,7 +378,7 @@ Overlap_Avg_SS.plot<-ggplot(pOverlap.sum[which(pOverlap.sum$Site=="SS"),], aes(x
         axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
         legend.position="none")+
   labs(x="Timepoint", y="Physiological Niche Overlap")+
-  ylim(0.05,1.05); Overlap_Avg_SS.plot
+  ylim(0.05,0.85); Overlap_Avg_SS.plot
 
 ```
 
@@ -405,11 +390,20 @@ Overlap_Avg_SS.plot<-ggplot(pOverlap.sum[which(pOverlap.sum$Site=="SS"),], aes(x
 ##Check Normality
 hist(Niches$pOverlap)
 shapiro.test(Niches$pOverlap)
-#Normal
+#Not Normal
 
+hist(log(Niches$pOverlap+1))
+shapiro.test(log(Niches$pOverlap+1))
+#Not Normal
+
+hist(sqrt(Niches$pOverlap))
+shapiro.test(sqrt(Niches$pOverlap))
+#Normal 
+
+#Model with Square root transformation
 ##Model Overlap as a function of Site and Origin, with Genotype as a Random effect
 #Interaction between Site and Timepoint
-Overlap.lme<-lmer(pOverlap~TimeP*Site+(1|Genotype), data=Niches)
+Overlap.lme<-lmer(sqrt(pOverlap)~TimeP*Site+(1|Genotype), data=Niches)
 
 ##Check residuals
 Overlap.lme_res <- simulateResiduals(fittedModel = Overlap.lme, plot = F)
