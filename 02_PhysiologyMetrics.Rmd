@@ -497,7 +497,7 @@ Bio.Hol$AFDW_mg.cm2<-(Bio.Hol$AFDW_mg.cm2_C + Bio.Hol$AFDW_mg.cm2_S)
 ####Merge Averaged Holobiont Biomass Data with Coral Main Data
 #Merges by ID column and adds AFDW (mg/cm^2) (AFDW_mg.cm2) column from Biomass dataframe
 #Retains all Main samples
-CoralData<-merge(CoralData, Bio.Hol[,c(1:2, 5)], all.x=TRUE)
+CoralData<-merge(CoralData, Bio.Hol[,c(1:2, 28)], all.x=TRUE)
 
 ```
 
