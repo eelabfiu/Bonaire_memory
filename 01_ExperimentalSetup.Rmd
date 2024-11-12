@@ -37,6 +37,7 @@ if (!require("corrplot")) install.packages("corrplot")
 if (!require("factoextra")) install.packages("factoextra")
 if (!require("vegan")) install.packages("vegan")
 if (!require("ggfortify")) install.packages("ggfortify")
+if (!require("dplyr")) install.packages("dplyr")
 
 ##Load Packages
 library(viridis) #Color-blind and grey-scale-friendly color palettes
@@ -55,6 +56,7 @@ library(corrplot) #Required for correlation plot
 library(factoextra) #Required for PCA analysis extras
 library(vegan) #Required for multivariate analysis PERM and PCA
 library(ggfortify) #Required for autoplot of PCA
+library(dplyr) #Required for dataframe organization
 
 ```
 
@@ -558,7 +560,7 @@ corrplot(Env.cor$r, type="upper", order="hclust",
 ```
 
 
-Keep main parameters of interest Temp.a, Temp.sd, Cond.a, Cond.sd, PAR.a, DIN, N.P
+Keep main parameters of interest Temp.a, Temp.sd, Cond.a, Cond.sd, Sat hr, DIN, N.P
 ```{r}
 names(EnvData)
 EnvData.cut<-EnvData[,c(1:4, 9:10, 17, 24:25 )]
@@ -578,10 +580,14 @@ corrplot(Env.cor2$r, type="upper", order="hclust",
 #### PERMANOVA
 ```{r}
 names(EnvData.cut)
-adonis2(vegdist(EnvData.cut[,3:9], "euclidean")~EnvData.cut$Site, data=EnvData.cut, method="euclidean")
+
+##Standardize Variables for similar scales
+EnvData_St <- EnvData.cut %>% mutate_at(c("Temp.a", "Cond.a", "Temp.sd", "Cond.sd", "Sat.hr", "N.P", "DIN_uM"), ~(scale(.) %>% as.vector))
+
+adonis2(vegdist(EnvData_St[,3:9], "euclidean")~EnvData_St$Site, data=EnvData_St, method="euclidean")
 
 ##Check dispersion by Site
-anova(betadisper(vegdist(EnvData.cut[,3:9], "euclidean"), EnvData.cut$Site))
+anova(betadisper(vegdist(EnvData_St[,3:9], "euclidean"), EnvData_St$Site))
 
 ```
 
@@ -589,7 +595,7 @@ anova(betadisper(vegdist(EnvData.cut[,3:9], "euclidean"), EnvData.cut$Site))
 #### PCA
 ```{r}
 ##Rename Variables
-EnvData.clean<-EnvData.cut %>% dplyr::rename("Avg Temp" = Temp.a, "Avg Cond" = Cond.a, "Temp SD" = Temp.sd, "Cond SD" = Cond.sd, "Sat PAR" = Sat.hr, "N:P" = N.P, "DIN" = DIN_uM)
+EnvData.clean<-EnvData_St %>% dplyr::rename("Avg Temp" = Temp.a, "Avg Cond" = Cond.a, "Temp SD" = Temp.sd, "Cond SD" = Cond.sd, "Sat PAR" = Sat.hr, "N:P" = N.P, "DIN" = DIN_uM)
 
 
 ##Add Months and Seasons
@@ -617,6 +623,9 @@ EnvData.clean$Season<-ifelse(EnvData.clean$Month=="Sep" | EnvData.clean$Month=="
                                EnvData.clean$Month=="Aug", "Summer", NA))))
 EnvData.clean$Season<-factor(EnvData.clean$Season, levels=c("Fall", "Winter", "Spring", "Summer"), ordered=TRUE)
 
+##Add rownames
+rownames(EnvData.clean)<-paste(EnvData.clean$Site, EnvData.clean$BiMonth, sep="_")
+
 ##PCA
 Env.pca<-prcomp(EnvData.clean[,c(3:9)], scale=TRUE)
 
@@ -626,8 +635,8 @@ summary(Env.pca)
 
 
 ```{r Plot Environment PCA}
-Env.pca.plot<-fviz_pca_biplot(Env.pca, repel=TRUE, geom = "point", col.var="black", labelsize=sig.sz)+
-  geom_point(aes(colour=EnvData.clean$Site, shape=EnvData.clean$Season, size=EnvData.clean$Season))+
+Env.pca.plot<-fviz_pca_biplot(Env.pca, repel=TRUE, geom = "none", col.var="black", labelsize=sig.sz)+
+  geom_point(aes(colour=EnvData.clean$Site, shape=EnvData.clean$Season, size=EnvData.clean$Season), alpha=0.9)+
   scale_colour_manual(values =Site.colors.o)+
   scale_shape_manual(values=Seas.shapes.o)+
   scale_size_manual(values=c(rep(point.sz, 3), point.sz+2))+
@@ -642,9 +651,9 @@ Env.pca.plot<-fviz_pca_biplot(Env.pca, repel=TRUE, geom = "point", col.var="blac
   labs(x="PC 1 (31.85%)", y="PC 2 (24.03%)", colour="Site", shape="Season", size=NULL, title=NULL)+
   guides(size="none", colour = guide_legend(override.aes = list(size=point.sz)), 
          shape = guide_legend(override.aes = list(size=c(rep(point.sz, 3), point.sz+2))))+
-  annotate("text", x=0.25, y=-2.75,label = "Site PERMANOVA p=0.015", 
+  annotate("text", x=0.25, y=-2.75,label = "Site PERMANOVA p=0.007", 
            size=sig.sz-1, fontface="bold.italic", hjust=0)+
-  annotate("text", x=0.25, y=-3.25,label = "Site PERMDISP p=0.507", 
+  annotate("text", x=0.25, y=-3.25,label = "Site PERMDISP p=0.722", 
            size=sig.sz-1, fontface="italic", hjust=0);Env.pca.plot
 ```
 
@@ -710,6 +719,10 @@ shapiro.test(TC.daily$Temp.a)
 
 ##Non parametric test
 wilcox.test(TC.daily$Temp.a[which(TC.daily$Site=="KL")], TC.daily$Temp.a[which(TC.daily$Site=="SS")], alternative = "two.sided")
+
+##Save Results
+Env.res_Temp.a<-data.frame(Parameter="Daily Average Temperature", Test="Two-sided Wilcoxon Rank Sum", 
+                p=wilcox.test(TC.daily$Temp.a[which(TC.daily$Site=="KL")], TC.daily$Temp.a[which(TC.daily$Site=="SS")], alternative = "two.sided")$p.value)
 ```
 
 
@@ -720,6 +733,9 @@ shapiro.test(TC.daily$Temp.sd)
 
 ##Non parametric test
 wilcox.test(TC.daily$Temp.sd[which(TC.daily$Site=="KL")], TC.daily$Temp.sd[which(TC.daily$Site=="SS")], alternative = "two.sided")
+
+##Save Results
+Env.res_Temp.sd<-data.frame(Parameter="Daily Standard Deviation of Temperature", Test="Two-sided Wilcoxon Rank Sum", p=wilcox.test(TC.daily$Temp.sd[which(TC.daily$Site=="KL")], TC.daily$Temp.sd[which(TC.daily$Site=="SS")], alternative = "two.sided")$p.value)
 ```
 
 
@@ -733,6 +749,10 @@ wilcox.test(TC.daily$Cond.a[which(TC.daily$Site=="KL")], TC.daily$Cond.a[which(T
 
 wilcox.test(TC.daily$Cond.a[which(TC.daily$Site=="KL")], TC.daily$Cond.a[which(TC.daily$Site=="SS")], alternative = "greater")
 
+##Save Results
+Env.res_Cond.a<-data.frame(Parameter="Daily Average Conductivity", 
+                            Test=c("Two-sided Wilcoxon Rank Sum", "One-sided (KL>SS) Wilcoxon Rank Sum"), p=c(wilcox.test(TC.daily$Cond.a[which(TC.daily$Site=="KL")], TC.daily$Cond.a[which(TC.daily$Site=="SS")], alternative = "two.sided")$p.value, wilcox.test(TC.daily$Cond.a[which(TC.daily$Site=="KL")], TC.daily$Cond.a[which(TC.daily$Site=="SS")], alternative = "greater")$p.value))
+
 ```
 
 
@@ -745,6 +765,11 @@ shapiro.test(TC.daily$Cond.sd)
 wilcox.test(TC.daily$Cond.sd[which(TC.daily$Site=="KL")], TC.daily$Cond.sd[which(TC.daily$Site=="SS")], alternative = "two.sided")
 
 wilcox.test(TC.daily$Cond.sd[which(TC.daily$Site=="KL")], TC.daily$Cond.sd[which(TC.daily$Site=="SS")], alternative = "greater")
+
+##Save Results
+Env.res_Cond.sd<-data.frame(Parameter="Daily Standard Deviation of Conductivity", 
+                            Test=c("Two-sided Wilcoxon Rank Sum", "One-sided (KL>SS) Wilcoxon Rank Sum"), p=c(wilcox.test(TC.daily$Cond.sd[which(TC.daily$Site=="KL")], TC.daily$Cond.sd[which(TC.daily$Site=="SS")], alternative = "two.sided")$p.value, wilcox.test(TC.daily$Cond.sd[which(TC.daily$Site=="KL")], TC.daily$Cond.sd[which(TC.daily$Site=="SS")], alternative = "greater")$p.value))
+
 ```
 
 
@@ -757,6 +782,11 @@ shapiro.test(PAR.daily$PAR.a)
 wilcox.test(PAR.daily$PAR.a[which(PAR.daily$Site=="KL")], PAR.daily$PAR.a[which(PAR.daily$Site=="SS")], alternative = "two.sided")
 
 wilcox.test(PAR.daily$PAR.a[which(PAR.daily$Site=="KL")], PAR.daily$PAR.a[which(PAR.daily$Site=="SS")], alternative = "less")
+
+##Save Results
+Env.res_PAR.a<-data.frame(Parameter="Daily Average PAR", 
+                            Test=c("Two-sided Wilcoxon Rank Sum", "One-sided (KL<SS) Wilcoxon Rank Sum"), p=c(wilcox.test(PAR.daily$PAR.a[which(PAR.daily$Site=="KL")], PAR.daily$PAR.a[which(PAR.daily$Site=="SS")], alternative = "two.sided")$p.value, wilcox.test(PAR.daily$PAR.a[which(PAR.daily$Site=="KL")], PAR.daily$PAR.a[which(PAR.daily$Site=="SS")], alternative = "less")$p.value))
+
 ```
 
 
@@ -769,6 +799,11 @@ shapiro.test(PAR.daily$Sat.hr)
 wilcox.test(PAR.daily$Sat.hr[which(PAR.daily$Site=="KL")], PAR.daily$Sat.hr[which(PAR.daily$Site=="SS")], alternative = "two.sided")
 
 wilcox.test(PAR.daily$Sat.hr[which(PAR.daily$Site=="KL")], PAR.daily$Sat.hr[which(PAR.daily$Site=="SS")], alternative = "less")
+
+##Save Results
+Env.res_Sat.hr<-data.frame(Parameter="Daily Daily Hours above Saturating Irradiance", 
+                            Test=c("Two-sided Wilcoxon Rank Sum", "One-sided (KL<SS) Wilcoxon Rank Sum"), p=c(wilcox.test(PAR.daily$Sat.hr[which(PAR.daily$Site=="KL")], PAR.daily$Sat.hr[which(PAR.daily$Site=="SS")], alternative = "two.sided")$p.value, wilcox.test(PAR.daily$Sat.hr[which(PAR.daily$Site=="KL")], PAR.daily$Sat.hr[which(PAR.daily$Site=="SS")], alternative = "less")$p.value))
+
 ```
 
 
@@ -783,6 +818,8 @@ var.test(N.P ~ Site, Nutrients.o, alternative = "two.sided")
 ##Parametric test
 t.test(Nutrients.o$N.P[which(Nutrients.o$Site=="KL")], Nutrients.o$N.P[which(Nutrients.o$Site=="SS")], var.equal=TRUE, alternative = "two.sided")
 
+##Save Results
+Env.res_N.P<-data.frame(Parameter="Bi-monthly Total Nitrogen : Phosphorus", Test="Two-sided Student's t", p=t.test(Nutrients.o$N.P[which(Nutrients.o$Site=="KL")], Nutrients.o$N.P[which(Nutrients.o$Site=="SS")], var.equal=TRUE, alternative = "two.sided")$p.value)
 ```
 
 
@@ -797,6 +834,8 @@ var.test(TN_uM ~ Site, Nutrients.o, alternative = "two.sided")
 ##Parametric test
 t.test(Nutrients.o$TN_uM[which(Nutrients.o$Site=="KL")], Nutrients.o$TN_uM[which(Nutrients.o$Site=="SS")], var.equal=TRUE, alternative = "two.sided")
 
+##Save Results
+Env.res_TN<-data.frame(Parameter="Bi-monthly Total Nitrogen", Test="Two-sided Student's t", p=t.test(Nutrients.o$TN_uM[which(Nutrients.o$Site=="KL")], Nutrients.o$TN_uM[which(Nutrients.o$Site=="SS")], var.equal=TRUE, alternative = "two.sided")$p.value)
 ```
 
 
@@ -808,6 +847,8 @@ shapiro.test(Nutrients.o$TP_uM)
 ##Non parametric test
 wilcox.test(Nutrients.o$TP_uM[which(Nutrients.o$Site=="KL")], Nutrients.o$TP_uM[which(Nutrients.o$Site=="SS")], alternative = "two.sided")
 
+##Save Results
+Env.res_TP<-data.frame(Parameter="Bi-monthly Total Phosphorus", Test="Two-sided Wilcoxon Rank Sum", p=wilcox.test(Nutrients.o$TP_uM[which(Nutrients.o$Site=="KL")], Nutrients.o$TP_uM[which(Nutrients.o$Site=="SS")], alternative = "two.sided")$p.value)
 ```
 
 
@@ -819,7 +860,107 @@ shapiro.test(Nutrients.o$DIN)
 ##Non parametric test
 wilcox.test(Nutrients.o$DIN[which(Nutrients.o$Site=="KL")], Nutrients.o$DIN[which(Nutrients.o$Site=="SS")], alternative = "two.sided")
 
+##Save Results
+Env.res_DIN<-data.frame(Parameter="Bi-monthly Dissolved Inorganic Nitrogen", Test="Two-sided Wilcoxon Rank Sum", p=wilcox.test(Nutrients.o$DIN[which(Nutrients.o$Site=="KL")], Nutrients.o$DIN[which(Nutrients.o$Site=="SS")], alternative = "two.sided")$p.value)
 ```
+
+
+# Calulcate Averages per Timepoint
+To pair environmental parameters with coral physiology, calculating averages within bins around each timepoint. 
+
+TP1: Aug-Oct 2021
+TP2: Nov 2021-Jan 2022
+TP3: Feb-Apr 2022
+TP4: May-Jul/Aug 2022
+
+### Temperature and Conductivity
+```{r}
+##Add Timepoint Variable
+TC.daily$TimeP<-ifelse(TC.daily$BiMonth=="M0.1" | TC.daily$BiMonth=="M0.2" | 
+                         TC.daily$BiMonth=="M1.1" | TC.daily$BiMonth=="M1.2" |
+                         TC.daily$BiMonth=="M2.1" | TC.daily$BiMonth=="M2.2", "TP1", 
+                      ifelse(TC.daily$BiMonth=="M3.1" | TC.daily$BiMonth=="M3.2" | 
+                         TC.daily$BiMonth=="M4.1" | TC.daily$BiMonth=="M4.2" |
+                         TC.daily$BiMonth=="M5.1" | TC.daily$BiMonth=="M5.2", "TP2",
+                      ifelse(TC.daily$BiMonth=="M6.1" | TC.daily$BiMonth=="M6.2" | 
+                         TC.daily$BiMonth=="M7.1" | TC.daily$BiMonth=="M7.2" |
+                         TC.daily$BiMonth=="M8.1" | TC.daily$BiMonth=="M8.2", "TP3",
+                      ifelse(TC.daily$BiMonth=="M9.1" | TC.daily$BiMonth=="M9.2" | 
+                         TC.daily$BiMonth=="M10.1" | TC.daily$BiMonth=="M10.2" |
+                         TC.daily$BiMonth=="M11.1" | TC.daily$BiMonth=="M11.2" | 
+                           TC.daily$BiMonth=="M12.1", "TP4", "NA" ))))
+
+##Averages by Timepoint
+names(TC.daily)
+TC.TP<-aggregate(TC.daily[,c(3:12)], list(TC.daily$Site, TC.daily$TimeP), mean)
+names(TC.TP)[1:2]<-c("Site", "TimeP")
+```
+
+
+### PAR
+```{r}
+##Add Timepoint Variable
+PAR.daily$TimeP<-ifelse(PAR.daily$BiMonth=="M0.1" | PAR.daily$BiMonth=="M0.2" | 
+                         PAR.daily$BiMonth=="M1.1" | PAR.daily$BiMonth=="M1.2" |
+                         PAR.daily$BiMonth=="M2.1" | PAR.daily$BiMonth=="M2.2", "TP1", 
+                      ifelse(PAR.daily$BiMonth=="M3.1" | PAR.daily$BiMonth=="M3.2" | 
+                         PAR.daily$BiMonth=="M4.1" | PAR.daily$BiMonth=="M4.2" |
+                         PAR.daily$BiMonth=="M5.1" | PAR.daily$BiMonth=="M5.2", "TP2",
+                      ifelse(PAR.daily$BiMonth=="M6.1" | PAR.daily$BiMonth=="M6.2" | 
+                         PAR.daily$BiMonth=="M7.1" | PAR.daily$BiMonth=="M7.2" |
+                         PAR.daily$BiMonth=="M8.1" | PAR.daily$BiMonth=="M8.2", "TP3",
+                      ifelse(PAR.daily$BiMonth=="M9.1" | PAR.daily$BiMonth=="M9.2" | 
+                         PAR.daily$BiMonth=="M10.1" | PAR.daily$BiMonth=="M10.2" |
+                         PAR.daily$BiMonth=="M11.1" | PAR.daily$BiMonth=="M11.2" | 
+                           PAR.daily$BiMonth=="M12.1", "TP4", "NA" ))))
+
+##Averages by Timepoint
+names(PAR.daily)
+PAR.TP<-aggregate(PAR.daily[,c(3:7)], list(PAR.daily$Site, PAR.daily$TimeP), mean)
+names(PAR.TP)[1:2]<-c("Site", "TimeP")
+```
+
+
+### Nutrients
+```{r}
+##Add Timepoint Variable
+Nutrients.o$TimeP<-ifelse(Nutrients.o$BiMonth=="M0.1" | Nutrients.o$BiMonth=="M0.2" | 
+                         Nutrients.o$BiMonth=="M1.1" | Nutrients.o$BiMonth=="M1.2" |
+                         Nutrients.o$BiMonth=="M2.1" | Nutrients.o$BiMonth=="M2.2", "TP1", 
+                      ifelse(Nutrients.o$BiMonth=="M3.1" | Nutrients.o$BiMonth=="M3.2" | 
+                         Nutrients.o$BiMonth=="M4.1" | Nutrients.o$BiMonth=="M4.2" |
+                         Nutrients.o$BiMonth=="M5.1" | Nutrients.o$BiMonth=="M5.2", "TP2",
+                      ifelse(Nutrients.o$BiMonth=="M6.1" | Nutrients.o$BiMonth=="M6.2" | 
+                         Nutrients.o$BiMonth=="M7.1" | Nutrients.o$BiMonth=="M7.2" |
+                         Nutrients.o$BiMonth=="M8.1" | Nutrients.o$BiMonth=="M8.2", "TP3",
+                      ifelse(Nutrients.o$BiMonth=="M9.1" | Nutrients.o$BiMonth=="M9.2" | 
+                         Nutrients.o$BiMonth=="M10.1" | Nutrients.o$BiMonth=="M10.2" |
+                         Nutrients.o$BiMonth=="M11.1" | Nutrients.o$BiMonth=="M11.2" | 
+                           Nutrients.o$BiMonth=="M12.1", "TP4", "NA" ))))
+
+##Averages by Timepoint
+names(Nutrients.o)
+Nutrients.TP<-aggregate(Nutrients.o[,c(8:15)], list(Nutrients.o$Site, Nutrients.o$TimeP), mean)
+names(Nutrients.TP)[1:2]<-c("Site", "TimeP")
+```
+
+
+
+### Environmetnal Conditions by Timepoint
+```{r}
+##Merge all Environmental Data
+#Merges by Site and Timepoint
+EnvData.TP<-merge(TC.TP, PAR.TP)
+EnvData.TP<-merge(EnvData.TP, Nutrients.TP)
+
+##Retain Variables of Interest
+EnvData.TP<-EnvData.TP[,c("Site", "TimeP", "Temp.a", "Cond.a", "Temp.sd", "Cond.sd", "PAR.a", "Sat.hr", "TN_uM", "TP_uM", "N.P", "DIN_uM")]
+
+##Save Environmental Dataset
+write.csv(EnvData.TP, "Outputs/AvgEnvData.csv", row.names=FALSE)
+
+```
+
 
 
 # Thermal Tolerance Assay 
@@ -1009,3 +1150,19 @@ Note: Figure S3A is thermal tolerance assessment tank diagram.
 ggsave(filename="Figures/01_Design/FigS3B_Heat_Assay_Temperatures.png", plot=HCTemp.plot, dpi=300, width=4, height=8, units="in")
 ```
 
+
+# Tables 
+
+### Table S2 Univariate Results of Environmental Parameters
+```{r}
+##Combine Results Tables
+TableS2_Env.Uni<-data.frame(rbind(Env.res_Temp.a, Env.res_Temp.sd, Env.res_Cond.a, Env.res_Cond.sd, Env.res_PAR.a, Env.res_Sat.hr, Env.res_TN, Env.res_TP, Env.res_N.P, Env.res_DIN))
+
+#Round to 3 digits
+TableS2_Env.Uni$p<-round(TableS2_Env.Uni$p, 3)
+
+##Write Out Table
+write.csv(TableS2_Env.Uni, "Tables/TableS2_Environmental_Univariate_Results.csv", row.names=FALSE)
+
+
+```

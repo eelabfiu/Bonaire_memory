@@ -1,0 +1,15 @@
+"Parameter","Test","p"
+"Daily Average Temperature","Two-sided Wilcoxon Rank Sum",0.286
+"Daily Standard Deviation of Temperature","Two-sided Wilcoxon Rank Sum",0.625
+"Daily Average Conductivity","Two-sided Wilcoxon Rank Sum",0
+"Daily Average Conductivity","One-sided (KL>SS) Wilcoxon Rank Sum",0
+"Daily Standard Deviation of Conductivity","Two-sided Wilcoxon Rank Sum",0
+"Daily Standard Deviation of Conductivity","One-sided (KL>SS) Wilcoxon Rank Sum",0
+"Daily Average PAR","Two-sided Wilcoxon Rank Sum",0
+"Daily Average PAR","One-sided (KL<SS) Wilcoxon Rank Sum",0
+"Daily Daily Hours above Saturating Irradiance","Two-sided Wilcoxon Rank Sum",0
+"Daily Daily Hours above Saturating Irradiance","One-sided (KL<SS) Wilcoxon Rank Sum",0
+"Bi-monthly Total Nitrogen","Two-sided Student's t",0.902
+"Bi-monthly Total Phosphorus","Two-sided Wilcoxon Rank Sum",0.668
+"Bi-monthly Total Nitrogen : Phosphorus","Two-sided Student's t",0.807
+"Bi-monthly Dissolved Inorganic Nitrogen","Two-sided Wilcoxon Rank Sum",0.383
