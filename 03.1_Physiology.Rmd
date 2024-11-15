@@ -34,6 +34,7 @@ if (!require("emmeans")) install.packages("emmeans")
 if (!require("Hmisc")) install.packages("Hmisc")
 if (!require("dplyr")) install.packages("dplyr")
 if (!require("tidyr")) install.packages("tidyr")
+if (!require("ggpubr")) install.packages("ggpubr")
 
 ##Load Packages
 library(ggplot2) #Required for ggplots
@@ -49,6 +50,7 @@ library(emmeans) #Required for pairwise comparisons
 library(Hmisc) #Required for correlations
 library(dplyr) #Required for dataframe organization
 library(tidyr) #Required for dataframe organization
+library(ggpubr) #Required for stat brackets
 
 ```
 
@@ -155,10 +157,10 @@ Coral_St <- Coral.rm %>% mutate_at(c("TP_ug.cm2", "AFDW_mg.cm2", "Chl_ug.cm2"), 
 
 
 #### PERMANOVA
-Checking for an overall effect of Origin or Site, along with interactions between Origin and Site and Origin with Time. Time is not included as a main individual effect as seasonal changes in physiology are not the focus of the analysis. Rather, the effect of time since transplant on the effect of origin is of interest.
+Checking for an overall effect of Origin or Site or Time, along with all interactions. Overall effect of Time alone (season) is not of main interest, but is predicted to interact with the effect of Origin as the time post-transplant increases.  
 ```{r}
 ##PERMANOVA
-Coral.perm<-adonis2(vegdist(Coral_St[,c(11:13)], "euclidean")~ Coral_St$Origin + Coral_St$Site + Coral_St$Origin:Coral_St$Site + Coral_St$Origin:Coral_St$TimeP, data=Coral_St, strata=Coral_St$Genotype, method="euclidean")
+Coral.perm<-adonis2(vegdist(Coral_St[,c(11:13)], "euclidean")~ Coral_St$Origin*Coral_St$Site*Coral_St$TimeP, data=Coral_St, strata=Coral_St$Genotype, method="euclidean")
 
 ##Effect Size
 adonis_OmegaSq(Coral.perm)
@@ -171,21 +173,37 @@ Orig_disp
 Site_disp<-anova(betadisper(vegdist(Coral_St[,c(11:13)], "euclidean"), Coral_St$Site))
 Site_disp
 
+##Check dispersion by Time
+Time_disp<-anova(betadisper(vegdist(Coral_St[,c(11:13)], "euclidean"), Coral_St$TimeP))
+Time_disp
+
 ##Check dispersion by Origin:Site
 Orig.Site_disp<-anova(betadisper(vegdist(Coral_St[,c(11:13)], "euclidean"), Coral_St$Origin:Coral_St$Site))
 Orig.Site_disp
 
-##Check dispersion by Origin:Site
+##Check dispersion by Origin:Time
 Orig.Time_disp<-anova(betadisper(vegdist(Coral_St[,c(11:13)], "euclidean"), Coral_St$Origin:Coral_St$TimeP))
 Orig.Time_disp
 
+##Check dispersion by Site:Time
+Site.Time_disp<-anova(betadisper(vegdist(Coral_St[,c(11:13)], "euclidean"), Coral_St$Site:Coral_St$TimeP))
+Site.Time_disp
+
+##Check dispersion by Origin:Site:Time
+Orig.Site.Time_disp<-anova(betadisper(vegdist(Coral_St[,c(11:13)], "euclidean"), Coral_St$Origin:Coral_St$Site:Coral_St$TimeP))
+Orig.Site.Time_disp
+
 ##Save results
-PERM.res<-data.frame(adonis_OmegaSq(Coral.perm)[1:4,])
-PERM.res$Predictor<-c("Origin", "Site", "Origin x Site", "Origin x Time")
-PERM.res$p_DISP<-c(Orig_disp$`Pr(>F)`[1], Site_disp$`Pr(>F)`[1], Orig.Site_disp$`Pr(>F)`[1], Orig.Time_disp$`Pr(>F)`[1])
+PERM.res<-data.frame(adonis_OmegaSq(Coral.perm)[1:7,])
+PERM.res$Predictor<-c("Origin", "Site", "Time", "Origin x Site", "Origin x Time", "Site x Time", "Site x Time x Origin")
+PERM.res$p_DISP<-c(Orig_disp$`Pr(>F)`[1], Site_disp$`Pr(>F)`[1], Time_disp$`Pr(>F)`[1],
+                   Orig.Site_disp$`Pr(>F)`[1], Orig.Time_disp$`Pr(>F)`[1], 
+                   Site.Time_disp$`Pr(>F)`[1], Orig.Site.Time_disp$`Pr(>F)`[1])
 PERM.res$Timepoint<-rep("All", nrow(PERM.res))
 
 ```
+
+Due to significant interactions with Time, each time point will be analyzed separately to assess the effect of origin vs current site. 
 
 
 ### TP1
@@ -495,6 +513,118 @@ PERM_T4.res$Timepoint<-rep("TP4", nrow(PERM_T4.res))
 
 # Univariate 
 
+### All Timepoints
+Similar to the Multivariate analysis, checking for an overall effect of Origin or Site or Time, along with all interactions. Overall effect of Time alone (season) is not of main interest, but is predicted to interact with the effect of Origin as the time post-transplant increases.  
+
+#### Protein
+```{r}
+##Check normality
+hist(Coral$TP_ug.cm2)
+shapiro.test(Coral$TP_ug.cm2)
+#Normal
+
+##Model 
+#Function of Site and Origin and Time, with Genotype as a Random effect
+#All Interactions included
+Prot.lme<-lmer(TP_ug.cm2~Origin*Site*TimeP+(1|Genotype), data=Coral)
+
+##Check residuals
+Prot.lme_res <- simulateResiduals(fittedModel = Prot.lme, plot = F)
+plot(Prot.lme_res)
+
+##Model results
+anova(Prot.lme)
+
+eta_squared(Prot.lme)
+
+##Save model results
+Prot.res<-data.frame(anova(Prot.lme))
+Prot.res$Predictor<-c("Origin", "Site", "Time", "Origin x Site", "Origin x Time", "Site x Time", "Origin x Site x Time")
+Prot.res$EtaSq<-c(eta_squared(Prot.lme)$Eta2)
+Prot.res$Response<-rep("Protein", nrow(Prot.res))
+
+##Pairwise Comparisons of Interest
+#Native vs Transplant within a Site and Timepoint
+Prot.pair<-emmeans(Prot.lme, pairwise~Origin | Site*TimeP)
+
+eff_size(Prot.pair, sigma=sigma(Prot.lme), edf=df.residual(Prot.lme))
+
+```
+
+
+#### Biomass
+```{r}
+##Check normality
+hist(Coral$AFDW_mg.cm2)
+shapiro.test(Coral$AFDW_mg.cm2)
+#Normal
+
+##Model 
+#Function of Site and Origin and Time, with Genotype as a Random effect
+#All Interactions included
+Bio.lme<-lmer(AFDW_mg.cm2~Origin*Site*TimeP+(1|Genotype), data=Coral)
+
+##Check residuals
+Bio.lme_res <- simulateResiduals(fittedModel = Bio.lme, plot = F)
+plot(Bio.lme_res)
+
+##Model results
+anova(Bio.lme)
+
+eta_squared(Bio.lme)
+
+##Save model results
+Bio.res<-data.frame(anova(Bio.lme))
+Bio.res$Predictor<-c("Origin", "Site", "Time", "Origin x Site", "Origin x Time", "Site x Time", "Origin x Site x Time")
+Bio.res$EtaSq<-c(eta_squared(Bio.lme)$Eta2)
+Bio.res$Response<-rep("Biomass", nrow(Bio.res))
+
+##Pairwise Comparisons of Interest
+#Native vs Transplant within a Site and Timepoint
+Bio.pair<-emmeans(Bio.lme, pairwise~Origin | Site*TimeP)
+
+eff_size(Bio.pair, sigma=sigma(Bio.lme), edf=df.residual(Bio.lme))
+
+```
+
+
+#### Chlorophyll
+```{r}
+##Check normality
+hist(Coral$Chl_ug.cm2)
+shapiro.test(Coral$Chl_ug.cm2)
+#Not normal
+
+hist(log(Coral$Chl_ug.cm2+1))
+shapiro.test(log(Coral$Chl_ug.cm2+1))
+#Improved
+
+##Model 
+#Function of Site and Origin and Time, with Genotype as a Random effect
+#All Interactions included
+Chl.lme<-lmer(log(Chl_ug.cm2+1)~Origin*Site*TimeP+(1|Genotype), data=Coral)
+
+##Check residuals
+Chl.lme_res <- simulateResiduals(fittedModel = Chl.lme, plot = F)
+plot(Chl.lme_res)
+
+##Model results
+anova(Chl.lme)
+
+eta_squared(Chl.lme)
+
+##Save model results
+Chl.res<-data.frame(anova(Chl.lme))
+Chl.res$Predictor<-c("Origin", "Site", "Time", "Origin x Site", "Origin x Time", "Site x Time", "Origin x Site x Time")
+Chl.res$EtaSq<-c(eta_squared(Chl.lme)$Eta2)
+Chl.res$Response<-rep("Biomass", nrow(Chl.res))
+
+##Pairwise Comparisons of Interest
+#Native vs Transplant within a Site and Timepoint
+emmeans(Chl.lme, pairwise~Origin | Site*TimeP)
+```
+
+
 ### TP1
 
 ```{r}
@@ -581,7 +711,8 @@ TP1_Prot.plot<-ggplot(TP1_Prot.sum, aes(x=Site, y=TP_ug.cm2, colour=Site.Orig)) 
         legend.position="top")+
   labs(x="Site and Origin", y=expression(paste('Protein (\u03BCg cm'^-2*")")), colour=NULL)+
   ylim(550, 950)+
-  annotate("text", x=2, y=950, label="**", size=sig.sz, fontface="bold"); TP1_Prot.plot
+  annotate("text", x=2, y=950, label="**", size=sig.sz, fontface="bold")+
+  geom_bracket(xmin=1, xmax=2, y.position=562, label.size=levels.sz, label="**", inherit.aes = FALSE); TP1_Prot.plot
 ```
 
 
@@ -739,7 +870,8 @@ TP1_Chl.plot<-ggplot(TP1_Chl.sum, aes(x=Site, y=Chl_ug.cm2, colour=Site.Orig)) +
         legend.position="top")+
   labs(x="Site and Origin", y=expression(paste('Total Chlorophyll (\u03BCg cm'^-2*")")), colour=NULL)+
   ylim(0.5, 3.25)+
-  annotate("text", x=2, y=1.7, label="***", size=sig.sz, fontface="bold"); TP1_Chl.plot
+  annotate("text", x=2, y=1.7, label="***", size=sig.sz, fontface="bold")+
+  geom_bracket(xmin=1, xmax=2, y.position=0.54, label.size=levels.sz, label="***", inherit.aes = FALSE); TP1_Chl.plot
 ```
 
 
@@ -840,7 +972,8 @@ TP2_Prot.plot<-ggplot(TP2_Prot.sum, aes(x=Site, y=TP_ug.cm2, colour=Site.Orig)) 
         legend.box.background = element_rect(color = "black"), 
         legend.position="top")+
   labs(x="Site and Origin", y=expression(paste('Protein (\u03BCg cm'^-2*")")), colour=NULL)+
-  ylim(550, 950); TP2_Prot.plot
+  ylim(550, 950)+
+  geom_bracket(xmin=1, xmax=2, y.position=562, label.size=levels.sz, label="*", inherit.aes = FALSE); TP2_Prot.plot
 ```
 
 
@@ -1000,7 +1133,8 @@ TP2_Chl.plot<-ggplot(TP2_Chl.sum, aes(x=Site, y=Chl_ug.cm2, colour=Site.Orig)) +
         legend.position= "top")+
   labs(x="Site and Origin", y=expression(paste('Total Chlorophyll (\u03BCg cm'^-2*")")), colour=NULL)+
   ylim(0.5, 3.25)+
-  annotate("text", x=c(1,2), y=c(1.5, 2.6), label="*", size=sig.sz, fontface="bold"); TP2_Chl.plot
+  annotate("text", x=c(1,2), y=c(1.5, 2.6), label="*", size=sig.sz, fontface="bold")+
+  geom_bracket(xmin=1, xmax=2, y.position=0.54, label.size=levels.sz, label="**", inherit.aes = FALSE); TP2_Chl.plot
 ```
 
 
@@ -1263,7 +1397,8 @@ TP3_Chl.plot<-ggplot(TP3_Chl.sum, aes(x=Site, y=Chl_ug.cm2, colour=Site.Orig)) +
         legend.position="top")+
   labs(x="Site and Origin", y=expression(paste('Total Chlorophyll (\u03BCg cm'^-2*")")), colour=NULL)+
   ylim(0.5, 3.25)+
-  annotate("text", x=1, y=1.5, label="-", size=levels.sz, fontface="bold"); TP3_Chl.plot
+  annotate("text", x=1, y=1.5, label="-", size=levels.sz, fontface="bold")+
+  geom_bracket(xmin=1, xmax=2, y.position=0.54, label.size=levels.sz, label="**", inherit.aes = FALSE); TP3_Chl.plot
 ```
 
 
@@ -1364,7 +1499,8 @@ TP4_Prot.plot<-ggplot(TP4_Prot.sum, aes(x=Site, y=TP_ug.cm2, colour=Site.Orig)) 
         legend.box.background = element_rect(color = "black"), 
         legend.position="top")+
   labs(x="Site and Origin", y=expression(paste('Protein (\u03BCg cm'^-2*")")), colour=NULL)+
-  ylim(550, 950); TP4_Prot.plot
+  ylim(550, 950)+
+  geom_bracket(xmin=1, xmax=2, y.position=562, label.size=levels.sz, label="**", inherit.aes = FALSE); TP4_Prot.plot
 ```
 
 
@@ -1443,7 +1579,8 @@ TP4_Bio.plot<-ggplot(TP4_Bio.sum, aes(x=Site, y=AFDW_mg.cm2, colour=Site.Orig)) 
         legend.box.background = element_rect(color = "black"), 
         legend.position="top")+
   labs(x="Site and Origin", y=expression(paste('Biomass (mg cm'^-2*")")), colour=NULL)+
-  ylim(1.35, 2.45); TP4_Bio.plot
+  ylim(1.35, 2.45)+
+  geom_bracket(xmin=1, xmax=2, y.position=1.38, label.size=levels.sz, label="**", inherit.aes = FALSE); TP4_Bio.plot
 ```
 
 
@@ -1527,7 +1664,8 @@ TP4_Chl.plot<-ggplot(TP4_Chl.sum, aes(x=Site, y=Chl_ug.cm2, colour=Site.Orig)) +
         legend.box.background = element_rect(color = "black"), 
         legend.position="top")+
   labs(x="Site and Origin", y=expression(paste('Total Chlorophyll (\u03BCg cm'^-2*")")), colour=NULL)+
-  ylim(0.5, 3.25); TP4_Chl.plot
+  ylim(0.5, 3.25)+
+  geom_bracket(xmin=1, xmax=2, y.position=0.54, label.size=levels.sz, label="***", inherit.aes = FALSE); TP4_Chl.plot
 ```
 
 
@@ -1542,16 +1680,12 @@ Phys_T4.res$TimeP<-rep("TP4", nrow(Phys_T4.res))
 ```
 
 
-### Effect Size over Time
+# Effect Size over Time
 ```{r}
 ##Dataframe of effect size results
 Phys.ES<-rbind(Phys_T1.res, Phys_T2.res, Phys_T3.res, Phys_T4.res)
 Phys.ES<-Phys.ES %>% dplyr::rename(p = Pr...t..)
 Phys.ES<-Phys.ES[,c("TimeP", "Predictor", "Response", "EtaSq", "p")]
-
-##Site specific results
-Phys.ES<-Phys.ES[which(Phys.ES$Predictor=="KL Origin" | Phys.ES$Predictor=="SS Origin"),]
-Phys.ES<-Phys.ES %>% separate_wider_delim(cols="Predictor", delim=" ", names=c("Site", "Predictor"), cols_remove = TRUE)
 
 ##Add Metric names
 Phys.ES$Metric<-ifelse(Phys.ES$Response== "Protein", "TP_ug.cm2",  ifelse(
@@ -1562,12 +1696,75 @@ Phys.ES$Metric<-ifelse(Phys.ES$Response== "Protein", "TP_ug.cm2",  ifelse(
 Phys.ES$Sig<-ifelse(Phys.ES$p<0.001, "***", ifelse(Phys.ES$p<0.01, "**", 
             ifelse(Phys.ES$p<0.05, "*", ifelse(Phys.ES$p<0.1, "-", NA))))
 
+##Save Dataframe
+write.csv(Phys.ES, "Outputs/PhysiologyES.csv", row.names=FALSE)
+
+```
+
+
+### Site vs Origin
+```{r}
+##Site specific results
+Phys.ES_SO<-Phys.ES[-c(which(Phys.ES$Predictor=="KL Origin" | Phys.ES$Predictor=="SS Origin")),]
+
+```
+
+
+```{r}
+Phys.ES.plot<-ggplot(Phys.ES_SO, aes(fill=Predictor, y=EtaSq, x=TimeP)) + 
+    geom_bar(position="stack", stat="identity")+
+  facet_wrap(vars(Response))+
+  theme_bw()+
+  theme(strip.text=element_text(size=axis.title.sz),
+        strip.background = element_rect(fill="white"),
+        axis.title.x = element_text(size = axis.title.sz), 
+        axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
+        axis.text.y=element_text(size=axis.txt.sz, colour="black"),
+        legend.text=element_text(size=leg.txt.sz), 
+        legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"), 
+        legend.position=c(.15, .8))+
+   labs(x="Time Point", y=expression(paste("Effect Size (p", eta^2, ")")), colour="Predictor")+
+   geom_text(aes(label=Sig), position=position_stack(vjust=0.5), size=sig.sz); Phys.ES.plot
+```
+
+
+```{r}
+Phys.ES.plot_threshold<-ggplot(Phys.ES_SO, aes(fill=Predictor, y=EtaSq, x=TimeP)) + 
+  geom_hline(yintercept=0.01, linetype="dashed", color="grey60", linewidth=0.75)+
+  geom_hline(yintercept=0.06, linetype="solid", color="grey40", linewidth=0.75)+
+  geom_hline(yintercept=0.14, linetype="dashed", color="grey20", linewidth=0.75)+
+    geom_bar(position="dodge", stat="identity")+
+  facet_wrap(vars(Response))+
+  theme_bw()+
+  theme(strip.text=element_text(size=axis.title.sz),
+        strip.background = element_rect(fill="white"),
+        axis.title.x = element_text(size = axis.title.sz), 
+        axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
+        axis.text.y=element_text(size=axis.txt.sz, colour="black"),
+        legend.text=element_text(size=leg.txt.sz), 
+        legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"), 
+        legend.position=c(.15, .8))+
+   labs(x="Time Point", y=expression(paste("Effect Size (p", eta^2, ")")), colour="Predictor")+
+   geom_text(aes(label=Sig, hjust=0.5), position=position_dodge(width=1), size=sig.sz); Phys.ES.plot_threshold
+```
+
+
+### Site-Specific 
+```{r}
+##Site specific results
+Phys.ES_Orig<-Phys.ES[which(Phys.ES$Predictor=="KL Origin" | Phys.ES$Predictor=="SS Origin"),]
+Phys.ES_Orig<-Phys.ES_Orig %>% separate_wider_delim(cols="Predictor", delim=" ", names=c("Site", "Predictor"), cols_remove = TRUE)
+
 ```
 
 
 #### Biomass
 ```{r Plot Effect Size Biomass}
-Bio.ES.plot<-ggplot(Phys.ES[which(Phys.ES$Metric=="AFDW_mg.cm2"),], aes(x=TimeP, y=EtaSq, fill=Site))+
+Bio.ES.plot<-ggplot(Phys.ES_Orig[which(Phys.ES_Orig$Metric=="AFDW_mg.cm2"),], aes(x=TimeP, y=EtaSq, fill=Site))+
   geom_bar(stat="identity", position=position_dodge())+
     scale_fill_manual(values=Site.colors.o)+
 theme_classic()+
@@ -1589,7 +1786,7 @@ theme_classic()+
 
 #### Protein
 ```{r Plot Effect Size Protein}
-Prot.ES.plot<-ggplot(Phys.ES[which(Phys.ES$Metric=="TP_ug.cm2"),], aes(x=TimeP, y=EtaSq, fill=Site))+
+Prot.ES.plot<-ggplot(Phys.ES_Orig[which(Phys.ES_Orig$Metric=="TP_ug.cm2"),], aes(x=TimeP, y=EtaSq, fill=Site))+
   geom_bar(stat="identity", position=position_dodge())+
     scale_fill_manual(values=Site.colors.o)+
 theme_classic()+
@@ -1612,7 +1809,7 @@ theme_classic()+
 
 #### Chlorophyll
 ```{r Plot Effect Size Chlorophyll}
-Chl.ES.plot<-ggplot(Phys.ES[which(Phys.ES$Metric=="Chl_ug.cm2"),], aes(x=TimeP, y=EtaSq, fill=Site))+
+Chl.ES.plot<-ggplot(Phys.ES_Orig[which(Phys.ES_Orig$Metric=="Chl_ug.cm2"),], aes(x=TimeP, y=EtaSq, fill=Site))+
   geom_bar(stat="identity", position=position_dodge())+
     scale_fill_manual(values=Site.colors.o)+
 theme_classic()+
