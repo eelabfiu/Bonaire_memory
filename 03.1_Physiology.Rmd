@@ -512,11 +512,11 @@ PERM_T4.res$Timepoint<-rep("TP4", nrow(PERM_T4.res))
 
 
 # Univariate 
-
-### All Timepoints
 Similar to the Multivariate analysis, checking for an overall effect of Origin or Site or Time, along with all interactions. Overall effect of Time alone (season) is not of main interest, but is predicted to interact with the effect of Origin as the time post-transplant increases.  
 
-#### Protein
+### Protein
+
+#### Model
 ```{r}
 ##Check normality
 hist(Coral$TP_ug.cm2)
@@ -525,7 +525,7 @@ shapiro.test(Coral$TP_ug.cm2)
 
 ##Model 
 #Function of Site and Origin and Time, with Genotype as a Random effect
-#All Interactions included
+#All interactions included
 Prot.lme<-lmer(TP_ug.cm2~Origin*Site*TimeP+(1|Genotype), data=Coral)
 
 ##Check residuals
@@ -543,16 +543,32 @@ Prot.res$Predictor<-c("Origin", "Site", "Time", "Origin x Site", "Origin x Time"
 Prot.res$EtaSq<-c(eta_squared(Prot.lme)$Eta2)
 Prot.res$Response<-rep("Protein", nrow(Prot.res))
 
+```
+
+
+#### Pairwise
+```{r}
 ##Pairwise Comparisons of Interest
 #Native vs Transplant within a Site and Timepoint
 Prot.pair<-emmeans(Prot.lme, pairwise~Origin | Site*TimeP)
+Prot.pair
 
-eff_size(Prot.pair, sigma=sigma(Prot.lme), edf=df.residual(Prot.lme))
+#Calculate standardized effect sizes for pairwise comparisons
+Prot.pair.es<-data.frame(eff_size(Prot.pair, sigma=sigma(Prot.lme), edf=df.residual(Prot.lme)))
+Prot.pair.es
+Prot.pair.es<-Prot.pair.es %>% dplyr::rename(contrast.se = contrast, SE.es = SE, df.es = df)
+
+
+##Save Results
+Prot.pair.res<-merge(data.frame(Prot.pair$contrasts), Prot.pair.es[,-c(1)])
+Prot.pair.res$Response<-rep("Protein", nrow(Prot.pair.res))
 
 ```
 
 
-#### Biomass
+### Biomass
+
+#### Model
 ```{r}
 ##Check normality
 hist(Coral$AFDW_mg.cm2)
@@ -579,16 +595,30 @@ Bio.res$Predictor<-c("Origin", "Site", "Time", "Origin x Site", "Origin x Time",
 Bio.res$EtaSq<-c(eta_squared(Bio.lme)$Eta2)
 Bio.res$Response<-rep("Biomass", nrow(Bio.res))
 
-##Pairwise Comparisons of Interest
-#Native vs Transplant within a Site and Timepoint
-Bio.pair<-emmeans(Bio.lme, pairwise~Origin | Site*TimeP)
-
-eff_size(Bio.pair, sigma=sigma(Bio.lme), edf=df.residual(Bio.lme))
-
 ```
 
 
-#### Chlorophyll
+#### Pairwise
+```{r}
+##Pairwise Comparisons of Interest
+#Native vs Transplant within a Site and Timepoint
+Bio.pair<-emmeans(Bio.lme, pairwise~Origin | Site*TimeP)
+Bio.pair
+
+#Calculate standardized effect sizes for pairwise comparisons
+Bio.pair.es<-data.frame(eff_size(Bio.pair, sigma=sigma(Bio.lme), edf=df.residual(Bio.lme)))
+Bio.pair.es
+Bio.pair.es<-Bio.pair.es %>% dplyr::rename(contrast.se = contrast, SE.es = SE, df.es = df)
+
+##Save Results
+Bio.pair.res<-merge(data.frame(Bio.pair$contrasts), Bio.pair.es[,-c(1)])
+Bio.pair.res$Response<-rep("Biomass", nrow(Bio.pair.res))
+```
+
+
+### Chlorophyll
+
+#### Model
 ```{r}
 ##Check normality
 hist(Coral$Chl_ug.cm2)
@@ -617,13 +647,89 @@ eta_squared(Chl.lme)
 Chl.res<-data.frame(anova(Chl.lme))
 Chl.res$Predictor<-c("Origin", "Site", "Time", "Origin x Site", "Origin x Time", "Site x Time", "Origin x Site x Time")
 Chl.res$EtaSq<-c(eta_squared(Chl.lme)$Eta2)
-Chl.res$Response<-rep("Biomass", nrow(Chl.res))
+Chl.res$Response<-rep("Chlorophyll", nrow(Chl.res))
 
-##Pairwise Comparisons of Interest
-#Native vs Transplant within a Site and Timepoint
-emmeans(Chl.lme, pairwise~Origin | Site*TimeP)
 ```
 
+
+#### Pairwise
+```{r}
+##Pairwise Comparisons of Interest
+#Native vs Transplant within a Site and Timepoint
+Chl.pair<-emmeans(Chl.lme, pairwise~Origin | Site*TimeP)
+Chl.pair
+
+#Calculate standardized effect sizes for pairwise comparisons
+Chl.pair.es<-data.frame(eff_size(Chl.pair, sigma=sigma(Chl.lme), edf=df.residual(Chl.lme)))
+Chl.pair.es
+Chl.pair.es<-Chl.pair.es %>% dplyr::rename(contrast.se = contrast, SE.es = SE, df.es = df)
+
+##Save Results
+Chl.pair.res<-merge(data.frame(Chl.pair$contrasts), Chl.pair.es[,-c(1)])
+Chl.pair.res$Response<-rep("Chlorophyll", nrow(Chl.pair.res))
+```
+
+
+### Save Results
+```{r}
+##Combine Results
+Phys.res<-rbind(Prot.res, Bio.res, Chl.res)
+
+##Add Timepoint
+Phys.res$TimeP<-rep("All", nrow(Phys.res))
+
+```
+
+
+### Native v Transplant Effect Sizes
+```{r}
+##Combine Pairwise Results
+Phys.pair.res<-rbind(Prot.pair.res, Bio.pair.res, Chl.pair.res)
+
+##Add Significance levels
+Phys.pair.res$Sig<-ifelse(Phys.pair.res$p.value<0.001, "***", ifelse(Phys.pair.res$p.value<0.01, "**", 
+            ifelse(Phys.pair.res$p.value<0.05, "*", ifelse(Phys.pair.res$p.value<0.1, "-", NA))))
+
+Phys.pair.res$Significant<-ifelse(Phys.pair.res$p.value<0.05, "sig", "non")
+
+##Set Order
+Phys.pair.res$Response<-factor(Phys.pair.res$Response, levels=c("Biomass", "Protein", "Chlorophyll"), ordered=TRUE)
+```
+
+
+#### Plot Effect Size of Origin
+```{r Plot Origin Effect Sizes}
+##Plot Effect Size across Timepoints
+Phys.Orig.ES.plot<-ggplot(Phys.pair.res, aes(x=TimeP, y=effect.size)) + 
+  geom_rect(fill="grey90", alpha=0.4, xmin=-Inf, xmax=Inf, ymin=-.4, ymax=0.4)+
+  geom_rect(fill="grey80", alpha=0.4, xmin=-Inf, xmax=Inf, ymin=-.25, ymax=0.25)+
+  geom_rect(fill="grey70", alpha=0.4, xmin=-Inf, xmax=Inf, ymin=-.1, ymax=0.1)+
+  geom_hline(yintercept=0, linetype="dashed", color="grey50", linewidth=0.5)+
+  geom_errorbar(aes(ymin=effect.size-SE.es, ymax=effect.size+SE.es, colour=Site), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
+  geom_point(aes(shape=Significant, colour=Site), size=point.sz, position=position_dodge(width=0.5))+
+  facet_wrap(vars(Response))+
+  scale_colour_manual(values=Site.colors.o)+
+  scale_shape_manual(values=c(1, 16))+
+  theme_bw()+
+  theme(axis.title.x = element_text(size = axis.title.sz), 
+        axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
+        axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.txt.sz), 
+        legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"), 
+        legend.position=c(.1, .1),
+        legend.direction = "horizontal",
+        strip.text=element_text(size=axis.title.sz),
+        strip.background = element_rect(fill="white"), 
+        panel.grid.major.y=element_blank())+
+  labs(x="Time Point", y="Origin Effect Size (Cohen's d)", colour="Site")+
+  guides(shape="none"); Phys.Orig.ES.plot
+```
+
+
+# Univariate by Timepoint
+Given the interactions with Time, model each timepoint separately to compare the effect of Origin or current Site. Using partial Eta Squared as effect size within models with interactions.
 
 ### TP1
 
@@ -663,32 +769,28 @@ Prot_TP1.res$Response<-rep("Protein", nrow(Prot_TP1.res))
 ```
 
 
-Effect size of Origin for each Site
 ```{r}
-##KL
-Prot.lme_TP1_KL<-lmer(TP_ug.cm2~Origin+(1|Genotype), data=Coral.TP1[which(Coral.TP1$Site=="KL"),])
-summary(Prot.lme_TP1_KL)
-eta_squared(Prot.lme_TP1_KL)
+##Pairwise Comparisons of Interest
+#Native vs Transplant within a Site
+Prot.pair_TP1<-emmeans(Prot.lme_TP1, pairwise~Origin | Site)
+Prot.pair_TP1
 
+#Calculate standardized effect sizes for pairwise comparisons
+Prot.pair.es_TP1<-data.frame(eff_size(Prot.pair_TP1, sigma=sigma(Prot.lme_TP1), edf=df.residual(Prot.lme_TP1)))
+Prot.pair.es_TP1
+Prot.pair.es_TP1<-Prot.pair.es_TP1 %>% dplyr::rename(contrast.se = contrast, SE.es = SE, df.es = df)
 
-##SS
-Prot.lme_TP1_SS<-lmer(TP_ug.cm2~Origin+(1|Genotype), data=Coral.TP1[which(Coral.TP1$Site=="SS"),])
-summary(Prot.lme_TP1_SS)
-eta_squared(Prot.lme_TP1_SS)
+##Save Results
+Prot.pair_TP1.res<-merge(data.frame(Prot.pair_TP1$contrasts), Prot.pair.es_TP1[,-c(1)])
+Prot.pair_TP1.res$Response<-rep("Protein", nrow(Prot.pair_TP1.res))
 
-
-##Save results
-Prot_TP1.site.res<-data.frame(rbind(summary(Prot.lme_TP1_KL)$coefficients[-1,],
-                                      summary(Prot.lme_TP1_SS)$coefficients[-1,]))
-Prot_TP1.site.res$Predictor<-c("KL Origin", "SS Origin")
-Prot_TP1.site.res$EtaSq<-c(eta_squared(Prot.lme_TP1_KL)$Eta2, eta_squared(Prot.lme_TP1_SS)$Eta2)
-Prot_TP1.site.res$Response<-rep("Protein", nrow(Prot_TP1.site.res))
-
-##Combine results 
-Prot_TP1.res<-rbind(Prot_TP1.res, Prot_TP1.site.res)
-
+##Add Significance levels
+Prot.pair_TP1.res$Sig<-ifelse(Prot.pair_TP1.res$p.value<0.001, "***",
+                              ifelse(Prot.pair_TP1.res$p.value<0.01, "**",
+                                     ifelse(Prot.pair_TP1.res$p.value<0.05, "*",
+                                            ifelse(Prot.pair_TP1.res$p.value<0.1, "-", NA))))
+Prot.pair_TP1.res
 ```
-
 
 
 ```{r Plot Protein TP1}
@@ -746,28 +848,27 @@ Bio_TP1.res$Response<-rep("Biomass", nrow(Bio_TP1.res))
 ```
 
 
-Effect size of Origin for each Site
 ```{r}
-##KL
-Bio.lme_TP1_KL<-lmer(AFDW_mg.cm2~Origin+(1|Genotype), data=Coral.TP1[which(Coral.TP1$Site=="KL"),])
-summary(Bio.lme_TP1_KL)
-eta_squared(Bio.lme_TP1_KL)
+##Pairwise Comparisons of Interest
+#Native vs Transplant within a Site
+Bio.pair_TP1<-emmeans(Bio.lme_TP1, pairwise~Origin | Site)
+Bio.pair_TP1
 
-##SS
-Bio.lme_TP1_SS<-lmer(AFDW_mg.cm2~Origin+(1|Genotype), data=Coral.TP1[which(Coral.TP1$Site=="SS"),])
-summary(Bio.lme_TP1_SS)
-eta_squared(Bio.lme_TP1_SS)
+#Calculate standardized effect sizes for pairwise comparisons
+Bio.pair.es_TP1<-data.frame(eff_size(Bio.pair_TP1, sigma=sigma(Bio.lme_TP1), edf=df.residual(Bio.lme_TP1)))
+Bio.pair.es_TP1
+Bio.pair.es_TP1<-Bio.pair.es_TP1 %>% dplyr::rename(contrast.se = contrast, SE.es = SE, df.es = df)
 
-##Save results
-Bio_TP1.site.res<-data.frame(rbind(summary(Bio.lme_TP1_KL)$coefficients[-1,],
-                                      summary(Bio.lme_TP1_SS)$coefficients[-1,]))
-Bio_TP1.site.res$Predictor<-c("KL Origin", "SS Origin")
-Bio_TP1.site.res$EtaSq<-c(eta_squared(Bio.lme_TP1_KL)$Eta2, eta_squared(Bio.lme_TP1_SS)$Eta2)
-Bio_TP1.site.res$Response<-rep("Biomass", nrow(Bio_TP1.site.res))
+##Save Results
+Bio.pair_TP1.res<-merge(data.frame(Bio.pair_TP1$contrasts), Bio.pair.es_TP1[,-c(1)])
+Bio.pair_TP1.res$Response<-rep("Biomass", nrow(Bio.pair_TP1.res))
 
-##Combine results 
-Bio_TP1.res<-rbind(Bio_TP1.res, Bio_TP1.site.res)
-
+##Add Significance levels
+Bio.pair_TP1.res$Sig<-ifelse(Bio.pair_TP1.res$p.value<0.001, "***",
+                              ifelse(Bio.pair_TP1.res$p.value<0.01, "**",
+                                     ifelse(Bio.pair_TP1.res$p.value<0.05, "*",
+                                            ifelse(Bio.pair_TP1.res$p.value<0.1, "-", NA))))
+Bio.pair_TP1.res
 ```
 
 
@@ -825,28 +926,27 @@ Chl_TP1.res$Response<-rep("Chlorophyll", nrow(Chl_TP1.res))
 ```
 
 
-Effect size of Origin for each Site
 ```{r}
-##KL
-Chl.lme_TP1_KL<-lmer(Chl_ug.cm2~Origin+(1|Genotype), data=Coral.TP1[which(Coral.TP1$Site=="KL"),])
-summary(Chl.lme_TP1_KL)
-eta_squared(Chl.lme_TP1_KL)
+##Pairwise Comparisons of Interest
+#Native vs Transplant within a Site
+Chl.pair_TP1<-emmeans(Chl.lme_TP1, pairwise~Origin | Site)
+Chl.pair_TP1
 
-##SS
-Chl.lme_TP1_SS<-lmer(Chl_ug.cm2~Origin+(1|Genotype), data=Coral.TP1[which(Coral.TP1$Site=="SS"),])
-summary(Chl.lme_TP1_SS)
-eta_squared(Chl.lme_TP1_SS)
+#Calculate standardized effect sizes for pairwise comparisons
+Chl.pair.es_TP1<-data.frame(eff_size(Chl.pair_TP1, sigma=sigma(Chl.lme_TP1), edf=df.residual(Chl.lme_TP1)))
+Chl.pair.es_TP1
+Chl.pair.es_TP1<-Chl.pair.es_TP1 %>% dplyr::rename(contrast.se = contrast, SE.es = SE, df.es = df)
 
-##Save results
-Chl_TP1.site.res<-data.frame(rbind(summary(Chl.lme_TP1_KL)$coefficients[-1,],
-                                     summary(Chl.lme_TP1_SS)$coefficients[-1,]))
-Chl_TP1.site.res$Predictor<-c("KL Origin", "SS Origin")
-Chl_TP1.site.res$EtaSq<-c(eta_squared(Chl.lme_TP1_KL)$Eta2, eta_squared(Chl.lme_TP1_SS)$Eta2)
-Chl_TP1.site.res$Response<-rep("Chlorophyll", nrow(Chl_TP1.site.res))
+##Save Results
+Chl.pair_TP1.res<-merge(data.frame(Chl.pair_TP1$contrasts), Chl.pair.es_TP1[,-c(1)])
+Chl.pair_TP1.res$Response<-rep("Chlorophyll", nrow(Chl.pair_TP1.res))
 
-##Combine results 
-Chl_TP1.res<-rbind(Chl_TP1.res, Chl_TP1.site.res)
-
+##Add Significance levels
+Chl.pair_TP1.res$Sig<-ifelse(Chl.pair_TP1.res$p.value<0.001, "***",
+                              ifelse(Chl.pair_TP1.res$p.value<0.01, "**",
+                                     ifelse(Chl.pair_TP1.res$p.value<0.05, "*",
+                                            ifelse(Chl.pair_TP1.res$p.value<0.1, "-", NA))))
+Chl.pair_TP1.res
 ```
 
 
@@ -871,17 +971,19 @@ TP1_Chl.plot<-ggplot(TP1_Chl.sum, aes(x=Site, y=Chl_ug.cm2, colour=Site.Orig)) +
   labs(x="Site and Origin", y=expression(paste('Total Chlorophyll (\u03BCg cm'^-2*")")), colour=NULL)+
   ylim(0.5, 3.25)+
   annotate("text", x=2, y=1.7, label="***", size=sig.sz, fontface="bold")+
-  geom_bracket(xmin=1, xmax=2, y.position=0.54, label.size=levels.sz, label="***", inherit.aes = FALSE); TP1_Chl.plot
+  geom_bracket(xmin=1, xmax=2, y.position=0.58, label.size=levels.sz, label="***", inherit.aes = FALSE); TP1_Chl.plot
 ```
 
 
 #### Save Results
 ```{r}
 ##Combine Results
-Phys_T1.res<-rbind(Prot_TP1.res, Bio_TP1.res, Chl_TP1.res)
+Phys_TP1.res<-rbind(Prot_TP1.res, Bio_TP1.res, Chl_TP1.res)
+Phys.pair_TP1.res<-rbind(Prot.pair_TP1.res, Bio.pair_TP1.res, Chl.pair_TP1.res)
 
 ##Add Timepoint
-Phys_T1.res$TimeP<-rep("TP1", nrow(Phys_T1.res))
+Phys_TP1.res$TimeP<-rep("TP1", nrow(Phys_TP1.res))
+Phys.pair_TP1.res$TimeP<-rep("TP1", nrow(Phys.pair_TP1.res))
 
 ```
 
@@ -925,30 +1027,27 @@ Prot_TP2.res$Response<-rep("Protein", nrow(Prot_TP2.res))
 ```
 
 
-Effect size of Origin for each Site
 ```{r}
-##KL
-Prot.lme_TP2_KL<-lmer(TP_ug.cm2~Origin+(1|Genotype), data=Coral.TP2[which(Coral.TP2$Site=="KL"),])
-summary(Prot.lme_TP2_KL)
-eta_squared(Prot.lme_TP2_KL)
+##Pairwise Comparisons of Interest
+#Native vs Transplant within a Site
+Prot.pair_TP2<-emmeans(Prot.lme_TP2, pairwise~Origin | Site)
+Prot.pair_TP2
 
+#Calculate standardized effect sizes for pairwise comparisons
+Prot.pair.es_TP2<-data.frame(eff_size(Prot.pair_TP2, sigma=sigma(Prot.lme_TP2), edf=df.residual(Prot.lme_TP2)))
+Prot.pair.es_TP2
+Prot.pair.es_TP2<-Prot.pair.es_TP2 %>% dplyr::rename(contrast.se = contrast, SE.es = SE, df.es = df)
 
-##SS
-Prot.lme_TP2_SS<-lmer(TP_ug.cm2~Origin+(1|Genotype), data=Coral.TP2[which(Coral.TP2$Site=="SS"),])
-summary(Prot.lme_TP2_SS)
-eta_squared(Prot.lme_TP2_SS)
+##Save Results
+Prot.pair_TP2.res<-merge(data.frame(Prot.pair_TP2$contrasts), Prot.pair.es_TP2[,-c(1)])
+Prot.pair_TP2.res$Response<-rep("Protein", nrow(Prot.pair_TP2.res))
 
-
-##Save results
-Prot_TP2.site.res<-data.frame(rbind(summary(Prot.lme_TP2_KL)$coefficients[-1,],
-                                      summary(Prot.lme_TP2_SS)$coefficients[-1,]))
-Prot_TP2.site.res$Predictor<-c("KL Origin", "SS Origin")
-Prot_TP2.site.res$EtaSq<-c(eta_squared(Prot.lme_TP2_KL)$Eta2, eta_squared(Prot.lme_TP2_SS)$Eta2)
-Prot_TP2.site.res$Response<-rep("Protein", nrow(Prot_TP2.site.res))
-
-##Combine results 
-Prot_TP2.res<-rbind(Prot_TP2.res, Prot_TP2.site.res)
-
+##Add Significance levels
+Prot.pair_TP2.res$Sig<-ifelse(Prot.pair_TP2.res$p.value<0.001, "***",
+                              ifelse(Prot.pair_TP2.res$p.value<0.01, "**",
+                                     ifelse(Prot.pair_TP2.res$p.value<0.05, "*",
+                                            ifelse(Prot.pair_TP2.res$p.value<0.1, "-", NA))))
+Prot.pair_TP2.res
 ```
 
 
@@ -1007,28 +1106,27 @@ Bio_TP2.res$Response<-rep("Biomass", nrow(Bio_TP2.res))
 ```
 
 
-Effect size of Origin for each Site
 ```{r}
-##KL
-Bio.lme_TP2_KL<-lmer(AFDW_mg.cm2~Origin+(1|Genotype), data=Coral.TP2[which(Coral.TP2$Site=="KL"),])
-summary(Bio.lme_TP2_KL)
-eta_squared(Bio.lme_TP2_KL)
+##Pairwise Comparisons of Interest
+#Native vs Transplant within a Site
+Bio.pair_TP2<-emmeans(Bio.lme_TP2, pairwise~Origin | Site)
+Bio.pair_TP2
 
-##SS
-Bio.lme_TP2_SS<-lmer(AFDW_mg.cm2~Origin+(1|Genotype), data=Coral.TP2[which(Coral.TP2$Site=="SS"),])
-summary(Bio.lme_TP2_SS)
-eta_squared(Bio.lme_TP2_SS)
+#Calculate standardized effect sizes for pairwise comparisons
+Bio.pair.es_TP2<-data.frame(eff_size(Bio.pair_TP2, sigma=sigma(Bio.lme_TP2), edf=df.residual(Bio.lme_TP2)))
+Bio.pair.es_TP2
+Bio.pair.es_TP2<-Bio.pair.es_TP2 %>% dplyr::rename(contrast.se = contrast, SE.es = SE, df.es = df)
 
-##Save results
-Bio_TP2.site.res<-data.frame(rbind(summary(Bio.lme_TP2_KL)$coefficients[-1,],
-                                     summary(Bio.lme_TP2_SS)$coefficients[-1,]))
-Bio_TP2.site.res$Predictor<-c("KL Origin", "SS Origin")
-Bio_TP2.site.res$EtaSq<-c(eta_squared(Bio.lme_TP2_KL)$Eta2, eta_squared(Bio.lme_TP2_SS)$Eta2)
-Bio_TP2.site.res$Response<-rep("Biomass", nrow(Bio_TP2.site.res))
+##Save Results
+Bio.pair_TP2.res<-merge(data.frame(Bio.pair_TP2$contrasts), Bio.pair.es_TP2[,-c(1)])
+Bio.pair_TP2.res$Response<-rep("Biomass", nrow(Bio.pair_TP2.res))
 
-##Combine results 
-Bio_TP2.res<-rbind(Bio_TP2.res, Bio_TP2.site.res)
-
+##Add Significance levels
+Bio.pair_TP2.res$Sig<-ifelse(Bio.pair_TP2.res$p.value<0.001, "***",
+                              ifelse(Bio.pair_TP2.res$p.value<0.01, "**",
+                                     ifelse(Bio.pair_TP2.res$p.value<0.05, "*",
+                                            ifelse(Bio.pair_TP2.res$p.value<0.1, "-", NA))))
+Bio.pair_TP2.res
 ```
 
 
@@ -1086,30 +1184,27 @@ Chl_TP2.res$Response<-rep("Chlorophyll", nrow(Chl_TP2.res))
 ```
 
 
-Effect size of Origin for each Site
 ```{r}
-##KL
-Chl.lme_TP2_KL<-lmer(Chl_ug.cm2~Origin+(1|Genotype), data=Coral.TP2[which(Coral.TP2$Site=="KL"),])
-summary(Chl.lme_TP2_KL)
-eta_squared(Chl.lme_TP2_KL)
+##Pairwise Comparisons of Interest
+#Native vs Transplant within a Site
+Chl.pair_TP2<-emmeans(Chl.lme_TP2, pairwise~Origin | Site)
+Chl.pair_TP2
 
+#Calculate standardized effect sizes for pairwise comparisons
+Chl.pair.es_TP2<-data.frame(eff_size(Chl.pair_TP2, sigma=sigma(Chl.lme_TP2), edf=df.residual(Chl.lme_TP2)))
+Chl.pair.es_TP2
+Chl.pair.es_TP2<-Chl.pair.es_TP2 %>% dplyr::rename(contrast.se = contrast, SE.es = SE, df.es = df)
 
-##SS
-Chl.lme_TP2_SS<-lmer(Chl_ug.cm2~Origin+(1|Genotype), data=Coral.TP2[which(Coral.TP2$Site=="SS"),])
-summary(Chl.lme_TP2_SS)
-eta_squared(Chl.lme_TP2_SS)
+##Save Results
+Chl.pair_TP2.res<-merge(data.frame(Chl.pair_TP2$contrasts), Chl.pair.es_TP2[,-c(1)])
+Chl.pair_TP2.res$Response<-rep("Chlorophyll", nrow(Chl.pair_TP2.res))
 
-
-##Save results
-Chl_TP2.site.res<-data.frame(rbind(summary(Chl.lme_TP2_KL)$coefficients[-1,],
-                                     summary(Chl.lme_TP2_SS)$coefficients[-1,]))
-Chl_TP2.site.res$Predictor<-c("KL Origin", "SS Origin")
-Chl_TP2.site.res$EtaSq<-c(eta_squared(Chl.lme_TP2_KL)$Eta2, eta_squared(Chl.lme_TP2_SS)$Eta2)
-Chl_TP2.site.res$Response<-rep("Chlorophyll", nrow(Chl_TP2.site.res))
-
-##Combine results 
-Chl_TP2.res<-rbind(Chl_TP2.res, Chl_TP2.site.res)
-
+##Add Significance levels
+Chl.pair_TP2.res$Sig<-ifelse(Chl.pair_TP2.res$p.value<0.001, "***",
+                              ifelse(Chl.pair_TP2.res$p.value<0.01, "**",
+                                     ifelse(Chl.pair_TP2.res$p.value<0.05, "*",
+                                            ifelse(Chl.pair_TP2.res$p.value<0.1, "-", NA))))
+Chl.pair_TP2.res
 ```
 
 
@@ -1133,18 +1228,20 @@ TP2_Chl.plot<-ggplot(TP2_Chl.sum, aes(x=Site, y=Chl_ug.cm2, colour=Site.Orig)) +
         legend.position= "top")+
   labs(x="Site and Origin", y=expression(paste('Total Chlorophyll (\u03BCg cm'^-2*")")), colour=NULL)+
   ylim(0.5, 3.25)+
-  annotate("text", x=c(1,2), y=c(1.5, 2.6), label="*", size=sig.sz, fontface="bold")+
-  geom_bracket(xmin=1, xmax=2, y.position=0.54, label.size=levels.sz, label="**", inherit.aes = FALSE); TP2_Chl.plot
+  annotate("text", x=2, y=2.6, label="*", size=sig.sz, fontface="bold")+
+  geom_bracket(xmin=1, xmax=2, y.position=0.58, label.size=levels.sz, label="**", inherit.aes = FALSE); TP2_Chl.plot
 ```
 
 
 #### Save Results
 ```{r}
 ##Combine Results
-Phys_T2.res<-rbind(Prot_TP2.res, Bio_TP2.res, Chl_TP2.res)
+Phys_TP2.res<-rbind(Prot_TP2.res, Bio_TP2.res, Chl_TP2.res)
+Phys.pair_TP2.res<-rbind(Prot.pair_TP2.res, Bio.pair_TP2.res, Chl.pair_TP2.res)
 
 ##Add Timepoint
-Phys_T2.res$TimeP<-rep("TP2", nrow(Phys_T2.res))
+Phys_TP2.res$TimeP<-rep("TP2", nrow(Phys_TP2.res))
+Phys.pair_TP2.res$TimeP<-rep("TP2", nrow(Phys.pair_TP2.res))
 
 ```
 
@@ -1188,30 +1285,27 @@ Prot_TP3.res$Response<-rep("Protein", nrow(Prot_TP3.res))
 ```
 
 
-Effect size of Origin for each Site
 ```{r}
-##KL
-Prot.lme_TP3_KL<-lmer(TP_ug.cm2~Origin+(1|Genotype), data=Coral.TP3[which(Coral.TP3$Site=="KL"),])
-summary(Prot.lme_TP3_KL)
-eta_squared(Prot.lme_TP3_KL)
+##Pairwise Comparisons of Interest
+#Native vs Transplant within a Site
+Prot.pair_TP3<-emmeans(Prot.lme_TP3, pairwise~Origin | Site)
+Prot.pair_TP3
 
+#Calculate standardized effect sizes for pairwise comparisons
+Prot.pair.es_TP3<-data.frame(eff_size(Prot.pair_TP3, sigma=sigma(Prot.lme_TP3), edf=df.residual(Prot.lme_TP3)))
+Prot.pair.es_TP3
+Prot.pair.es_TP3<-Prot.pair.es_TP3 %>% dplyr::rename(contrast.se = contrast, SE.es = SE, df.es = df)
 
-##SS
-Prot.lme_TP3_SS<-lmer(TP_ug.cm2~Origin+(1|Genotype), data=Coral.TP3[which(Coral.TP3$Site=="SS"),])
-summary(Prot.lme_TP3_SS)
-eta_squared(Prot.lme_TP3_SS)
+##Save Results
+Prot.pair_TP3.res<-merge(data.frame(Prot.pair_TP3$contrasts), Prot.pair.es_TP3[,-c(1)])
+Prot.pair_TP3.res$Response<-rep("Protein", nrow(Prot.pair_TP3.res))
 
-
-##Save results
-Prot_TP3.site.res<-data.frame(rbind(summary(Prot.lme_TP3_KL)$coefficients[-1,],
-                                      summary(Prot.lme_TP3_SS)$coefficients[-1,]))
-Prot_TP3.site.res$Predictor<-c("KL Origin", "SS Origin")
-Prot_TP3.site.res$EtaSq<-c(eta_squared(Prot.lme_TP3_KL)$Eta2, eta_squared(Prot.lme_TP3_SS)$Eta2)
-Prot_TP3.site.res$Response<-rep("Protein", nrow(Prot_TP3.site.res))
-
-##Combine results 
-Prot_TP3.res<-rbind(Prot_TP3.res, Prot_TP3.site.res)
-
+##Add Significance levels
+Prot.pair_TP3.res$Sig<-ifelse(Prot.pair_TP3.res$p.value<0.001, "***",
+                              ifelse(Prot.pair_TP3.res$p.value<0.01, "**",
+                                     ifelse(Prot.pair_TP3.res$p.value<0.05, "*",
+                                            ifelse(Prot.pair_TP3.res$p.value<0.1, "-", NA))))
+Prot.pair_TP3.res
 ```
 
 
@@ -1269,28 +1363,27 @@ Bio_TP3.res$Response<-rep("Biomass", nrow(Bio_TP3.res))
 ```
 
 
-Effect size of Origin for each Site
 ```{r}
-##KL
-Bio.lme_TP3_KL<-lmer(AFDW_mg.cm2~Origin+(1|Genotype), data=Coral.TP3[which(Coral.TP3$Site=="KL"),])
-summary(Bio.lme_TP3_KL)
-eta_squared(Bio.lme_TP3_KL)
+##Pairwise Comparisons of Interest
+#Native vs Transplant within a Site
+Bio.pair_TP3<-emmeans(Bio.lme_TP3, pairwise~Origin | Site)
+Bio.pair_TP3
 
-##SS
-Bio.lme_TP3_SS<-lmer(AFDW_mg.cm2~Origin+(1|Genotype), data=Coral.TP3[which(Coral.TP3$Site=="SS"),])
-summary(Bio.lme_TP3_SS)
-eta_squared(Bio.lme_TP3_SS)
+#Calculate standardized effect sizes for pairwise comparisons
+Bio.pair.es_TP3<-data.frame(eff_size(Bio.pair_TP3, sigma=sigma(Bio.lme_TP3), edf=df.residual(Bio.lme_TP3)))
+Bio.pair.es_TP3
+Bio.pair.es_TP3<-Bio.pair.es_TP3 %>% dplyr::rename(contrast.se = contrast, SE.es = SE, df.es = df)
 
-##Save results
-Bio_TP3.site.res<-data.frame(rbind(summary(Bio.lme_TP3_KL)$coefficients[-1,],
-                                     summary(Bio.lme_TP3_SS)$coefficients[-1,]))
-Bio_TP3.site.res$Predictor<-c("KL Origin", "SS Origin")
-Bio_TP3.site.res$EtaSq<-c(eta_squared(Bio.lme_TP3_KL)$Eta2, eta_squared(Bio.lme_TP3_SS)$Eta2)
-Bio_TP3.site.res$Response<-rep("Biomass", nrow(Bio_TP3.site.res))
+##Save Results
+Bio.pair_TP3.res<-merge(data.frame(Bio.pair_TP3$contrasts), Bio.pair.es_TP3[,-c(1)])
+Bio.pair_TP3.res$Response<-rep("Biomass", nrow(Bio.pair_TP3.res))
 
-##Combine results 
-Bio_TP3.res<-rbind(Bio_TP3.res, Bio_TP3.site.res)
-
+##Add Significance levels
+Bio.pair_TP3.res$Sig<-ifelse(Bio.pair_TP3.res$p.value<0.001, "***",
+                              ifelse(Bio.pair_TP3.res$p.value<0.01, "**",
+                                     ifelse(Bio.pair_TP3.res$p.value<0.05, "*",
+                                            ifelse(Bio.pair_TP3.res$p.value<0.1, "-", NA))))
+Bio.pair_TP3.res
 ```
 
 
@@ -1351,29 +1444,27 @@ Chl_TP3.res$Response<-rep("Chlorophyll", nrow(Chl_TP3.res))
 ```
 
 
-Effect size of Origin for each Site
 ```{r}
-##KL
-Chl.lme_TP3_KL<-lmer(log(Chl_ug.cm2+1)~Origin+(1|Genotype), data=Coral.TP3[which(Coral.TP3$Site=="KL"),])
-summary(Chl.lme_TP3_KL)
-eta_squared(Chl.lme_TP3_KL)
+##Pairwise Comparisons of Interest
+#Native vs Transplant within a Site
+Chl.pair_TP3<-emmeans(Chl.lme_TP3, pairwise~Origin | Site)
+Chl.pair_TP3
 
+#Calculate standardized effect sizes for pairwise comparisons
+Chl.pair.es_TP3<-data.frame(eff_size(Chl.pair_TP3, sigma=sigma(Chl.lme_TP3), edf=df.residual(Chl.lme_TP3)))
+Chl.pair.es_TP3
+Chl.pair.es_TP3<-Chl.pair.es_TP3 %>% dplyr::rename(contrast.se = contrast, SE.es = SE, df.es = df)
 
-##SS
-Chl.lme_TP3_SS<-lmer(log(Chl_ug.cm2+1)~Origin+(1|Genotype), data=Coral.TP3[which(Coral.TP3$Site=="SS"),])
-summary(Chl.lme_TP3_SS)
-eta_squared(Chl.lme_TP3_SS)
+##Save Results
+Chl.pair_TP3.res<-merge(data.frame(Chl.pair_TP3$contrasts), Chl.pair.es_TP3[,-c(1)])
+Chl.pair_TP3.res$Response<-rep("Chlorophyll", nrow(Chl.pair_TP3.res))
 
-##Save results
-Chl_TP3.site.res<-data.frame(rbind(summary(Chl.lme_TP3_KL)$coefficients[-1,],
-                                     summary(Chl.lme_TP3_SS)$coefficients[-1,]))
-Chl_TP3.site.res$Predictor<-c("KL Origin", "SS Origin")
-Chl_TP3.site.res$EtaSq<-c(eta_squared(Chl.lme_TP3_KL)$Eta2, eta_squared(Chl.lme_TP3_SS)$Eta2)
-Chl_TP3.site.res$Response<-rep("Chlorophyll", nrow(Chl_TP3.site.res))
-
-##Combine results 
-Chl_TP3.res<-rbind(Chl_TP3.res, Chl_TP3.site.res)
-
+##Add Significance levels
+Chl.pair_TP3.res$Sig<-ifelse(Chl.pair_TP3.res$p.value<0.001, "***",
+                              ifelse(Chl.pair_TP3.res$p.value<0.01, "**",
+                                     ifelse(Chl.pair_TP3.res$p.value<0.05, "*",
+                                            ifelse(Chl.pair_TP3.res$p.value<0.1, "-", NA))))
+Chl.pair_TP3.res
 ```
 
 
@@ -1398,17 +1489,19 @@ TP3_Chl.plot<-ggplot(TP3_Chl.sum, aes(x=Site, y=Chl_ug.cm2, colour=Site.Orig)) +
   labs(x="Site and Origin", y=expression(paste('Total Chlorophyll (\u03BCg cm'^-2*")")), colour=NULL)+
   ylim(0.5, 3.25)+
   annotate("text", x=1, y=1.5, label="-", size=levels.sz, fontface="bold")+
-  geom_bracket(xmin=1, xmax=2, y.position=0.54, label.size=levels.sz, label="**", inherit.aes = FALSE); TP3_Chl.plot
+  geom_bracket(xmin=1, xmax=2, y.position=0.58, label.size=levels.sz, label="**", inherit.aes = FALSE); TP3_Chl.plot
 ```
 
 
 #### Save Results
 ```{r}
 ##Combine Results
-Phys_T3.res<-rbind(Prot_TP3.res, Bio_TP3.res, Chl_TP3.res)
+Phys_TP3.res<-rbind(Prot_TP3.res, Bio_TP3.res, Chl_TP3.res)
+Phys.pair_TP3.res<-rbind(Prot.pair_TP3.res, Bio.pair_TP3.res, Chl.pair_TP3.res)
 
 ##Add Timepoint
-Phys_T3.res$TimeP<-rep("TP3", nrow(Phys_T3.res))
+Phys_TP3.res$TimeP<-rep("TP3", nrow(Phys_TP3.res))
+Phys.pair_TP3.res$TimeP<-rep("TP3", nrow(Phys.pair_TP3.res))
 
 ```
 
@@ -1452,30 +1545,27 @@ Prot_TP4.res$Response<-rep("Protein", nrow(Prot_TP4.res))
 ```
 
 
-Effect size of Origin for each Site
 ```{r}
-##KL
-Prot.lme_TP4_KL<-lmer(TP_ug.cm2~Origin+(1|Genotype), data=Coral.TP4[which(Coral.TP4$Site=="KL"),])
-summary(Prot.lme_TP4_KL)
-eta_squared(Prot.lme_TP4_KL)
+##Pairwise Comparisons of Interest
+#Native vs Transplant within a Site
+Prot.pair_TP4<-emmeans(Prot.lme_TP4, pairwise~Origin | Site)
+Prot.pair_TP4
 
+#Calculate standardized effect sizes for pairwise comparisons
+Prot.pair.es_TP4<-data.frame(eff_size(Prot.pair_TP4, sigma=sigma(Prot.lme_TP4), edf=df.residual(Prot.lme_TP4)))
+Prot.pair.es_TP4
+Prot.pair.es_TP4<-Prot.pair.es_TP4 %>% dplyr::rename(contrast.se = contrast, SE.es = SE, df.es = df)
 
-##SS
-Prot.lme_TP4_SS<-lmer(TP_ug.cm2~Origin+(1|Genotype), data=Coral.TP4[which(Coral.TP4$Site=="SS"),])
-summary(Prot.lme_TP4_SS)
-eta_squared(Prot.lme_TP4_SS)
+##Save Results
+Prot.pair_TP4.res<-merge(data.frame(Prot.pair_TP4$contrasts), Prot.pair.es_TP4[,-c(1)])
+Prot.pair_TP4.res$Response<-rep("Protein", nrow(Prot.pair_TP4.res))
 
-
-##Save results
-Prot_TP4.site.res<-data.frame(rbind(summary(Prot.lme_TP4_KL)$coefficients[-1,],
-                                      summary(Prot.lme_TP4_SS)$coefficients[-1,]))
-Prot_TP4.site.res$Predictor<-c("KL Origin", "SS Origin")
-Prot_TP4.site.res$EtaSq<-c(eta_squared(Prot.lme_TP4_KL)$Eta2, eta_squared(Prot.lme_TP4_SS)$Eta2)
-Prot_TP4.site.res$Response<-rep("Protein", nrow(Prot_TP4.site.res))
-
-##Combine results 
-Prot_TP4.res<-rbind(Prot_TP4.res, Prot_TP4.site.res)
-
+##Add Significance levels
+Prot.pair_TP4.res$Sig<-ifelse(Prot.pair_TP4.res$p.value<0.001, "***",
+                              ifelse(Prot.pair_TP4.res$p.value<0.01, "**",
+                                     ifelse(Prot.pair_TP4.res$p.value<0.05, "*",
+                                            ifelse(Prot.pair_TP4.res$p.value<0.1, "-", NA))))
+Prot.pair_TP4.res
 ```
 
 
@@ -1534,29 +1624,27 @@ Bio_TP4.res$Response<-rep("Biomass", nrow(Bio_TP4.res))
 ```
 
 
-Effect size of Origin for each Site
 ```{r}
+##Pairwise Comparisons of Interest
+#Native vs Transplant within a Site
+Bio.pair_TP4<-emmeans(Bio.lme_TP4, pairwise~Origin | Site)
+Bio.pair_TP4
 
-##KL
-Bio.lme_TP4_KL<-lmer(AFDW_mg.cm2~Origin+(1|Genotype), data=Coral.TP4[which(Coral.TP4$Site=="KL"),])
-summary(Bio.lme_TP4_KL)
-eta_squared(Bio.lme_TP4_KL)
+#Calculate standardized effect sizes for pairwise comparisons
+Bio.pair.es_TP4<-data.frame(eff_size(Bio.pair_TP4, sigma=sigma(Bio.lme_TP4), edf=df.residual(Bio.lme_TP4)))
+Bio.pair.es_TP4
+Bio.pair.es_TP4<-Bio.pair.es_TP4 %>% dplyr::rename(contrast.se = contrast, SE.es = SE, df.es = df)
 
-##SS
-Bio.lme_TP4_SS<-lmer(AFDW_mg.cm2~Origin+(1|Genotype), data=Coral.TP4[which(Coral.TP4$Site=="SS"),])
-summary(Bio.lme_TP4_SS)
-eta_squared(Bio.lme_TP4_SS)
+##Save Results
+Bio.pair_TP4.res<-merge(data.frame(Bio.pair_TP4$contrasts), Bio.pair.es_TP4[,-c(1)])
+Bio.pair_TP4.res$Response<-rep("Biomass", nrow(Bio.pair_TP4.res))
 
-##Save results
-Bio_TP4.site.res<-data.frame(rbind(summary(Bio.lme_TP4_KL)$coefficients[-1,],
-                                     summary(Bio.lme_TP4_SS)$coefficients[-1,]))
-Bio_TP4.site.res$Predictor<-c("KL Origin", "SS Origin")
-Bio_TP4.site.res$EtaSq<-c(eta_squared(Bio.lme_TP4_KL)$Eta2, eta_squared(Bio.lme_TP4_SS)$Eta2)
-Bio_TP4.site.res$Response<-rep("Biomass", nrow(Bio_TP4.site.res))
-
-##Combine results 
-Bio_TP4.res<-rbind(Bio_TP4.res, Bio_TP4.site.res)
-
+##Add Significance levels
+Bio.pair_TP4.res$Sig<-ifelse(Bio.pair_TP4.res$p.value<0.001, "***",
+                              ifelse(Bio.pair_TP4.res$p.value<0.01, "**",
+                                     ifelse(Bio.pair_TP4.res$p.value<0.05, "*",
+                                            ifelse(Bio.pair_TP4.res$p.value<0.1, "-", NA))))
+Bio.pair_TP4.res
 ```
 
 
@@ -1618,30 +1706,27 @@ Chl_TP4.res$Response<-rep("Chlorophyll", nrow(Chl_TP4.res))
 ```
 
 
-Effect size of Origin for each Site
 ```{r}
+##Pairwise Comparisons of Interest
+#Native vs Transplant within a Site
+Chl.pair_TP4<-emmeans(Chl.lme_TP4, pairwise~Origin | Site)
+Chl.pair_TP4
 
-##KL
-Chl.lme_TP4_KL<-lmer(log(Chl_ug.cm2+1)~Origin+(1|Genotype), data=Coral.TP4[which(Coral.TP4$Site=="KL"),])
-summary(Chl.lme_TP4_KL)
-eta_squared(Chl.lme_TP4_KL)
+#Calculate standardized effect sizes for pairwise comparisons
+Chl.pair.es_TP4<-data.frame(eff_size(Chl.pair_TP4, sigma=sigma(Chl.lme_TP4), edf=df.residual(Chl.lme_TP4)))
+Chl.pair.es_TP4
+Chl.pair.es_TP4<-Chl.pair.es_TP4 %>% dplyr::rename(contrast.se = contrast, SE.es = SE, df.es = df)
 
+##Save Results
+Chl.pair_TP4.res<-merge(data.frame(Chl.pair_TP4$contrasts), Chl.pair.es_TP4[,-c(1)])
+Chl.pair_TP4.res$Response<-rep("Chlorophyll", nrow(Chl.pair_TP4.res))
 
-##SS
-Chl.lme_TP4_SS<-lmer(log(Chl_ug.cm2+1)~Origin+(1|Genotype), data=Coral.TP4[which(Coral.TP4$Site=="SS"),])
-summary(Chl.lme_TP4_SS)
-eta_squared(Chl.lme_TP4_SS)
-
-##Save results
-Chl_TP4.site.res<-data.frame(rbind(summary(Chl.lme_TP4_KL)$coefficients[-1,],
-                                     summary(Chl.lme_TP4_SS)$coefficients[-1,]))
-Chl_TP4.site.res$Predictor<-c("KL Origin", "SS Origin")
-Chl_TP4.site.res$EtaSq<-c(eta_squared(Chl.lme_TP4_KL)$Eta2, eta_squared(Chl.lme_TP4_SS)$Eta2)
-Chl_TP4.site.res$Response<-rep("Chlorophyll", nrow(Chl_TP4.site.res))
-
-##Combine results 
-Chl_TP4.res<-rbind(Chl_TP4.res, Chl_TP4.site.res)
-
+##Add Significance levels
+Chl.pair_TP4.res$Sig<-ifelse(Chl.pair_TP4.res$p.value<0.001, "***",
+                              ifelse(Chl.pair_TP4.res$p.value<0.01, "**",
+                                     ifelse(Chl.pair_TP4.res$p.value<0.05, "*",
+                                            ifelse(Chl.pair_TP4.res$p.value<0.1, "-", NA))))
+Chl.pair_TP4.res
 ```
 
 
@@ -1665,56 +1750,45 @@ TP4_Chl.plot<-ggplot(TP4_Chl.sum, aes(x=Site, y=Chl_ug.cm2, colour=Site.Orig)) +
         legend.position="top")+
   labs(x="Site and Origin", y=expression(paste('Total Chlorophyll (\u03BCg cm'^-2*")")), colour=NULL)+
   ylim(0.5, 3.25)+
-  geom_bracket(xmin=1, xmax=2, y.position=0.54, label.size=levels.sz, label="***", inherit.aes = FALSE); TP4_Chl.plot
+  geom_bracket(xmin=1, xmax=2, y.position=0.58, label.size=levels.sz, label="***", inherit.aes = FALSE); TP4_Chl.plot
 ```
 
 
 #### Save Results
 ```{r}
 ##Combine Results
-Phys_T4.res<-rbind(Prot_TP4.res, Bio_TP4.res,  Chl_TP4.res)
+Phys_TP4.res<-rbind(Prot_TP4.res, Bio_TP4.res, Chl_TP4.res)
+Phys.pair_TP4.res<-rbind(Prot.pair_TP4.res, Bio.pair_TP4.res, Chl.pair_TP4.res)
 
 ##Add Timepoint
-Phys_T4.res$TimeP<-rep("TP4", nrow(Phys_T4.res))
+Phys_TP4.res$TimeP<-rep("TP4", nrow(Phys_TP4.res))
+Phys.pair_TP4.res$TimeP<-rep("TP4", nrow(Phys.pair_TP4.res))
 
 ```
 
 
-# Effect Size over Time
+### Current v Original Site Effect Sizes
 ```{r}
-##Dataframe of effect size results
-Phys.ES<-rbind(Phys_T1.res, Phys_T2.res, Phys_T3.res, Phys_T4.res)
-Phys.ES<-Phys.ES %>% dplyr::rename(p = Pr...t..)
-Phys.ES<-Phys.ES[,c("TimeP", "Predictor", "Response", "EtaSq", "p")]
-
-##Add Metric names
-Phys.ES$Metric<-ifelse(Phys.ES$Response== "Protein", "TP_ug.cm2",  ifelse(
-    Phys.ES$Response=="Biomass", "AFDW_mg.cm2", ifelse(
-        Phys.ES$Response=="Chlorophyll", "Chl_ug.cm2", NA)))
+##Combine Results
+Phys_TP.res<-rbind(Phys_TP1.res, Phys_TP2.res, Phys_TP3.res, Phys_TP4.res)
+Phys_TP.res<-Phys_TP.res %>% dplyr::rename(p = Pr...t..)
 
 ##Add Significance levels
-Phys.ES$Sig<-ifelse(Phys.ES$p<0.001, "***", ifelse(Phys.ES$p<0.01, "**", 
-            ifelse(Phys.ES$p<0.05, "*", ifelse(Phys.ES$p<0.1, "-", NA))))
+Phys_TP.res$Sig<-ifelse(Phys_TP.res$p<0.001, "***", ifelse(Phys_TP.res$p<0.01, "**", 
+            ifelse(Phys_TP.res$p<0.05, "*", ifelse(Phys_TP.res$p<0.1, "-", NA))))
 
-##Save Dataframe
-write.csv(Phys.ES, "Outputs/PhysiologyES.csv", row.names=FALSE)
-
+##Set Order
+Phys_TP.res$Response<-factor(Phys_TP.res$Response, levels=c("Biomass", "Protein", "Chlorophyll"), ordered=TRUE)
 ```
 
 
-### Site vs Origin
-```{r}
-##Site specific results
-Phys.ES_SO<-Phys.ES[-c(which(Phys.ES$Predictor=="KL Origin" | Phys.ES$Predictor=="SS Origin")),]
-
-```
-
-
-```{r}
-Phys.ES.plot<-ggplot(Phys.ES_SO, aes(fill=Predictor, y=EtaSq, x=TimeP)) + 
+#### Plot Effect Size of Origin and Site
+```{r Plot Origin and Site Effect Sizes}
+Phys.Site.Orig.ES.plot<-ggplot(Phys_TP.res, aes(fill=Predictor, y=EtaSq, x=TimeP)) + 
     geom_bar(position="stack", stat="identity")+
   facet_wrap(vars(Response))+
   theme_bw()+
+  scale_fill_manual(values=c("indianred2", "mediumpurple3", "steelblue2"))+
   theme(strip.text=element_text(size=axis.title.sz),
         strip.background = element_rect(fill="white"),
         axis.title.x = element_text(size = axis.title.sz), 
@@ -1724,178 +1798,96 @@ Phys.ES.plot<-ggplot(Phys.ES_SO, aes(fill=Predictor, y=EtaSq, x=TimeP)) +
         legend.text=element_text(size=leg.txt.sz), 
         legend.title=element_text(size=leg.title.sz), 
         legend.box.background = element_rect(color = "black"), 
-        legend.position=c(.15, .8))+
-   labs(x="Time Point", y=expression(paste("Effect Size (p", eta^2, ")")), colour="Predictor")+
-   geom_text(aes(label=Sig), position=position_stack(vjust=0.5), size=sig.sz); Phys.ES.plot
-```
-
-
-```{r}
-Phys.ES.plot_threshold<-ggplot(Phys.ES_SO, aes(fill=Predictor, y=EtaSq, x=TimeP)) + 
-  geom_hline(yintercept=0.01, linetype="dashed", color="grey60", linewidth=0.75)+
-  geom_hline(yintercept=0.06, linetype="solid", color="grey40", linewidth=0.75)+
-  geom_hline(yintercept=0.14, linetype="dashed", color="grey20", linewidth=0.75)+
-    geom_bar(position="dodge", stat="identity")+
-  facet_wrap(vars(Response))+
-  theme_bw()+
-  theme(strip.text=element_text(size=axis.title.sz),
-        strip.background = element_rect(fill="white"),
-        axis.title.x = element_text(size = axis.title.sz), 
-        axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
-        axis.text.y=element_text(size=axis.txt.sz, colour="black"),
-        legend.text=element_text(size=leg.txt.sz), 
-        legend.title=element_text(size=leg.title.sz), 
-        legend.box.background = element_rect(color = "black"), 
-        legend.position=c(.15, .8))+
-   labs(x="Time Point", y=expression(paste("Effect Size (p", eta^2, ")")), colour="Predictor")+
-   geom_text(aes(label=Sig, hjust=0.5), position=position_dodge(width=1), size=sig.sz); Phys.ES.plot_threshold
-```
-
-
-### Site-Specific 
-```{r}
-##Site specific results
-Phys.ES_Orig<-Phys.ES[which(Phys.ES$Predictor=="KL Origin" | Phys.ES$Predictor=="SS Origin"),]
-Phys.ES_Orig<-Phys.ES_Orig %>% separate_wider_delim(cols="Predictor", delim=" ", names=c("Site", "Predictor"), cols_remove = TRUE)
-
-```
-
-
-#### Biomass
-```{r Plot Effect Size Biomass}
-Bio.ES.plot<-ggplot(Phys.ES_Orig[which(Phys.ES_Orig$Metric=="AFDW_mg.cm2"),], aes(x=TimeP, y=EtaSq, fill=Site))+
-  geom_bar(stat="identity", position=position_dodge())+
-    scale_fill_manual(values=Site.colors.o)+
-theme_classic()+
-  ggtitle("Biomass")+
-  theme(plot.title = element_text(colour="black", size=panel.lab.sz, hjust=0.5), 
-        axis.title.x = element_text(size = axis.title.sz), 
-        axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
-        axis.text.y=element_text(size=axis.txt.sz, colour="black"),
-        legend.text=element_text(size=leg.txt.sz), 
-        legend.title=element_text(size=leg.title.sz), 
-        legend.box.background = element_rect(color = "black"), 
-        legend.position=c(.9, .8))+
-   labs(x="Time Point", y=expression(paste("Origin Effect Size (p", eta^2, ")")), colour="Site")+
-  ylim(0, 0.6)+
-  geom_text(aes(label=Sig), vjust=-0.02, color="black", position=position_dodge(0.9), size=levels.sz, fontface="bold"); Bio.ES.plot
-
-```
-
-#### Protein
-```{r Plot Effect Size Protein}
-Prot.ES.plot<-ggplot(Phys.ES_Orig[which(Phys.ES_Orig$Metric=="TP_ug.cm2"),], aes(x=TimeP, y=EtaSq, fill=Site))+
-  geom_bar(stat="identity", position=position_dodge())+
-    scale_fill_manual(values=Site.colors.o)+
-theme_classic()+
-  ggtitle("Protein")+
-  theme(plot.title = element_text(colour="black", size=panel.lab.sz, hjust=0.5), 
-        axis.title.x = element_text(size = axis.title.sz), 
-        axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
-        axis.text.y=element_text(size=axis.txt.sz, colour="black"),
-        legend.text=element_text(size=leg.txt.sz), 
-        legend.title=element_text(size=leg.title.sz), 
-        legend.box.background = element_rect(color = "black"), 
-        legend.position=c(.9, .8))+
-   labs(x="Time Point", y=expression(paste("Origin Effect Size (p", eta^2, ")")), colour="Site")+
-  ylim(0, 0.6)+
-  geom_text(aes(label=Sig), vjust=-0.02, color="black", position=position_dodge(0.9), size=levels.sz, fontface="bold"); Prot.ES.plot
-
-```
-
-
-#### Chlorophyll
-```{r Plot Effect Size Chlorophyll}
-Chl.ES.plot<-ggplot(Phys.ES_Orig[which(Phys.ES_Orig$Metric=="Chl_ug.cm2"),], aes(x=TimeP, y=EtaSq, fill=Site))+
-  geom_bar(stat="identity", position=position_dodge())+
-    scale_fill_manual(values=Site.colors.o)+
-theme_classic()+
-  ggtitle("Chlorophyll")+
-  theme(plot.title = element_text(colour="black", size=panel.lab.sz, hjust=0.5), 
-        axis.title.x = element_text(size = axis.title.sz), 
-        axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
-        axis.text.y=element_text(size=axis.txt.sz, colour="black"),
-        legend.text=element_text(size=leg.txt.sz), 
-        legend.title=element_text(size=leg.title.sz), 
-        legend.box.background = element_rect(color = "black"), 
-        legend.position=c(.9, .8))+
-   labs(x="Time Point", y=expression(paste("Origin Effect Size (p", eta^2, ")")), colour="Site")+
-  ylim(0, 0.6)+
-  geom_text(aes(label=Sig), vjust=-0.02, color="black", position=position_dodge(0.9), size=levels.sz, fontface="bold"); Chl.ES.plot
-
+        legend.position=c(.08, .8), 
+        panel.grid.major.x=element_blank())+
+   labs(x="Time Point", y=expression(paste("Predictor Effect Size (p", eta^2, ")")), colour="Predictor")+
+   geom_text(aes(label=Sig), position=position_stack(vjust=0.5), size=sig.sz); Phys.Site.Orig.ES.plot
 ```
 
 
 # Figures
 
-### Figure 3 Univariate Physiology
+### Figure 3 Univariate Physiology Effect Sizes
 
 #### Adjust for Panel
 ```{r}
-##Biomass
-TP1_Bio.plot<-TP1_Bio.plot+ ggtitle("TP1")+ labs(x="")+
-  theme(plot.title = element_text(colour="black", size=panel.lab.sz, face="bold", hjust=0.5), 
-        legend.position=c(0.5, 0.85), legend.direction="horizontal")+
-  guides(color=guide_legend(nrow=2, byrow=FALSE)) 
-
-TP2_Bio.plot<-TP2_Bio.plot+ ggtitle("TP2")+ labs(x="", y="") +
-  theme(plot.title = element_text(colour="black", size=panel.lab.sz, face="bold", hjust=0.5), 
-        legend.position="none")
-
-TP3_Bio.plot<-TP3_Bio.plot+ ggtitle("TP3")+ labs(x="", y="") +
-  theme(plot.title = element_text(colour="black", size=panel.lab.sz, face="bold", hjust=0.5), 
-        legend.position="none")
-
-TP4_Bio.plot<-TP4_Bio.plot+ ggtitle("TP4")+ labs(x="", y="") +
-  theme(plot.title = element_text(colour="black", size=panel.lab.sz, face="bold", hjust=0.5), 
-        legend.position="none")
-
-Bio.ES.plot<-Bio.ES.plot + labs(x="") + theme(legend.position=c(.15, .8))
-
-##Protein
-TP1_Prot.plot<-TP1_Prot.plot + labs(x="") + theme(legend.position="none")
-
-TP2_Prot.plot<-TP2_Prot.plot + labs(x="", y="") + theme(legend.position="none")
-
-TP3_Prot.plot<-TP3_Prot.plot + labs(x="", y="") + theme(legend.position="none")
-
-TP4_Prot.plot<-TP4_Prot.plot + labs(x="", y="") + theme(legend.position="none")
-
-Prot.ES.plot<-Prot.ES.plot + labs(x="") + theme(legend.position="none") 
-
-##Chlorophyll
-TP1_Chl.plot<-TP1_Chl.plot + theme(legend.position="none")
-
-TP2_Chl.plot<-TP2_Chl.plot + labs(y="") + theme(legend.position="none")
-
-TP3_Chl.plot<-TP3_Chl.plot + labs(y="") + theme(legend.position="none")
-
-TP4_Chl.plot<-TP4_Chl.plot + labs(y="") + theme(legend.position="none")
-
-Chl.ES.plot<-Chl.ES.plot + theme(legend.position="none")
+Phys.Orig.ES.plot<-Phys.Orig.ES.plot+ labs(x="")
 ```
 
 
 #### Figure 3
 ```{r}
 ##Create Panel
-Phys_fig<-plot_grid(TP1_Bio.plot, TP2_Bio.plot, 
-                      TP3_Bio.plot, TP4_Bio.plot, Bio.ES.plot, 
-                      TP1_Prot.plot, TP2_Prot.plot, 
-                      TP3_Prot.plot, TP4_Prot.plot, Prot.ES.plot, 
-                      TP1_Chl.plot, TP2_Chl.plot, 
-                      TP3_Chl.plot, TP4_Chl.plot, Chl.ES.plot,
-                    rel_widths=c(0.8, 0.8, 0.8, 0.8, 1), rel_heights = 1,
-                    nrow=3, ncol=5, byrow=T, labels = NULL)
+Phys.ES_fig<-plot_grid(Phys.Site.Orig.ES.plot, Phys.Orig.ES.plot, 
+                    rel_widths=1, rel_heights = 1,
+                    nrow=2, ncol=1, byrow=T, labels = c("A", "B"), 
+                    label_size=panel.lab.sz)
 
 ##Save Figure
-ggsave(filename="Figures/02_Physiology/Fig3_Physiology.png", plot=Phys_fig, dpi=300, width=16, height=12, units="in")
+ggsave(filename="Figures/02_Physiology/Fig3_PhysiologyEffectSizes.png", plot=Phys.ES_fig, dpi=300, width=12, height=9, units="in")
 
 ```
+
+### Figure S4 Univariate Physiology Metrics
+
+#### Adjust for Panel
+```{r}
+##Biomass
+TP1_Bio.plot<-TP1_Bio.plot+ ggtitle("TP1")+ labs(x=NULL)+
+  theme(plot.title = element_text(colour="black", size=panel.lab.sz, face="bold", hjust=0.5), 
+        legend.position=c(0.5, 0.85), legend.direction="horizontal")+
+  guides(color=guide_legend(nrow=2, byrow=FALSE)) 
+
+TP2_Bio.plot<-TP2_Bio.plot+ ggtitle("TP2")+ labs(x=NULL, y=NULL) +
+  theme(plot.title = element_text(colour="black", size=panel.lab.sz, face="bold", hjust=0.5), 
+        legend.position="none")
+
+TP3_Bio.plot<-TP3_Bio.plot+ ggtitle("TP3")+ labs(x=NULL, y=NULL) +
+  theme(plot.title = element_text(colour="black", size=panel.lab.sz, face="bold", hjust=0.5), 
+        legend.position="none")
+
+TP4_Bio.plot<-TP4_Bio.plot+ ggtitle("TP4")+ labs(x=NULL, y=NULL) +
+  theme(plot.title = element_text(colour="black", size=panel.lab.sz, face="bold", hjust=0.5), 
+        legend.position="none")
+
+##Protein
+TP1_Prot.plot<-TP1_Prot.plot + labs(x=NULL) + theme(legend.position="none")
+
+TP2_Prot.plot<-TP2_Prot.plot + labs(x=NULL, y=NULL) + theme(legend.position="none")
+
+TP3_Prot.plot<-TP3_Prot.plot + labs(x=NULL, y=NULL) + theme(legend.position="none")
+
+TP4_Prot.plot<-TP4_Prot.plot + labs(x=NULL, y=NULL) + theme(legend.position="none")
+
+##Chlorophyll
+TP1_Chl.plot<-TP1_Chl.plot + theme(legend.position="none")
+
+TP2_Chl.plot<-TP2_Chl.plot + labs(y=NULL) + theme(legend.position="none")
+
+TP3_Chl.plot<-TP3_Chl.plot + labs(y=NULL) + theme(legend.position="none")
+
+TP4_Chl.plot<-TP4_Chl.plot + labs(y=NULL) + theme(legend.position="none")
+```
+
+
+#### Figure S4
+```{r}
+##Create Panel
+Phys_fig<-plot_grid(TP1_Bio.plot, TP2_Bio.plot, 
+                      TP3_Bio.plot, TP4_Bio.plot,  
+                      TP1_Prot.plot, TP2_Prot.plot, 
+                      TP3_Prot.plot, TP4_Prot.plot,  
+                      TP1_Chl.plot, TP2_Chl.plot, 
+                      TP3_Chl.plot, TP4_Chl.plot,
+                    rel_widths=1, rel_heights = 1,
+                    nrow=3, ncol=4, byrow=T, labels = NULL)
+
+##Save Figure
+ggsave(filename="Figures/02_Physiology/FigS4_PhysiologyMetrics.png", plot=Phys_fig, dpi=300, width=14, height=12, units="in")
+
+```
+
+
 
 
 # Tables 
@@ -1924,28 +1916,75 @@ write.csv(TableS3A_Phys.PERM, "Tables/TableS3A_Physiology_PERM_Results.csv", row
 ```
 
 
-### Table S4 Physiology Univariate LM
+### Table S4A Physiology Univariate LM all Timepoints
 ```{r}
-##Combine Results Tables
-TableS4_Phys.LM<-data.frame(rbind(Phys_T1.res, Phys_T2.res, Phys_T3.res, Phys_T4.res))
-
 ##Organize
-names(TableS4_Phys.LM)
-TableS4_Phys.LM<-TableS4_Phys.LM %>% dplyr::rename(SE = Std..Error, DF = df, t = t.value, p = Pr...t.., EffectSize = EtaSq, Timepoint = TimeP)
-TableS4_Phys.LM<-TableS4_Phys.LM[,c("Timepoint", "Response", "Predictor", "Estimate", "SE", "DF", "t", "p", "EffectSize")]
+TableS4A_Phys.LM_All<-Phys.res
+names(TableS4A_Phys.LM_All)
+TableS4A_Phys.LM_All<-TableS4A_Phys.LM_All %>% dplyr::rename(SumSq = Sum.Sq, MeanSq= Mean.Sq, F = F.value, p = Pr..F., Timepoint = TimeP)
+TableS4A_Phys.LM_All<-TableS4A_Phys.LM_All[,c("Timepoint", "Response", "Predictor", "SumSq", "MeanSq", "NumDF", "DenDF", "F", "p", "EtaSq")]
 
 #Round to 3 digits
-TableS4_Phys.LM$Estimate<-round(TableS4_Phys.LM$Estimate, 3)
-TableS4_Phys.LM$SE<-round(TableS4_Phys.LM$SE, 3)
-TableS4_Phys.LM$t<-round(TableS4_Phys.LM$t, 3)
-TableS4_Phys.LM$p<-round(TableS4_Phys.LM$p, 3)
-TableS4_Phys.LM$EffectSize<-round(TableS4_Phys.LM$EffectSize, 3)
+TableS4A_Phys.LM_All$SumSq<-round(TableS4A_Phys.LM_All$SumSq, 3)
+TableS4A_Phys.LM_All$MeanSq<-round(TableS4A_Phys.LM_All$MeanSq, 3)
+TableS4A_Phys.LM_All$F<-round(TableS4A_Phys.LM_All$F, 3)
+TableS4A_Phys.LM_All$p<-round(TableS4A_Phys.LM_All$p, 3)
+TableS4A_Phys.LM_All$EtaSq<-round(TableS4A_Phys.LM_All$EtaSq, 3)
 
 #Integer
-TableS4_Phys.LM$DF<-round(TableS4_Phys.LM$DF, 0)
+TableS4A_Phys.LM_All$DenDF<-round(TableS4A_Phys.LM_All$DenDF, 0)
 
 ##Write Out Table
-write.csv(TableS4_Phys.LM, "Tables/TableS4_Physiology_LM_Results.csv", row.names=FALSE)
+write.csv(TableS4A_Phys.LM_All, "Tables/TableS4A_Physiology_LM_Results_AllTP.csv", row.names=FALSE)
+
+```
+
+
+### Table S4B Physiology Univariate LM by Timepoint
+
+```{r}
+##Organize
+TableS4B_Phys.LM_TP<-Phys_TP.res
+names(TableS4B_Phys.LM_TP)
+TableS4B_Phys.LM_TP<-TableS4B_Phys.LM_TP %>% dplyr::rename(SE = Std..Error, DF = df, t = t.value, Timepoint = TimeP)
+TableS4B_Phys.LM_TP<-TableS4B_Phys.LM_TP[,c("Timepoint", "Response", "Predictor", "Estimate", "SE", "DF", "t", "p", "EtaSq")]
+
+#Round to 3 digits
+TableS4B_Phys.LM_TP$Estimate<-round(TableS4B_Phys.LM_TP$Estimate, 3)
+TableS4B_Phys.LM_TP$SE<-round(TableS4B_Phys.LM_TP$SE, 3)
+TableS4B_Phys.LM_TP$t<-round(TableS4B_Phys.LM_TP$t, 3)
+TableS4B_Phys.LM_TP$p<-round(TableS4B_Phys.LM_TP$p, 3)
+TableS4B_Phys.LM_TP$EtaSq<-round(TableS4B_Phys.LM_TP$EtaSq, 3)
+
+#Integer
+TableS4B_Phys.LM_TP$DF<-round(TableS4B_Phys.LM_TP$DF, 0)
+
+##Write Out Table
+write.csv(TableS4B_Phys.LM_TP, "Tables/TableS4B_Physiology_LM_Results_TP.csv", row.names=FALSE)
+
+```
+
+
+### Table S5 Physiology Univariate Pairwise
+Need to update here with pairwise by Timepoint
+Phys.pair.res or combine Phys.pair_TP1-4.res
+```{r}
+##Combine Results Tables
+TableS5_Phys.Pair<-Phys.pair.res
+
+##Organize
+names(TableS5_Phys.Pair)
+TableS5_Phys.Pair<-TableS5_Phys.Pair %>% dplyr::rename(SE = Std..Error, DF = df, t = t.value, p = Pr...t.., EffectSize = EtaSq, Timepoint = TimeP)
+TableS5_Phys.Pair<-TableS5_Phys.Pair[,c("Timepoint", "Response", "Predictor", "Estimate", "SE", "DF", "t", "p", "EffectSize")]
+
+#Round to 3 digits
+TableS5_Phys.Pair$Estimate<-round(TableS5_Phys.Pair$Estimate, 3)
+
+#Integer
+TableS5_Phys.Pair$DF<-round(TableS5_Phys.Pair$DF, 0)
+
+##Write Out Table
+write.csv(TableS5_Phys.Pair, "Tables/TableS5_Physiology_Pairwise_Results.csv", row.names=FALSE)
 
 ```
 

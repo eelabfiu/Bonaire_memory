@@ -1,0 +1,22 @@
+"Timepoint","Response","Predictor","SumSq","MeanSq","NumDF","DenDF","F","p","EtaSq"
+"All","Protein","Origin",40877.832,40877.832,1,172,3.721,0.055,0.021
+"All","Protein","Site",340872.917,340872.917,1,172,31.029,0,0.153
+"All","Protein","Time",641896.804,213965.601,3,172,19.477,0,0.254
+"All","Protein","Origin x Site",8745.895,8745.895,1,172,0.796,0.374,0.005
+"All","Protein","Origin x Time",14294.771,4764.924,3,172,0.434,0.729,0.008
+"All","Protein","Site x Time",36270.973,12090.324,3,172,1.101,0.35,0.019
+"All","Protein","Origin x Site x Time",64822.549,21607.516,3,172,1.967,0.121,0.033
+"All","Biomass","Origin",0.544,0.544,1,173,4.889,0.028,0.027
+"All","Biomass","Site",2.403,2.403,1,173,21.61,0,0.111
+"All","Biomass","Time",1.223,0.408,3,173,3.668,0.013,0.06
+"All","Biomass","Origin x Site",0,0,1,173,0.001,0.975,0
+"All","Biomass","Origin x Time",0.398,0.133,3,173,1.192,0.314,0.02
+"All","Biomass","Site x Time",0.532,0.177,3,173,1.595,0.192,0.027
+"All","Biomass","Origin x Site x Time",1.05,0.35,3,173,3.149,0.026,0.052
+"All","Chlorophyll","Origin",0.028,0.028,1,173,1.664,0.199,0.01
+"All","Chlorophyll","Site",3.568,3.568,1,173,210.856,0,0.549
+"All","Chlorophyll","Time",4.035,1.345,3,173,79.496,0,0.58
+"All","Chlorophyll","Origin x Site",0.036,0.036,1,173,2.155,0.144,0.012
+"All","Chlorophyll","Origin x Time",0.052,0.017,3,173,1.03,0.381,0.018
+"All","Chlorophyll","Site x Time",0.382,0.127,3,173,7.52,0,0.115
+"All","Chlorophyll","Origin x Site x Time",0.349,0.116,3,173,6.873,0,0.106

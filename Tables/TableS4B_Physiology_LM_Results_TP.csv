@@ -1,61 +1,37 @@
-"Timepoint","Response","Predictor","Estimate","SE","DF","t","p","EffectSize"
+"Timepoint","Response","Predictor","Estimate","SE","DF","t","p","EtaSq"
 "TP1","Protein","Origin",4.56,35.06,42,0.13,0.897,0.103
 "TP1","Protein","Site",97.406,35.06,42,2.778,0.008,0.054
 "TP1","Protein","Origin x Site",-117.865,49.582,42,-2.377,0.022,0.119
-"TP1","Protein","KL Origin",4.56,34.282,20,0.133,0.896,0.001
-"TP1","Protein","SS Origin",-113.305,35.851,20,-3.16,0.005,0.333
 "TP1","Biomass","Origin",-0.175,0.133,42,-1.314,0.196,0.157
 "TP1","Biomass","Site",0.149,0.133,42,1.123,0.268,0.01
 "TP1","Biomass","Origin x Site",-0.177,0.188,42,-0.941,0.352,0.021
-"TP1","Biomass","KL Origin",-0.175,0.119,20,-1.464,0.159,0.097
-"TP1","Biomass","SS Origin",-0.352,0.147,20,-2.398,0.026,0.223
 "TP1","Chlorophyll","Origin",0.076,0.081,42,0.934,0.355,0.165
 "TP1","Chlorophyll","Site",0.544,0.081,42,6.715,0,0.4
 "TP1","Chlorophyll","Origin x Site",-0.481,0.115,42,-4.201,0,0.296
-"TP1","Chlorophyll","KL Origin",0.076,0.07,20,1.083,0.292,0.055
-"TP1","Chlorophyll","SS Origin",-0.405,0.08,20,-5.046,0,0.56
 "TP2","Protein","Origin",-31.44,34.178,42,-0.92,0.363,0.004
 "TP2","Protein","Site",85.508,34.178,42,2.502,0.016,0.32
 "TP2","Protein","Origin x Site",43.753,48.335,42,0.905,0.371,0.019
-"TP2","Protein","KL Origin",-31.44,28.062,20,-1.12,0.276,0.059
-"TP2","Protein","SS Origin",12.313,40.28,20,0.306,0.763,0.005
 "TP2","Biomass","Origin",-0.222,0.091,42,-2.436,0.019,0.008
 "TP2","Biomass","Site",0.017,0.091,42,0.191,0.849,0.19
 "TP2","Biomass","Origin x Site",0.371,0.129,42,2.874,0.006,0.164
-"TP2","Biomass","KL Origin",-0.222,0.079,22,-2.806,0.01,0.264
-"TP2","Biomass","SS Origin",0.149,0.101,20,1.466,0.158,0.097
 "TP2","Chlorophyll","Origin",-0.247,0.17,42,-1.46,0.152,0.011
 "TP2","Chlorophyll","Site",0.557,0.17,42,3.284,0.002,0.565
 "TP2","Chlorophyll","Origin x Site",0.659,0.24,42,2.75,0.009,0.153
-"TP2","Chlorophyll","KL Origin",-0.247,0.094,20,-2.62,0.016,0.256
-"TP2","Chlorophyll","SS Origin",0.412,0.186,20,2.218,0.038,0.197
 "TP3","Protein","Origin",-59.408,47.969,42,-1.238,0.222,0.026
 "TP3","Protein","Site",65.746,47.969,42,1.371,0.178,0.142
 "TP3","Protein","Origin x Site",47.12,67.839,42,0.695,0.491,0.011
-"TP3","Protein","KL Origin",-59.408,40.971,20,-1.45,0.163,0.095
-"TP3","Protein","SS Origin",-12.288,54.225,20,-0.227,0.823,0.003
 "TP3","Biomass","Origin",-0.165,0.137,42,-1.2,0.237,0.011
 "TP3","Biomass","Site",0.226,0.137,42,1.648,0.107,0.211
 "TP3","Biomass","Origin x Site",0.199,0.194,42,1.025,0.311,0.024
-"TP3","Biomass","KL Origin",-0.165,0.132,20,-1.249,0.226,0.072
-"TP3","Biomass","SS Origin",0.034,0.147,20,0.234,0.818,0.003
 "TP3","Chlorophyll","Origin",-0.105,0.055,42,-1.896,0.065,0.02
 "TP3","Chlorophyll","Site",0.18,0.055,42,3.266,0.002,0.491
 "TP3","Chlorophyll","Origin x Site",0.137,0.078,42,1.749,0.088,0.068
-"TP3","Chlorophyll","KL Origin",-0.105,0.053,20,-1.977,0.062,0.163
-"TP3","Chlorophyll","SS Origin",0.032,0.053,20,0.599,0.556,0.018
 "TP4","Protein","Origin",23.921,51.396,40,0.465,0.644,0.005
 "TP4","Protein","Site",144.631,50.244,40,2.879,0.006,0.169
 "TP4","Protein","Origin x Site",-81.606,72.653,40,-1.123,0.268,0.031
-"TP4","Protein","KL Origin",24.6,55.581,21,0.443,0.663,0.009
-"TP4","Protein","SS Origin",-57.098,47.663,19,-1.198,0.245,0.069
 "TP4","Biomass","Origin",0.129,0.173,43,0.747,0.459,0.005
 "TP4","Biomass","Site",0.498,0.173,43,2.882,0.006,0.127
 "TP4","Biomass","Origin x Site",-0.377,0.247,43,-1.525,0.135,0.051
-"TP4","Biomass","KL Origin",0.129,0.185,22,0.697,0.493,0.022
-"TP4","Biomass","SS Origin",-0.246,0.16,19,-1.537,0.141,0.11
 "TP4","Chlorophyll","Origin",-0.025,0.054,41,-0.468,0.642,0.001
 "TP4","Chlorophyll","Site",0.336,0.054,41,6.172,0,0.688
 "TP4","Chlorophyll","Origin x Site",0.069,0.078,41,0.886,0.381,0.019
-"TP4","Chlorophyll","KL Origin",-0.025,0.06,20,-0.421,0.678,0.009
-"TP4","Chlorophyll","SS Origin",0.043,0.042,19,1.041,0.311,0.054
