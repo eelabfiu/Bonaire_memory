@@ -280,9 +280,9 @@ Niches$Site<-factor(Niches$Site, levels=c("KL", "SS"))
 Niches$Genotype<-factor(Niches$Genotype, levels=c("AC8", "AC10", "AC12"))
 Niches$TimeP<-factor(Niches$TimeP)
 
-##Add Weeks Post-Transplant
-Niches$Time<-ifelse(Niches$TimeP=="TP1", 2, ifelse(Niches$TimeP=="TP2", 16, 
-            ifelse(Niches$TimeP=="TP3", 32, ifelse(Niches$TimeP=="TP4", 52, NA))))
+##Add Months Post-Transplant
+Niches$Time<-ifelse(Niches$TimeP=="TP1", 1, ifelse(Niches$TimeP=="TP2", 4, 
+            ifelse(Niches$TimeP=="TP3", 8, ifelse(Niches$TimeP=="TP4", 12, NA))))
 ```
 
 
@@ -332,7 +332,7 @@ pOverlap.orig.sum<-summarySE(Niches, measurevar="pOverlap", groupvars=c("Time"),
 ##Plot Average Niche Overlap across Timepoints
 Overlap_Avg.plot<-ggplot(pOverlap.orig.sum, aes(x=Time, y=pOverlap, group=1)) + 
   scale_colour_manual(values=Site.colors.o)+
-  geom_errorbar(aes(ymin=pOverlap-se, ymax=pOverlap+se), width=cap.sz*4, linewidth=bar.sz) +
+  geom_errorbar(aes(ymin=pOverlap-se, ymax=pOverlap+se), width=cap.sz, linewidth=bar.sz) +
   geom_path(linewidth=bar.sz)+
   geom_point(size=point.sz)+
   theme_classic()+
@@ -342,9 +342,10 @@ Overlap_Avg.plot<-ggplot(pOverlap.orig.sum, aes(x=Time, y=pOverlap, group=1)) +
         axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
         legend.position="none",
         strip.text=element_text(size=axis.title.sz))+
-  labs(x="Weeks Post-Transplant", y="Physiological Niche Overlap")+
+  scale_x_continuous(breaks = seq(0, 12, by = 2))+
+  labs(x="Months Post-Transplant", y="Physiological Niche Overlap")+
   geom_text(aes(x=Time, y=pOverlap+se+0.03), label=c("TP1", "TP2", "TP3", "TP4"), size=sig.sz)+
-  annotate("text", x=45, y=0.1, label="Time p < 0.05", size=sig.sz); Overlap_Avg.plot
+  annotate("text", x=10, y=0.1, label="Time p < 0.05", size=sig.sz); Overlap_Avg.plot
 
 ```
 
@@ -409,7 +410,7 @@ PhysEnv.rda.scores<-merge(PhysEnv.St[,c(1:9)], PhysEnv.rda.scores)
 PhysEnv.rda.env<-data.frame(scores(PhysEnv.rda)$biplot[,1:2]) * ordiArrowMul(PhysEnv.rda, display="bp", fill=7)
 PhysEnv.rda.env$Variable<-rownames(PhysEnv.rda.env)
 PhysEnv.rda.env$Variable
-PhysEnv.rda.env$Metric<-c("Temperature", "Conductivity", "Temp SD", "Cond SD", "Irradiance", "N:P", "DIN")
+PhysEnv.rda.env$Metric<-c("Temperature", "Conductivity", "Temp SD", "Cond SD", "Sat PAR", "N:P", "DIN")
 
 ##Adjusted R2
 RDA.adjr2<- sprintf("%1.2f", (RsquareAdj(PhysEnv.rda)$adj.r.squared*100))
