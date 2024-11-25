@@ -1,4 +1,4 @@
-"Response","Predictor","SS","MS","NumDF","DenDF","F","p"
-"Niche Overlap","Time",0.26,0.087,3,15.9999999993779,1.592,0.231
-"Niche Overlap","Site",0.002,0.002,1,15.9999999996503,0.04,0.844
-"Niche Overlap","Time x Site",0.219,0.073,3,15.9999999994522,1.341,0.296
+"Response","Predictor","Estimate","SE","DF","t","p","EtaSq"
+"Niche Overlap","Time",0.006,0.003,20,2.278,0.034,0.224
+"Niche Overlap","Site",0.061,0.115,20,0.528,0.603,0.014
+"Niche Overlap","Time x Site",-0.003,0.004,20,-0.818,0.423,0.032
