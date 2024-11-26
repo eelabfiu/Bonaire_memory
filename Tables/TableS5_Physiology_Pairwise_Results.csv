@@ -1,0 +1,25 @@
+"Timepoint","Response","Site","Contrast","Estimate","SE","DF","t","p","p_Timepoint","EffectSize","EffectSize.SE"
+"TP1","Biomass","KL","Native - Transplant",0.175,0.136,173,1.284,0.201,0.196,0.524,0.409
+"TP1","Chlorophyll","KL","Native - Transplant",-0.038,0.053,173,-0.715,0.476,0.355,-0.292,0.409
+"TP1","Protein","KL","Native - Transplant",-4.56,42.789,172,-0.107,0.915,0.897,-0.044,0.408
+"TP2","Biomass","KL","Native - Transplant",0.222,0.136,173,1.633,0.104,0.019,0.667,0.41
+"TP2","Chlorophyll","KL","Native - Transplant",0.115,0.053,173,2.174,0.031,0.152,0.888,0.411
+"TP2","Protein","KL","Native - Transplant",31.44,42.789,172,0.735,0.463,0.363,0.3,0.409
+"TP3","Biomass","KL","Native - Transplant",0.165,0.136,173,1.212,0.227,0.237,0.495,0.409
+"TP3","Chlorophyll","KL","Native - Transplant",0.105,0.053,173,1.973,0.05,0.065,0.805,0.411
+"TP3","Protein","KL","Native - Transplant",59.408,42.789,172,1.388,0.167,0.222,0.567,0.409
+"TP4","Biomass","KL","Native - Transplant",-0.129,0.136,173,-0.948,0.345,0.46,-0.387,0.409
+"TP4","Chlorophyll","KL","Native - Transplant",0.025,0.053,173,0.479,0.632,0.642,0.196,0.408
+"TP4","Protein","KL","Native - Transplant",-23.181,43.763,172,-0.53,0.597,0.645,-0.221,0.418
+"TP1","Biomass","SS","Native - Transplant",0.352,0.136,173,2.585,0.011,0.011,1.055,0.412
+"TP1","Chlorophyll","SS","Native - Transplant",0.184,0.053,173,3.461,0.001,0,1.413,0.415
+"TP1","Protein","SS","Native - Transplant",113.305,42.789,172,2.648,0.009,0.002,1.081,0.412
+"TP2","Biomass","SS","Native - Transplant",-0.149,0.136,173,-1.091,0.277,0.111,-0.445,0.409
+"TP2","Chlorophyll","SS","Native - Transplant",-0.121,0.053,173,-2.273,0.024,0.02,-0.928,0.411
+"TP2","Protein","SS","Native - Transplant",-12.313,42.789,172,-0.288,0.774,0.72,-0.117,0.408
+"TP3","Biomass","SS","Native - Transplant",-0.034,0.136,173,-0.252,0.802,0.804,-0.103,0.408
+"TP3","Chlorophyll","SS","Native - Transplant",-0.032,0.053,173,-0.6,0.549,0.567,-0.245,0.408
+"TP3","Protein","SS","Native - Transplant",12.288,42.789,172,0.287,0.774,0.799,0.117,0.408
+"TP4","Biomass","SS","Native - Transplant",0.252,0.139,173,1.807,0.072,0.169,0.755,0.42
+"TP4","Chlorophyll","SS","Native - Transplant",-0.045,0.054,173,-0.821,0.413,0.439,-0.343,0.418
+"TP4","Protein","SS","Native - Transplant",58.425,43.763,172,1.335,0.184,0.269,0.557,0.419

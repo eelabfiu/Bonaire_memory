@@ -368,6 +368,7 @@ Coral_TP3 <- Coral_TP3 %>% mutate_at(c("TP_ug.cm2", "AFDW_mg.cm2", "Chl_ug.cm2")
 
 ```
 
+
 #### PERMANOVA
 ```{r}
 ##PERMANOVA
@@ -444,6 +445,7 @@ Coral_TP4<-subset(Coral.rm, TimeP=="TP4")
 Coral_TP4 <- Coral_TP2 %>% mutate_at(c("TP_ug.cm2", "AFDW_mg.cm2", "Chl_ug.cm2"), ~(scale(.) %>% as.vector))
 
 ```
+
 
 #### PERMANOVA
 ```{r}
@@ -1966,19 +1968,30 @@ write.csv(TableS4B_Phys.LM_TP, "Tables/TableS4B_Physiology_LM_Results_TP.csv", r
 
 
 ### Table S5 Physiology Univariate Pairwise
-Need to update here with pairwise by Timepoint
-Phys.pair.res or combine Phys.pair_TP1-4.res
 ```{r}
+##Combine Results of TP Models
+Phys.pair.res_TP<-rbind(Phys.pair_TP1.res, Phys.pair_TP2.res, Phys.pair_TP3.res, Phys.pair_TP4.res)
+
+##Rename p.value for merging
+Phys.pair.res_TP<-Phys.pair.res_TP %>% dplyr::rename(p_Timepoint = p.value)
+
 ##Combine Results Tables
-TableS5_Phys.Pair<-Phys.pair.res
+Phys.pair.res.all<-merge(Phys.pair.res, Phys.pair.res_TP[,c("Site", "TimeP", "Response", "p_Timepoint")])
+TableS5_Phys.Pair<-Phys.pair.res.all
 
 ##Organize
 names(TableS5_Phys.Pair)
-TableS5_Phys.Pair<-TableS5_Phys.Pair %>% dplyr::rename(SE = Std..Error, DF = df, t = t.value, p = Pr...t.., EffectSize = EtaSq, Timepoint = TimeP)
-TableS5_Phys.Pair<-TableS5_Phys.Pair[,c("Timepoint", "Response", "Predictor", "Estimate", "SE", "DF", "t", "p", "EffectSize")]
+TableS5_Phys.Pair<-TableS5_Phys.Pair %>% dplyr::rename(Timepoint = TimeP, Contrast =contrast, Estimate = estimate, DF = df, t = t.ratio, p = p.value, EffectSize = effect.size, EffectSize.SE = SE.es)
+TableS5_Phys.Pair<-TableS5_Phys.Pair[,c("Timepoint", "Response", "Site", "Contrast", "Estimate", "SE", "DF", "t", "p", "p_Timepoint", "EffectSize", "EffectSize.SE")]
 
 #Round to 3 digits
 TableS5_Phys.Pair$Estimate<-round(TableS5_Phys.Pair$Estimate, 3)
+TableS5_Phys.Pair$SE<-round(TableS5_Phys.Pair$SE, 3)
+TableS5_Phys.Pair$t<-round(TableS5_Phys.Pair$t, 3)
+TableS5_Phys.Pair$p<-round(TableS5_Phys.Pair$p, 3)
+TableS5_Phys.Pair$p_Timepoint<-round(TableS5_Phys.Pair$p_Timepoint, 3)
+TableS5_Phys.Pair$EffectSize<-round(TableS5_Phys.Pair$EffectSize, 3)
+TableS5_Phys.Pair$EffectSize.SE<-round(TableS5_Phys.Pair$EffectSize.SE, 3)
 
 #Integer
 TableS5_Phys.Pair$DF<-round(TableS5_Phys.Pair$DF, 0)
