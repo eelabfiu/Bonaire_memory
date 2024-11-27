@@ -110,15 +110,15 @@ Thermal$Origin<-factor(Thermal$Origin, levels=c("Native", "Transplant"))
 #### Calculate Days
 ```{r}
 ##Subset Dates for TP 1 and TP 2 Growth
-Growth.Dates_T1.2<-subset(Dates, Task=="Growth" & TimeP=="TP1" |
+Growth.Dates_TP1.2<-subset(Dates, Task=="Growth" & TimeP=="TP1" |
                        Task=="Growth" & TimeP=="TP2" )
 
 ##Convert to Wide format
-Growth.Dates_T1.2<-Growth.Dates_T1.2 %>%  pivot_wider(names_from = TimeP, values_from = Date)
+Growth.Dates_TP1.2<-Growth.Dates_TP1.2 %>%  pivot_wider(names_from = TimeP, values_from = Date)
 
 ##Calculate Number of Days
 #TP 1 to TP2
-Growth.Dates_T1.2$TP1.2_days<-time_length(Growth.Dates_T1.2$TP2-Growth.Dates_T1.2$TP1, unit="days")
+Growth.Dates_TP1.2$TP1.2_days<-time_length(Growth.Dates_TP1.2$TP2-Growth.Dates_TP1.2$TP1, unit="days")
 
 ```
 
@@ -128,13 +128,13 @@ Growth.Dates_T1.2$TP1.2_days<-time_length(Growth.Dates_T1.2$TP2-Growth.Dates_T1.
 ##Merge Length Data with Growth Dates
 #Merges by Site column
 #Adds TP1.2_days column
-Growth_T1.2<-merge(Length, Growth.Dates_T1.2[,c(-2)], all.x=TRUE)
+Growth_TP1.2<-merge(Length, Growth.Dates_TP1.2[,c(-2)], all.x=TRUE)
 
 ##Calculate Linear Extension (cm)
-Growth_T1.2$Ext_cm<-Growth_T1.2$TL.TP2_cm-Growth_T1.2$TL.TP1_cm
+Growth_TP1.2$Ext_cm<-Growth_TP1.2$TL.TP2_cm-Growth_TP1.2$TL.TP1_cm
 
-##Calculate Growth_T1.2 Rate (cm/day)
-Growth_T1.2$TLE_cm.day<-Growth_T1.2$Ext_cm/Growth_T1.2$TP1.2_days
+##Calculate Growth_TP1.2 Rate (cm/day)
+Growth_TP1.2$TLE_cm.day<-Growth_TP1.2$Ext_cm/Growth_TP1.2$TP1.2_days
 
 ```
 
@@ -142,15 +142,15 @@ Growth_T1.2$TLE_cm.day<-Growth_T1.2$Ext_cm/Growth_T1.2$TP1.2_days
 #### Data QC
 ```{r}
 ##Remove Corals not Measured in T1 to T2
-Growth_T1.2<-Growth_T1.2 %>% drop_na(TLE_cm.day)
+Growth_TP1.2<-Growth_TP1.2 %>% drop_na(TLE_cm.day)
 
 ##Sample Size per Set
-Growth_T1.2 %>% 
+Growth_TP1.2 %>% 
   dplyr::group_by(Set) %>%
   dplyr::summarize(SampleSize = length(Set))
 
 ##Check for Outliers
-ggplot(Growth_T1.2, aes(x=Set, y=TLE_cm.day)) + 
+ggplot(Growth_TP1.2, aes(x=Set, y=TLE_cm.day)) + 
   geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
   geom_jitter(shape=16, position=position_jitter(0.1))+
   theme(axis.text.x = element_text(angle = 90))
@@ -163,27 +163,27 @@ Potential outliers have been re-measured and therefore will be retained. n=10 pe
 ### Compare Growth Rate
 ```{r}
 #Check normality
-hist(Growth_T1.2$TLE_cm.day)
-shapiro.test(Growth_T1.2$TLE_cm.day)
+hist(Growth_TP1.2$TLE_cm.day)
+shapiro.test(Growth_TP1.2$TLE_cm.day)
 #Not normal
 
-hist(log(Growth_T1.2$TLE_cm.day+1))
-shapiro.test(log(Growth_T1.2$TLE_cm.day+1))
+hist(log(Growth_TP1.2$TLE_cm.day+1))
+shapiro.test(log(Growth_TP1.2$TLE_cm.day+1))
 ##Still not normal
 
 ##Compare generalized linear mixed effects models
-TLE_T1.2.glmr.gaus<-glmer(TLE_cm.day~Origin*Site+(1|Genotype), data=Growth_T1.2, family=gaussian(link="identity"))
-TLE_T1.2.glmr.gaus.l<-glmer(TLE_cm.day~Origin*Site+(1|Genotype), data=Growth_T1.2, family=gaussian(link="log"))
-TLE_T1.2.glmr.gaus.i<-glmer(TLE_cm.day~Origin*Site+(1|Genotype), data=Growth_T1.2, family=gaussian(link="inverse"))
+TLE_TP1.2.glmr.gaus<-glmer(TLE_cm.day~Origin*Site+(1|Genotype), data=Growth_TP1.2, family=gaussian(link="identity"))
+TLE_TP1.2.glmr.gaus.l<-glmer(TLE_cm.day~Origin*Site+(1|Genotype), data=Growth_TP1.2, family=gaussian(link="log"))
+TLE_TP1.2.glmr.gaus.i<-glmer(TLE_cm.day~Origin*Site+(1|Genotype), data=Growth_TP1.2, family=gaussian(link="inverse"))
 
-TLE_T1.2.glmr.gam.l<-glmer(TLE_cm.day~Origin*Site+(1|Genotype), data=Growth_T1.2, family=Gamma(link="log"))
-TLE_T1.2.glmr.gam.i<-glmer(TLE_cm.day~Origin*Site+(1|Genotype), data=Growth_T1.2, family=Gamma(link="inverse"))
+TLE_TP1.2.glmr.gam.l<-glmer(TLE_cm.day~Origin*Site+(1|Genotype), data=Growth_TP1.2, family=Gamma(link="log"))
+TLE_TP1.2.glmr.gam.i<-glmer(TLE_cm.day~Origin*Site+(1|Genotype), data=Growth_TP1.2, family=Gamma(link="inverse"))
 
-TLE_T1.2.glmr.inv<-glmer(TLE_cm.day~Origin*Site+(1|Genotype), data=Growth_T1.2, family=inverse.gaussian(link="1/mu^2"))
-TLE_T1.2.glmr.inv.l<-glmer(TLE_cm.day~Origin*Site+(1|Genotype), data=Growth_T1.2, family=inverse.gaussian(link="log"))
-TLE_T1.2.glmr.inv.i<-glmer(TLE_cm.day~Origin*Site+(1|Genotype), data=Growth_T1.2, family=inverse.gaussian(link="inverse"))
+TLE_TP1.2.glmr.inv<-glmer(TLE_cm.day~Origin*Site+(1|Genotype), data=Growth_TP1.2, family=inverse.gaussian(link="1/mu^2"))
+TLE_TP1.2.glmr.inv.l<-glmer(TLE_cm.day~Origin*Site+(1|Genotype), data=Growth_TP1.2, family=inverse.gaussian(link="log"))
+TLE_TP1.2.glmr.inv.i<-glmer(TLE_cm.day~Origin*Site+(1|Genotype), data=Growth_TP1.2, family=inverse.gaussian(link="inverse"))
 
-AIC(TLE_T1.2.glmr.gaus, TLE_T1.2.glmr.gaus.l, TLE_T1.2.glmr.gaus.i, TLE_T1.2.glmr.gam.l, TLE_T1.2.glmr.gam.i, TLE_T1.2.glmr.inv, TLE_T1.2.glmr.inv.l, TLE_T1.2.glmr.inv.i)
+AIC(TLE_TP1.2.glmr.gaus, TLE_TP1.2.glmr.gaus.l, TLE_TP1.2.glmr.gaus.i, TLE_TP1.2.glmr.gam.l, TLE_TP1.2.glmr.gam.i, TLE_TP1.2.glmr.inv, TLE_TP1.2.glmr.inv.l, TLE_TP1.2.glmr.inv.i)
 ```
 
 Gamma distribution with log-link has the lowest AIC.
@@ -191,8 +191,8 @@ Gamma distribution with log-link has the lowest AIC.
 
 ```{r}
 ##Check residuals
-TLE_T1.2.glmr.gam.l_res <- simulateResiduals(fittedModel = TLE_T1.2.glmr.gam.l, plot = F)
-plot(TLE_T1.2.glmr.gam.l_res)
+TLE_TP1.2.glmr.gam.l_res <- simulateResiduals(fittedModel = TLE_TP1.2.glmr.gam.l, plot = F)
+plot(TLE_TP1.2.glmr.gam.l_res)
 
 ```
 
@@ -201,73 +201,72 @@ Compare residuals across models
 
 ```{r}
 ##Check residuals
-TLE_T1.2.glmr.gaus.l_res <- simulateResiduals(fittedModel = TLE_T1.2.glmr.gaus.l, plot = F)
-plot(TLE_T1.2.glmr.gaus.l_res)
+TLE_TP1.2.glmr.gaus.l_res <- simulateResiduals(fittedModel = TLE_TP1.2.glmr.gaus.l, plot = F)
+plot(TLE_TP1.2.glmr.gaus.l_res)
 
 ```
 
 Compare with log+1 transformed lmer model
 
+#### LMER Model
 ```{r}
 ##Model with log +1 transformation
 #Function of Site and Origin, with Genotype as a Random effect
 #Interaction between Site and Origin
-TLE_T1.2.lme<-lmer(log(TLE_cm.day+1)~Origin*Site+(1|Genotype), data=Growth_T1.2)
+TLE_TP1.2.lme<-lmer(log(TLE_cm.day+1)~Origin*Site+(1|Genotype), data=Growth_TP1.2)
 
 ##Check residuals
-TLE_T1.2.lme_res <- simulateResiduals(fittedModel = TLE_T1.2.lme, plot = F)
-plot(TLE_T1.2.lme_res)
+TLE_TP1.2.lme_res <- simulateResiduals(fittedModel = TLE_TP1.2.lme, plot = F)
+plot(TLE_TP1.2.lme_res)
 ```
 Better residuals with the log+1 transformed lmer model.
 
 
 ```{r}
 ##Model results
-summary(TLE_T1.2.lme)
+summary(TLE_TP1.2.lme)
 
-eta_squared(TLE_T1.2.lme)
+eta_squared(TLE_TP1.2.lme)
 
 ##Save model results
-TLE_T1.2.res<-data.frame(summary(TLE_T1.2.lme)$coefficients[-1,])
-TLE_T1.2.res$Predictor<-c("Origin", "Site", "Origin x Site")
-TLE_T1.2.res$EtaSq<-c(eta_squared(TLE_T1.2.lme)$Eta2)
-TLE_T1.2.res$Response<-rep("Growth", nrow(TLE_T1.2.res))
-TLE_T1.2.res$Timepoint<-rep("TP1_2", nrow(TLE_T1.2.res))
+TLE_TP1.2.res<-data.frame(summary(TLE_TP1.2.lme)$coefficients[-1,])
+TLE_TP1.2.res$Predictor<-c("Origin", "Site", "Origin x Site")
+TLE_TP1.2.res$EtaSq<-c(eta_squared(TLE_TP1.2.lme)$Eta2)
+TLE_TP1.2.res$Response<-rep("Growth", nrow(TLE_TP1.2.res))
+TLE_TP1.2.res$Timepoint<-rep("TP1_2", nrow(TLE_TP1.2.res))
 
 ```
 
-
-Effect size of Origin for each Site
+#### Pairwise
 ```{r}
-##KL
-TLE_T1.2.lme_KL<-lmer(log(TLE_cm.day+1)~Origin+(1|Genotype), data=Growth_T1.2[which(Growth_T1.2$Site=="KL"),])
-summary(TLE_T1.2.lme_KL)
-eta_squared(TLE_T1.2.lme_KL)
+##Pairwise Comparisons of Interest
+#Native vs Transplant within a Site
+TLE.pair_TP1.2<-emmeans(TLE_TP1.2.lme, pairwise~Origin | Site)
+TLE.pair_TP1.2
 
+#Calculate standardized effect sizes for pairwise comparisons
+TLE.pair.es_TP1.2<-data.frame(eff_size(TLE.pair_TP1.2, sigma=sigma(TLE_TP1.2.lme), edf=df.residual(TLE_TP1.2.lme)))
+TLE.pair.es_TP1.2
+TLE.pair.es_TP1.2<-TLE.pair.es_TP1.2 %>% dplyr::rename(contrast.se = contrast, SE.es = SE, df.es = df)
 
-##SS
-TLE_T1.2.lme_SS<-lmer(log(TLE_cm.day+1)~Origin+(1|Genotype), data=Growth_T1.2[which(Growth_T1.2$Site=="SS"),])
-summary(TLE_T1.2.lme_SS)
-eta_squared(TLE_T1.2.lme_SS)
+##Save Results
+TLE.pair_TP1.2.res<-merge(data.frame(TLE.pair_TP1.2$contrasts), TLE.pair.es_TP1.2[,-c(1)])
+TLE.pair_TP1.2.res$Response<-rep("Growth", nrow(TLE.pair_TP1.2.res))
+TLE.pair_TP1.2.res$TimeP<-rep("TP1_2", nrow(TLE.pair_TP1.2.res))
 
-
-##Save results
-TLE_T1.2.site.res<-data.frame(rbind(summary(TLE_T1.2.lme_KL)$coefficients[-1,],
-                                     summary(TLE_T1.2.lme_SS)$coefficients[-1,]))
-TLE_T1.2.site.res$Predictor<-c("KL Origin", "SS Origin")
-TLE_T1.2.site.res$EtaSq<-c(eta_squared(TLE_T1.2.lme_KL)$Eta2, eta_squared(TLE_T1.2.lme_SS)$Eta2)
-TLE_T1.2.site.res$Response<-rep("Growth", nrow(TLE_T1.2.site.res))
-TLE_T1.2.site.res$Timepoint<-rep("TP1_2", nrow(TLE_T1.2.site.res))
-
-##Combine results 
-TLE_T1.2.res<-rbind(TLE_T1.2.res, TLE_T1.2.site.res)
-
+##Add Significance levels
+TLE.pair_TP1.2.res$Sig<-ifelse(TLE.pair_TP1.2.res$p.value<0.001, "***",
+                              ifelse(TLE.pair_TP1.2.res$p.value<0.01, "**",
+                                     ifelse(TLE.pair_TP1.2.res$p.value<0.05, "*",
+                                            ifelse(TLE.pair_TP1.2.res$p.value<0.1, "-", NA))))
+TLE.pair_TP1.2.res
 ```
 
 
+#### Plot Growth TP 1 to 2
 ```{r Plot Growth Rate TP1 to 2}
 ##Summary statistics by Site and Origin
-TP1.2_Growth.sum<-summarySE(Growth_T1.2, measurevar="TLE_cm.day", groupvars=c("Site", "Origin", "Site.Orig"), na.rm=TRUE)
+TP1.2_Growth.sum<-summarySE(Growth_TP1.2, measurevar="TLE_cm.day", groupvars=c("Site", "Origin", "Site.Orig"), na.rm=TRUE)
 
 ##Plot Average Growth Rate across Treatments
 TP1.2_Growth.plot<-ggplot(TP1.2_Growth.sum, aes(x=Site, y=TLE_cm.day, colour=Site.Orig)) + 
@@ -286,24 +285,35 @@ TP1.2_Growth.plot<-ggplot(TP1.2_Growth.sum, aes(x=Site, y=TLE_cm.day, colour=Sit
 ```
 
 
-### Average Growth Rates by Genotype
+### Percent Difference in Growth Rates
 ```{r}
-##Summary statistics by Genotype and Origin
-TP1.2_Growth.sum.SS<-summarySE(subset(Growth_T1.2, Site=="SS"), measurevar="TLE_cm.day", groupvars=c("Genotype", "Origin"), na.rm=TRUE)
-
-TP1.2_Growth.sum.SS
+##Summary statistics by Genotype, Origin, and Site
+TP1.2_Growth.sum<-summarySE(Growth_TP1.2, measurevar="TLE_cm.day", groupvars=c("Genotype", "Origin", "Site"), na.rm=TRUE)
 
 ##Calculate Percent Difference between Native and Transplant by Genotype
-TP1.2_Growth.SS<-TP1.2_Growth.sum.SS[which(TP1.2_Growth.sum.SS$Origin=="Native"), c(1,4)]
-names(TP1.2_Growth.SS)[2]<-paste(names(TP1.2_Growth.SS)[2], "N", sep="_")
-TP1.2_Growth.SS$TLE_cm.day_T<-TP1.2_Growth.sum.SS$TLE_cm.day[which(TP1.2_Growth.sum.SS$Origin=="Transplant")]
-TP1.2_Growth.SS$Perc.Inc<-((TP1.2_Growth.SS$TLE_cm.day_N-TP1.2_Growth.SS$TLE_cm.day_T)/TP1.2_Growth.SS$TLE_cm.day_T)*100
+TP1.2_Growth.dif<-TP1.2_Growth.sum[which(TP1.2_Growth.sum$Origin=="Native"), c(1,3,5)]
+TP1.2_Growth.dif<-TP1.2_Growth.dif %>% dplyr::rename(TLE_N = TLE_cm.day)
+TP1.2_Growth.dif$TLE_T<-TP1.2_Growth.sum$TLE_cm.day[which(TP1.2_Growth.sum$Origin=="Transplant")]
 
-TP1.2_Growth.SS
+##SS
+TP1.2_Growth.dif_SS<-subset(TP1.2_Growth.dif, Site=="SS")
+TP1.2_Growth.dif_SS$Perc.Inc<-((TP1.2_Growth.dif_SS$TLE_N-TP1.2_Growth.dif_SS$TLE_T)/TP1.2_Growth.dif_SS$TLE_T)*100
+TP1.2_Growth.dif_SS
 
 ##Mean and Standard Error
-mean(TP1.2_Growth.SS$Perc.Inc)
-std.error(TP1.2_Growth.SS$Perc.Inc)
+mean(TP1.2_Growth.dif_SS$Perc.Inc)
+std.error(TP1.2_Growth.dif_SS$Perc.Inc)
+
+##KL
+TP1.2_Growth.dif_KL<-subset(TP1.2_Growth.dif, Site=="KL")
+TP1.2_Growth.dif_KL$Perc.Inc<-((TP1.2_Growth.dif_KL$TLE_N-TP1.2_Growth.dif_KL$TLE_T)/TP1.2_Growth.dif_KL$TLE_T)*100
+TP1.2_Growth.dif_KL
+
+##Mean and Standard Error
+mean(TP1.2_Growth.dif_KL$Perc.Inc)
+std.error(TP1.2_Growth.dif_KL$Perc.Inc)
+
+
 ```
 
 
@@ -312,15 +322,15 @@ std.error(TP1.2_Growth.SS$Perc.Inc)
 #### Calculate Days
 ```{r}
 ##Subset Dates for TP 3 and TP 4 Growth
-Growth.Dates_T3.4<-subset(Dates, Task=="Growth" & TimeP=="TP3" |
+Growth.Dates_TP3.4<-subset(Dates, Task=="Growth" & TimeP=="TP3" |
                        Task=="Growth" & TimeP=="TP4" )
 
 ##Convert to Wide format
-Growth.Dates_T3.4<-Growth.Dates_T3.4 %>%  pivot_wider(names_from = TimeP, values_from = Date)
+Growth.Dates_TP3.4<-Growth.Dates_TP3.4 %>%  pivot_wider(names_from = TimeP, values_from = Date)
 
 ##Calculate Number of Days
 #TP 3 to TP4
-Growth.Dates_T3.4$TP3.4_days<-time_length(Growth.Dates_T3.4$TP4-Growth.Dates_T3.4$TP3, unit="days")
+Growth.Dates_TP3.4$TP3.4_days<-time_length(Growth.Dates_TP3.4$TP4-Growth.Dates_TP3.4$TP3, unit="days")
 
 ```
 
@@ -330,13 +340,13 @@ Growth.Dates_T3.4$TP3.4_days<-time_length(Growth.Dates_T3.4$TP4-Growth.Dates_T3.
 ##Merge Length Data with Growth Dates
 #Merges by Site column
 #Adds TP3.4_days column
-Growth_T3.4<-merge(Length, Growth.Dates_T3.4[,c(-2)], all.x=TRUE)
+Growth_TP3.4<-merge(Length, Growth.Dates_TP3.4[,c(-2)], all.x=TRUE)
 
 ##Calculate Linear Extension (cm)
-Growth_T3.4$Ext_cm<-Growth_T3.4$TL.TP4_cm-Growth_T3.4$TL.TP3_cm
+Growth_TP3.4$Ext_cm<-Growth_TP3.4$TL.TP4_cm-Growth_TP3.4$TL.TP3_cm
 
-##Calculate Growth_T3.4 Rate (cm/day)
-Growth_T3.4$TLE_cm.day<-Growth_T3.4$Ext_cm/Growth_T3.4$TP3.4_days
+##Calculate Growth_TP3.4 Rate (cm/day)
+Growth_TP3.4$TLE_cm.day<-Growth_TP3.4$Ext_cm/Growth_TP3.4$TP3.4_days
 
 ```
 
@@ -344,15 +354,15 @@ Growth_T3.4$TLE_cm.day<-Growth_T3.4$Ext_cm/Growth_T3.4$TP3.4_days
 #### Data QC
 ```{r}
 ##Remove Corals not Measured in T1 to T2
-Growth_T3.4<-Growth_T3.4 %>% drop_na(TLE_cm.day)
+Growth_TP3.4<-Growth_TP3.4 %>% drop_na(TLE_cm.day)
 
 ##Sample Size per Set
-Growth_T3.4 %>% 
+Growth_TP3.4 %>% 
   dplyr::group_by(Set) %>%
   dplyr::summarize(SampleSize = length(Set))
 
 ##Check for Outliers
-ggplot(Growth_T3.4, aes(x=Set, y=TLE_cm.day)) + 
+ggplot(Growth_TP3.4, aes(x=Set, y=TLE_cm.day)) + 
   geom_boxplot(alpha=0.5, shape=2, outlier.shape = NA)+
   geom_jitter(shape=16, position=position_jitter(0.1))+
   theme(axis.text.x = element_text(angle = 90))
@@ -363,27 +373,27 @@ ggplot(Growth_T3.4, aes(x=Set, y=TLE_cm.day)) +
 ### Compare Growth Rate
 ```{r}
 #Check normality
-hist(Growth_T3.4$TLE_cm.day)
-shapiro.test(Growth_T3.4$TLE_cm.day)
+hist(Growth_TP3.4$TLE_cm.day)
+shapiro.test(Growth_TP3.4$TLE_cm.day)
 #Not normal
 
-hist(log(Growth_T3.4$TLE_cm.day+1))
-shapiro.test(log(Growth_T3.4$TLE_cm.day+1))
+hist(log(Growth_TP3.4$TLE_cm.day+1))
+shapiro.test(log(Growth_TP3.4$TLE_cm.day+1))
 ##Still not normal
 
 ##Compare generalized linear mixed effects models
-TLE_T3.4.glmr.gaus<-glmer(TLE_cm.day~Origin*Site+(1|Genotype), data=Growth_T3.4, family=gaussian(link="identity"))
-TLE_T3.4.glmr.gaus.l<-glmer(TLE_cm.day~Origin*Site+(1|Genotype), data=Growth_T3.4, family=gaussian(link="log"))
-TLE_T3.4.glmr.gaus.i<-glmer(TLE_cm.day~Origin*Site+(1|Genotype), data=Growth_T3.4, family=gaussian(link="inverse"))
+TLE_TP3.4.glmr.gaus<-glmer(TLE_cm.day~Origin*Site+(1|Genotype), data=Growth_TP3.4, family=gaussian(link="identity"))
+TLE_TP3.4.glmr.gaus.l<-glmer(TLE_cm.day~Origin*Site+(1|Genotype), data=Growth_TP3.4, family=gaussian(link="log"))
+TLE_TP3.4.glmr.gaus.i<-glmer(TLE_cm.day~Origin*Site+(1|Genotype), data=Growth_TP3.4, family=gaussian(link="inverse"))
 
-TLE_T3.4.glmr.gam.l<-glmer(TLE_cm.day~Origin*Site+(1|Genotype), data=Growth_T3.4, family=Gamma(link="log"))
-TLE_T3.4.glmr.gam.i<-glmer(TLE_cm.day~Origin*Site+(1|Genotype), data=Growth_T3.4, family=Gamma(link="inverse"))
+TLE_TP3.4.glmr.gam.l<-glmer(TLE_cm.day~Origin*Site+(1|Genotype), data=Growth_TP3.4, family=Gamma(link="log"))
+TLE_TP3.4.glmr.gam.i<-glmer(TLE_cm.day~Origin*Site+(1|Genotype), data=Growth_TP3.4, family=Gamma(link="inverse"))
 
-TLE_T3.4.glmr.inv<-glmer(TLE_cm.day~Origin*Site+(1|Genotype), data=Growth_T3.4, family=inverse.gaussian(link="1/mu^2"))
-TLE_T3.4.glmr.inv.l<-glmer(TLE_cm.day~Origin*Site+(1|Genotype), data=Growth_T3.4, family=inverse.gaussian(link="log"))
-TLE_T3.4.glmr.inv.i<-glmer(TLE_cm.day~Origin*Site+(1|Genotype), data=Growth_T3.4, family=inverse.gaussian(link="inverse"))
+TLE_TP3.4.glmr.inv<-glmer(TLE_cm.day~Origin*Site+(1|Genotype), data=Growth_TP3.4, family=inverse.gaussian(link="1/mu^2"))
+TLE_TP3.4.glmr.inv.l<-glmer(TLE_cm.day~Origin*Site+(1|Genotype), data=Growth_TP3.4, family=inverse.gaussian(link="log"))
+TLE_TP3.4.glmr.inv.i<-glmer(TLE_cm.day~Origin*Site+(1|Genotype), data=Growth_TP3.4, family=inverse.gaussian(link="inverse"))
 
-AIC(TLE_T3.4.glmr.gaus, TLE_T3.4.glmr.gaus.l, TLE_T3.4.glmr.gaus.i, TLE_T3.4.glmr.gam.l, TLE_T3.4.glmr.gam.i, TLE_T3.4.glmr.inv, TLE_T3.4.glmr.inv.l, TLE_T3.4.glmr.inv.i)
+AIC(TLE_TP3.4.glmr.gaus, TLE_TP3.4.glmr.gaus.l, TLE_TP3.4.glmr.gaus.i, TLE_TP3.4.glmr.gam.l, TLE_TP3.4.glmr.gam.i, TLE_TP3.4.glmr.inv, TLE_TP3.4.glmr.inv.l, TLE_TP3.4.glmr.inv.i)
 ```
 
 Gamma distribution with log-link has the lowest AIC.
@@ -391,8 +401,8 @@ Gamma distribution with log-link has the lowest AIC.
 
 ```{r}
 ##Check residuals
-TLE_T3.4.glmr.gam.l_res <- simulateResiduals(fittedModel = TLE_T3.4.glmr.gam.l, plot = F)
-plot(TLE_T3.4.glmr.gam.l_res)
+TLE_TP3.4.glmr.gam.l_res <- simulateResiduals(fittedModel = TLE_TP3.4.glmr.gam.l, plot = F)
+plot(TLE_TP3.4.glmr.gam.l_res)
 
 ```
 
@@ -401,72 +411,72 @@ Compare residuals across models
 
 ```{r}
 ##Check residuals
-TLE_T3.4.glmr.gaus.l_res <- simulateResiduals(fittedModel = TLE_T3.4.glmr.gaus.l, plot = F)
-plot(TLE_T3.4.glmr.gaus.l_res)
+TLE_TP3.4.glmr.gaus.l_res <- simulateResiduals(fittedModel = TLE_TP3.4.glmr.gaus.l, plot = F)
+plot(TLE_TP3.4.glmr.gaus.l_res)
 
 ```
 
 Compare with log+1 transformed lmer model
 
+#### LMER Model
 ```{r}
 ##Model with log +1 transformation
 #Function of Site and Origin, with Genotype as a Random effect
 #Interaction between Site and Origin
-TLE_T3.4.lme<-lmer(log(TLE_cm.day+1)~Origin*Site+(1|Genotype), data=Growth_T3.4)
+TLE_TP3.4.lme<-lmer(log(TLE_cm.day+1)~Origin*Site+(1|Genotype), data=Growth_TP3.4)
 
 ##Check residuals
-TLE_T3.4.lme_res <- simulateResiduals(fittedModel = TLE_T3.4.lme, plot = F)
-plot(TLE_T3.4.lme_res)
+TLE_TP3.4.lme_res <- simulateResiduals(fittedModel = TLE_TP3.4.lme, plot = F)
+plot(TLE_TP3.4.lme_res)
 ```
 Better residuals with the log+1 transformed lmer model.
 
 
 ```{r}
 ##Model results
-summary(TLE_T3.4.lme)
+summary(TLE_TP3.4.lme)
 
-eta_squared(TLE_T3.4.lme)
+eta_squared(TLE_TP3.4.lme)
 
 ##Save model results
-TLE_T3.4.res<-data.frame(summary(TLE_T3.4.lme)$coefficients[-1,])
-TLE_T3.4.res$Predictor<-c("Origin", "Site", "Origin x Site")
-TLE_T3.4.res$EtaSq<-c(eta_squared(TLE_T3.4.lme)$Eta2)
-TLE_T3.4.res$Response<-rep("Growth", nrow(TLE_T3.4.res))
-TLE_T3.4.res$Timepoint<-rep("TP3_4", nrow(TLE_T3.4.res))
+TLE_TP3.4.res<-data.frame(summary(TLE_TP3.4.lme)$coefficients[-1,])
+TLE_TP3.4.res$Predictor<-c("Origin", "Site", "Origin x Site")
+TLE_TP3.4.res$EtaSq<-c(eta_squared(TLE_TP3.4.lme)$Eta2)
+TLE_TP3.4.res$Response<-rep("Growth", nrow(TLE_TP3.4.res))
+TLE_TP3.4.res$Timepoint<-rep("TP3_4", nrow(TLE_TP3.4.res))
 
 ```
 
-
-Effect size of Origin for each Site
+#### Pairwise 
 ```{r}
-##KL
-TLE_T3.4.lme_KL<-lmer(log(TLE_cm.day+1)~Origin+(1|Genotype), data=Growth_T3.4[which(Growth_T3.4$Site=="KL"),])
-summary(TLE_T3.4.lme_KL)
-eta_squared(TLE_T3.4.lme_KL)
+##Pairwise Comparisons of Interest
+#Native vs Transplant within a Site
+TLE.pair_TP3.4<-emmeans(TLE_TP3.4.lme, pairwise~Origin | Site)
+TLE.pair_TP3.4
 
+#Calculate standardized effect sizes for pairwise comparisons
+TLE.pair.es_TP3.4<-data.frame(eff_size(TLE.pair_TP3.4, sigma=sigma(TLE_TP3.4.lme), edf=df.residual(TLE_TP3.4.lme)))
+TLE.pair.es_TP3.4
+TLE.pair.es_TP3.4<-TLE.pair.es_TP3.4 %>% dplyr::rename(contrast.se = contrast, SE.es = SE, df.es = df)
 
-##SS
-TLE_T3.4.lme_SS<-lmer(log(TLE_cm.day+1)~Origin+(1|Genotype), data=Growth_T3.4[which(Growth_T3.4$Site=="SS"),])
-summary(TLE_T3.4.lme_SS)
-eta_squared(TLE_T3.4.lme_SS)
+##Save Results
+TLE.pair_TP3.4.res<-merge(data.frame(TLE.pair_TP3.4$contrasts), TLE.pair.es_TP3.4[,-c(1)])
+TLE.pair_TP3.4.res$Response<-rep("Growth", nrow(TLE.pair_TP3.4.res))
+TLE.pair_TP3.4.res$TimeP<-rep("TP3_4", nrow(TLE.pair_TP3.4.res))
 
-##Save results
-TLE_T3.4.site.res<-data.frame(rbind(summary(TLE_T3.4.lme_KL)$coefficients[-1,],
-                                     summary(TLE_T3.4.lme_SS)$coefficients[-1,]))
-TLE_T3.4.site.res$Predictor<-c("KL Origin", "SS Origin")
-TLE_T3.4.site.res$EtaSq<-c(eta_squared(TLE_T3.4.lme_KL)$Eta2, eta_squared(TLE_T3.4.lme_SS)$Eta2)
-TLE_T3.4.site.res$Response<-rep("Growth", nrow(TLE_T3.4.site.res))
-TLE_T3.4.site.res$Timepoint<-rep("TP3_4", nrow(TLE_T3.4.site.res))
-
-##Combine results 
-TLE_T3.4.res<-rbind(TLE_T3.4.res, TLE_T3.4.site.res)
-
+##Add Significance levels
+TLE.pair_TP3.4.res$Sig<-ifelse(TLE.pair_TP3.4.res$p.value<0.001, "***",
+                              ifelse(TLE.pair_TP3.4.res$p.value<0.01, "**",
+                                     ifelse(TLE.pair_TP3.4.res$p.value<0.05, "*",
+                                            ifelse(TLE.pair_TP3.4.res$p.value<0.1, "-", NA))))
+TLE.pair_TP3.4.res
 ```
 
 
+#### Plot Growth TP 3 to 4
 ```{r Plot Growth Rate TP3 to 4}
 ##Summary statistics by Site and Origin
-TP3.4_Growth.sum<-summarySE(Growth_T3.4, measurevar="TLE_cm.day", groupvars=c("Site", "Origin", "Site.Orig"), na.rm=TRUE)
+TP3.4_Growth.sum<-summarySE(Growth_TP3.4, measurevar="TLE_cm.day", groupvars=c("Site", "Origin", "Site.Orig"), na.rm=TRUE)
 
 ##Plot Average Growth Rate across Treatments
 TP3.4_Growth.plot<-ggplot(TP3.4_Growth.sum, aes(x=Site, y=TLE_cm.day, colour=Site.Orig)) + 
@@ -480,69 +490,56 @@ TP3.4_Growth.plot<-ggplot(TP3.4_Growth.sum, aes(x=Site, y=TLE_cm.day, colour=Sit
         legend.box.background = element_rect(color = "black"))+
   labs(x="Site and Origin", y=expression(paste('Growth Rate (cm day'^-1*")")), colour="Origin")+
   ylim(0, 0.25)+
-  annotate("text", x=1, y=0.24, label="-", size=sig.sz, fontface="bold")+
-  annotate("text", x=2, y=0.2, label="**", size=sig.sz, fontface="bold")+
+  annotate("text", x=1, y=0.22, label="*", size=sig.sz, fontface="bold")+
+  annotate("text", x=2, y=0.18, label="**", size=sig.sz, fontface="bold")+
   geom_bracket(xmin=1, xmax=2, y.position=0.01, label.size=levels.sz, label="***", inherit.aes = FALSE); TP3.4_Growth.plot
 ```
 
 
-### Average Growth Rates by Genotype
-
-SS
+### Percent Difference in Growth Rates
 ```{r}
-##Summary statistics by Genotype and Origin
-TP3.4_Growth.sum.SS<-summarySE(subset(Growth_T3.4, Site=="SS"), measurevar="TLE_cm.day", groupvars=c("Genotype", "Origin"), na.rm=TRUE)
-
-TP3.4_Growth.sum.SS
+##Summary statistics by Genotype, Origin, and Site
+TP3.4_Growth.sum<-summarySE(Growth_TP3.4, measurevar="TLE_cm.day", groupvars=c("Genotype", "Origin", "Site"), na.rm=TRUE)
 
 ##Calculate Percent Difference between Native and Transplant by Genotype
-TP3.4_Growth.SS<-TP3.4_Growth.sum.SS[which(TP3.4_Growth.sum.SS$Origin=="Native"), c(1,4)]
-names(TP3.4_Growth.SS)[2]<-paste(names(TP3.4_Growth.SS)[2], "N", sep="_")
-TP3.4_Growth.SS$TLE_cm.day_T<-TP3.4_Growth.sum.SS$TLE_cm.day[which(TP3.4_Growth.sum.SS$Origin=="Transplant")]
-TP3.4_Growth.SS$Perc.Inc<-((TP3.4_Growth.SS$TLE_cm.day_T-TP3.4_Growth.SS$TLE_cm.day_N)/TP3.4_Growth.SS$TLE_cm.day_N)*100
+TP3.4_Growth.dif<-TP3.4_Growth.sum[which(TP3.4_Growth.sum$Origin=="Native"), c(1,3,5)]
+TP3.4_Growth.dif<-TP3.4_Growth.dif %>% dplyr::rename(TLE_N = TLE_cm.day)
+TP3.4_Growth.dif$TLE_T<-TP3.4_Growth.sum$TLE_cm.day[which(TP3.4_Growth.sum$Origin=="Transplant")]
 
-TP3.4_Growth.SS
-
-##Mean and Standard Error
-mean(TP3.4_Growth.SS$Perc.Inc)
-std.error(TP3.4_Growth.SS$Perc.Inc)
-```
-
-
-KL
-```{r}
-##Summary statistics by Genotype and Origin
-TP3.4_Growth.sum.KL<-summarySE(subset(Growth_T3.4, Site=="KL"), measurevar="TLE_cm.day", groupvars=c("Genotype", "Origin"), na.rm=TRUE)
-
-TP3.4_Growth.sum.KL
-
-##Calculate Percent Difference between Native and Transplant by Genotype
-TP3.4_Growth.KL<-TP3.4_Growth.sum.KL[which(TP3.4_Growth.sum.KL$Origin=="Native"), c(1,4)]
-names(TP3.4_Growth.KL)[2]<-paste(names(TP3.4_Growth.KL)[2], "N", sep="_")
-TP3.4_Growth.KL$TLE_cm.day_T<-TP3.4_Growth.sum.KL$TLE_cm.day[which(TP3.4_Growth.sum.SS$Origin=="Transplant")]
-TP3.4_Growth.KL$Perc.Inc<-((TP3.4_Growth.KL$TLE_cm.day_N-TP3.4_Growth.KL$TLE_cm.day_T)/TP3.4_Growth.KL$TLE_cm.day_T)*100
-
-TP3.4_Growth.KL
+##SS
+TP3.4_Growth.dif_SS<-subset(TP3.4_Growth.dif, Site=="SS")
+TP3.4_Growth.dif_SS$Perc.Inc<-((TP3.4_Growth.dif_SS$TLE_T-TP3.4_Growth.dif_SS$TLE_N)/TP3.4_Growth.dif_SS$TLE_N)*100
+TP3.4_Growth.dif_SS
 
 ##Mean and Standard Error
-mean(TP3.4_Growth.KL$Perc.Inc)
-std.error(TP3.4_Growth.KL$Perc.Inc)
+mean(TP3.4_Growth.dif_SS$Perc.Inc)
+std.error(TP3.4_Growth.dif_SS$Perc.Inc)
+
+##KL
+TP3.4_Growth.dif_KL<-subset(TP3.4_Growth.dif, Site=="KL")
+TP3.4_Growth.dif_KL$Perc.Inc<-((TP3.4_Growth.dif_KL$TLE_N-TP3.4_Growth.dif_KL$TLE_T)/TP3.4_Growth.dif_KL$TLE_T)*100
+TP3.4_Growth.dif_KL
+
+##Mean and Standard Error
+mean(TP3.4_Growth.dif_KL$Perc.Inc)
+std.error(TP3.4_Growth.dif_KL$Perc.Inc)
+
 ```
 
 
 # Write Out Growth Data
 ```{r}
 ##Growth Data dataframe
-GrowthData<-Growth_T1.2
+GrowthData<-Growth_TP1.2
 
 ##Specify Timepoints
-GrowthData<-GrowthData %>% dplyr::rename(T1.2_Ext_cm = Ext_cm, T1.2_TLE_cm.day = TLE_cm.day)
+GrowthData<-GrowthData %>% dplyr::rename(TP1.2_Ext_cm = Ext_cm, TP1.2_TLE_cm.day = TLE_cm.day)
 
 ##Merge with Timepoints 3 to 4
-GrowthData<-merge(GrowthData, Growth_T3.4, all=TRUE)
+GrowthData<-merge(GrowthData, Growth_TP3.4, all=TRUE)
 
 ##Specify Timepoints
-GrowthData<-GrowthData %>% dplyr::rename(T3.4_Ext_cm = Ext_cm, T3.4_TLE_cm.day = TLE_cm.day)
+GrowthData<-GrowthData %>% dplyr::rename(TP3.4_Ext_cm = Ext_cm, TP3.4_TLE_cm.day = TLE_cm.day)
 
 ##Growth Data
 write.csv(GrowthData, "Outputs/GrowthData.csv", row.names=FALSE)
@@ -666,7 +663,9 @@ IN_Sym.plot<-ggplot(IN_Sym.sum, aes(x=Site.Treat, y=Sym10.6_cm2, colour=Site)) +
         legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
         legend.box.background = element_rect(color = "black"))+
   labs(x="Site and Treatment", y=expression(paste('Symbiont Density ('*10^6,'cells cm'^-2*")")), colour="Site")+
-  ylim(0, 1); IN_Sym.plot
+  ylim(0, 1)+
+  annotate("text", x=.6, y=1, hjust=0, label="Site **", size=sig.sz, fontface="bold")+
+  annotate("text", x=.6, y=.94, hjust=0, label="Treatment **", size=sig.sz, fontface="bold"); IN_Sym.plot
 ```
 
 
@@ -731,7 +730,10 @@ IN_Chl.plot<-ggplot(IN_Chl.sum, aes(x=Site.Treat, y=Chl_ug.cm2, colour=Site)) +
         legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
         legend.box.background = element_rect(color = "black"))+
   labs(x="Site and Treatment", y=expression(paste('Total Chlorophyll (\u03BCg cm'^-2*")")), colour="Site")+
-  ylim(0, 1.25); IN_Chl.plot
+  ylim(0, 1.25)+
+  annotate("text", x=.6, y=1.2, hjust=0, label="Site ***", size=sig.sz, fontface="bold")+
+  annotate("text", x=.6, y=1.12, hjust=0, label="Treatment ***", size=sig.sz, fontface="bold")+
+  annotate("text", x=.6, y=1.04, hjust=0, label="Site x Treatment **", size=sig.sz, fontface="bold"); IN_Chl.plot
 ```
 
 
@@ -742,13 +744,13 @@ hist(Thermal_IN$Fv_Fm)
 shapiro.test(Thermal_IN$Fv_Fm)
 #Not normal
 
-hist(log(Thermal_IN$Fv_Fm+1))
-shapiro.test(log(Thermal_IN$Fv_Fm+1))
+hist(Thermal_IN$Fv_Fm^2)
+shapiro.test(Thermal_IN$Fv_Fm^2)
 #Still not normal but less skewed
 
 ##Model
 #Function of Site and Treatment, with Genotype as a Random effect
-PAM.lme_IN<-lmer(log(Fv_Fm+1)~Site*Treatment+(1|Genotype), data=Thermal_IN)
+PAM.lme_IN<-lmer(Fv_Fm^2~Site*Treatment+(1|Genotype), data=Thermal_IN)
 
 ##Check residuals
 PAM.lme_res_IN <- simulateResiduals(fittedModel = PAM.lme_IN, plot = F)
@@ -797,7 +799,9 @@ IN_PAM.plot<-ggplot(IN_PAM.sum, aes(x=Site.Treat, y=Fv_Fm, colour=Site)) +
         legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
         legend.box.background = element_rect(color = "black"))+
   labs(x="Site and Treatment", y="Photochemical Efficiency (Fv/Fm)", colour="Site")+
-  ylim(0.5, 0.655); IN_PAM.plot
+  ylim(0.5, 0.655)+
+  annotate("text", x=.6, y=.655, hjust=0, label="Site *", size=sig.sz, fontface="bold")+
+  annotate("text", x=.6, y=.645, hjust=0, label="Treatment ***", size=sig.sz, fontface="bold"); IN_PAM.plot
 ```
 
 
@@ -913,8 +917,8 @@ hist(Therm_IN$PAM.prop)
 shapiro.test(Therm_IN$PAM.prop)
 #Not normal
 
-hist(log(Therm_IN$PAM.prop+1))
-shapiro.test(log(Therm_IN$PAM.prop+1))
+hist(Therm_IN$PAM.prop^2)
+shapiro.test(Therm_IN$PAM.prop^2)
 ##Still not normal
 
 ##Model
@@ -965,7 +969,6 @@ IN_TolPAM.plot<-ggplot(IN_TolPAM.sum, aes(x=Site, y=PAM.prop, colour=Site)) +
 
 # Tolerance after Transplant
 
-
 ### TP1
 ```{r}
 ##Subset Timepoint 1
@@ -982,12 +985,12 @@ shapiro.test(Therm_TP1$Sym.prop)
 
 hist(log(Therm_TP1$Sym.prop+1))
 shapiro.test(log(Therm_TP1$Sym.prop+1))
-##Still not normal but less skewed
+##Still not normal 
 
-##Model with log +1 transformation
+##Model with no transformation
 #Function of Site and Origin, with Genotype as a Random effect
 #Interaction between Site and Origin
-Tol_Sym.lme_TP1<-lmer(log(Sym.prop+1)~Origin*Site+(1|Genotype), data=Therm_TP1)
+Tol_Sym.lme_TP1<-lmer(Sym.prop~Origin*Site+(1|Genotype), data=Therm_TP1)
 
 ##Check residuals
 Tol_Sym.lme_res_TP1 <- simulateResiduals(fittedModel = Tol_Sym.lme_TP1, plot = F)
@@ -1002,35 +1005,33 @@ eta_squared(Tol_Sym.lme_TP1)
 Tol_Sym_TP1.res<-data.frame(summary(Tol_Sym.lme_TP1)$coefficients[-1,])
 Tol_Sym_TP1.res$Predictor<-c("Origin", "Site", "Origin x Site")
 Tol_Sym_TP1.res$EtaSq<-c(eta_squared(Tol_Sym.lme_TP1)$Eta2)
+Tol_Sym_TP1.res$Response<-rep("Symbiont Retention", nrow(Tol_Sym_TP1.res))
 
 ```
 Not normal, but model residuals are OK.
 
 
-Effect size of Origin for each Site
 ```{r}
-##KL
-Tol_Sym.lme_TP1_KL<-lmer(log(Sym.prop+1)~Origin+(1|Genotype), data=Therm_TP1[which(Therm_TP1$Site=="KL"),])
-summary(Tol_Sym.lme_TP1_KL)
-eta_squared(Tol_Sym.lme_TP1_KL)
+##Pairwise Comparisons of Interest
+#Native vs Transplant within a Site
+Tol_Sym.pair_TP1<-emmeans(Tol_Sym.lme_TP1, pairwise~Origin | Site)
+Tol_Sym.pair_TP1
 
+#Calculate standardized effect sizes for pairwise comparisons
+Tol_Sym.pair.es_TP1<-data.frame(eff_size(Tol_Sym.pair_TP1, sigma=sigma(Tol_Sym.lme_TP1), edf=df.residual(Tol_Sym.lme_TP1)))
+Tol_Sym.pair.es_TP1
+Tol_Sym.pair.es_TP1<-Tol_Sym.pair.es_TP1 %>% dplyr::rename(contrast.se = contrast, SE.es = SE, df.es = df)
 
-##SS
-Tol_Sym.lme_TP1_SS<-lmer(log(Sym.prop+1)~Origin+(1|Genotype), data=Therm_TP1[which(Therm_TP1$Site=="SS"),])
-summary(Tol_Sym.lme_TP1_SS)
-eta_squared(Tol_Sym.lme_TP1_SS)
+##Save Results
+Tol_Sym.pair_TP1.res<-merge(data.frame(Tol_Sym.pair_TP1$contrasts), Tol_Sym.pair.es_TP1[,-c(1)])
+Tol_Sym.pair_TP1.res$Response<-rep("Symbiont Retention", nrow(Tol_Sym.pair_TP1.res))
 
-
-##Save results
-Tol_Sym_TP1.site.res<-data.frame(rbind(summary(Tol_Sym.lme_TP1_KL)$coefficients[-1,],
-                                     summary(Tol_Sym.lme_TP1_SS)$coefficients[-1,]))
-Tol_Sym_TP1.site.res$Predictor<-c("KL Origin", "SS Origin")
-Tol_Sym_TP1.site.res$EtaSq<-c(eta_squared(Tol_Sym.lme_TP1_KL)$Eta2, eta_squared(Tol_Sym.lme_TP1_SS)$Eta2)
-
-##Combine results 
-Tol_Sym_TP1.res<-rbind(Tol_Sym_TP1.res, Tol_Sym_TP1.site.res)
-Tol_Sym_TP1.res$Response<-rep("Symbiont Retention", nrow(Tol_Sym_TP1.res))
-
+##Add Significance levels
+Tol_Sym.pair_TP1.res$Sig<-ifelse(Tol_Sym.pair_TP1.res$p.value<0.001, "***",
+                              ifelse(Tol_Sym.pair_TP1.res$p.value<0.01, "**",
+                                     ifelse(Tol_Sym.pair_TP1.res$p.value<0.05, "*",
+                                            ifelse(Tol_Sym.pair_TP1.res$p.value<0.1, "-", NA))))
+Tol_Sym.pair_TP1.res
 ```
 
 
@@ -1050,7 +1051,7 @@ TP1_TolSym.plot<-ggplot(TP1_TolSym.sum, aes(x=Site, y=Sym.prop, colour=Site.Orig
         legend.box.background = element_rect(color = "black"))+
   labs(x="Site and Origin", y="Symbiont Retention", colour="Origin")+
   ylim(0, 1)+
-  annotate("text", x=1, y=0.75, label="*", size=sig.sz, fontface="bold"); TP1_TolSym.plot
+  annotate("text", x=1, y=0.65, label="-", size=sig.sz, fontface="bold"); TP1_TolSym.plot
 ```
 
 
@@ -1065,10 +1066,10 @@ hist(log(Therm_TP1$Chl.prop+1))
 shapiro.test(log(Therm_TP1$Chl.prop+1))
 ##Still not normal but less skewed
 
-##Model with log +1 transformation
+##Model with no transformation
 #Function of Site and Origin, with Genotype as a Random effect
 #Interaction between Site and Origin
-Tol_Chl.lme_TP1<-lmer(log(Chl.prop+1)~Origin*Site+(1|Genotype), data=Therm_TP1)
+Tol_Chl.lme_TP1<-lmer(Chl.prop~Origin*Site+(1|Genotype), data=Therm_TP1)
 
 ##Check residuals
 Tol_Chl.lme_res_TP1 <- simulateResiduals(fittedModel = Tol_Chl.lme_TP1, plot = F)
@@ -1083,34 +1084,33 @@ eta_squared(Tol_Chl.lme_TP1)
 Tol_Chl_TP1.res<-data.frame(summary(Tol_Chl.lme_TP1)$coefficients[-1,])
 Tol_Chl_TP1.res$Predictor<-c("Origin", "Site", "Origin x Site")
 Tol_Chl_TP1.res$EtaSq<-c(eta_squared(Tol_Chl.lme_TP1)$Eta2)
-
-```
-
-
-Effect size of Origin for each Site
-```{r}
-##KL
-Tol_Chl.lme_TP1_KL<-lmer(log(Chl.prop+1)~Origin+(1|Genotype), data=Therm_TP1[which(Therm_TP1$Site=="KL"),])
-summary(Tol_Chl.lme_TP1_KL)
-eta_squared(Tol_Chl.lme_TP1_KL)
-
-
-##SS
-Tol_Chl.lme_TP1_SS<-lmer(log(Chl.prop+1)~Origin+(1|Genotype), data=Therm_TP1[which(Therm_TP1$Site=="SS"),])
-summary(Tol_Chl.lme_TP1_SS)
-eta_squared(Tol_Chl.lme_TP1_SS)
-
-
-##Save results
-Tol_Chl_TP1.site.res<-data.frame(rbind(summary(Tol_Chl.lme_TP1_KL)$coefficients[-1,],
-                                     summary(Tol_Chl.lme_TP1_SS)$coefficients[-1,]))
-Tol_Chl_TP1.site.res$Predictor<-c("KL Origin", "SS Origin")
-Tol_Chl_TP1.site.res$EtaSq<-c(eta_squared(Tol_Chl.lme_TP1_KL)$Eta2, eta_squared(Tol_Chl.lme_TP1_SS)$Eta2)
-
-##Combine results 
-Tol_Chl_TP1.res<-rbind(Tol_Chl_TP1.res, Tol_Chl_TP1.site.res)
 Tol_Chl_TP1.res$Response<-rep("Chlorophyll Retention", nrow(Tol_Chl_TP1.res))
 
+```
+Not normal, but model residuals are OK.
+
+
+```{r}
+##Pairwise Comparisons of Interest
+#Native vs Transplant within a Site
+Tol_Chl.pair_TP1<-emmeans(Tol_Chl.lme_TP1, pairwise~Origin | Site)
+Tol_Chl.pair_TP1
+
+#Calculate standardized effect sizes for pairwise comparisons
+Tol_Chl.pair.es_TP1<-data.frame(eff_size(Tol_Chl.pair_TP1, sigma=sigma(Tol_Chl.lme_TP1), edf=df.residual(Tol_Chl.lme_TP1)))
+Tol_Chl.pair.es_TP1
+Tol_Chl.pair.es_TP1<-Tol_Chl.pair.es_TP1 %>% dplyr::rename(contrast.se = contrast, SE.es = SE, df.es = df)
+
+##Save Results
+Tol_Chl.pair_TP1.res<-merge(data.frame(Tol_Chl.pair_TP1$contrasts), Tol_Chl.pair.es_TP1[,-c(1)])
+Tol_Chl.pair_TP1.res$Response<-rep("Chlorophyll Retention", nrow(Tol_Chl.pair_TP1.res))
+
+##Add Significance levels
+Tol_Chl.pair_TP1.res$Sig<-ifelse(Tol_Chl.pair_TP1.res$p.value<0.001, "***",
+                              ifelse(Tol_Chl.pair_TP1.res$p.value<0.01, "**",
+                                     ifelse(Tol_Chl.pair_TP1.res$p.value<0.05, "*",
+                                            ifelse(Tol_Chl.pair_TP1.res$p.value<0.1, "-", NA))))
+Tol_Chl.pair_TP1.res
 ```
 
 
@@ -1140,11 +1140,11 @@ hist(Therm_TP1$PAM.prop)
 shapiro.test(Therm_TP1$PAM.prop)
 #Not normal
 
-hist(log(Therm_TP1$PAM.prop+1))
-shapiro.test(log(Therm_TP1$PAM.prop+1))
+hist(Therm_TP1$PAM.prop^2)
+shapiro.test(Therm_TP1$PAM.prop^2)
 ##Still not normal
 
-##Model
+##Model with no transformation
 #Function of Site and Origin, with Genotype as a Random effect
 #Interaction between Site and Origin
 Tol_PAM.lme_TP1<-lmer(PAM.prop~Origin*Site+(1|Genotype), data=Therm_TP1)
@@ -1162,35 +1162,33 @@ eta_squared(Tol_PAM.lme_TP1)
 Tol_PAM_TP1.res<-data.frame(summary(Tol_PAM.lme_TP1)$coefficients[-1,])
 Tol_PAM_TP1.res$Predictor<-c("Origin", "Site", "Origin x Site")
 Tol_PAM_TP1.res$EtaSq<-c(eta_squared(Tol_PAM.lme_TP1)$Eta2)
+Tol_PAM_TP1.res$Response<-rep("FvFm Retention", nrow(Tol_PAM_TP1.res))
 
 ```
 Not normal, but model residuals are OK.
 
 
-Effect size of Origin for each Site
 ```{r}
-##KL
-Tol_PAM.lme_TP1_KL<-lmer(PAM.prop~Origin+(1|Genotype), data=Therm_TP1[which(Therm_TP1$Site=="KL"),])
-summary(Tol_PAM.lme_TP1_KL)
-eta_squared(Tol_PAM.lme_TP1_KL)
+##Pairwise Comparisons of Interest
+#Native vs Transplant within a Site
+Tol_PAM.pair_TP1<-emmeans(Tol_PAM.lme_TP1, pairwise~Origin | Site)
+Tol_PAM.pair_TP1
 
+#Calculate standardized effect sizes for pairwise comparisons
+Tol_PAM.pair.es_TP1<-data.frame(eff_size(Tol_PAM.pair_TP1, sigma=sigma(Tol_PAM.lme_TP1), edf=df.residual(Tol_PAM.lme_TP1)))
+Tol_PAM.pair.es_TP1
+Tol_PAM.pair.es_TP1<-Tol_PAM.pair.es_TP1 %>% dplyr::rename(contrast.se = contrast, SE.es = SE, df.es = df)
 
-##SS
-Tol_PAM.lme_TP1_SS<-lmer(PAM.prop~Origin+(1|Genotype), data=Therm_TP1[which(Therm_TP1$Site=="SS"),])
-summary(Tol_PAM.lme_TP1_SS)
-eta_squared(Tol_PAM.lme_TP1_SS)
+##Save Results
+Tol_PAM.pair_TP1.res<-merge(data.frame(Tol_PAM.pair_TP1$contrasts), Tol_PAM.pair.es_TP1[,-c(1)])
+Tol_PAM.pair_TP1.res$Response<-rep("FvFm Retention", nrow(Tol_PAM.pair_TP1.res))
 
-
-##Save results
-Tol_PAM_TP1.site.res<-data.frame(rbind(summary(Tol_PAM.lme_TP1_KL)$coefficients[-1,],
-                                     summary(Tol_PAM.lme_TP1_SS)$coefficients[-1,]))
-Tol_PAM_TP1.site.res$Predictor<-c("KL Origin", "SS Origin")
-Tol_PAM_TP1.site.res$EtaSq<-c(eta_squared(Tol_PAM.lme_TP1_KL)$Eta2, eta_squared(Tol_PAM.lme_TP1_SS)$Eta2)
-
-##Combine results 
-Tol_PAM_TP1.res<-rbind(Tol_PAM_TP1.res, Tol_PAM_TP1.site.res)
-Tol_PAM_TP1.res$Response<-rep("FvFm Retention", nrow(Tol_PAM_TP1.res))
-
+##Add Significance levels
+Tol_PAM.pair_TP1.res$Sig<-ifelse(Tol_PAM.pair_TP1.res$p.value<0.001, "***",
+                              ifelse(Tol_PAM.pair_TP1.res$p.value<0.01, "**",
+                                     ifelse(Tol_PAM.pair_TP1.res$p.value<0.05, "*",
+                                            ifelse(Tol_PAM.pair_TP1.res$p.value<0.1, "-", NA))))
+Tol_PAM.pair_TP1.res
 ```
 
 
@@ -1210,17 +1208,19 @@ TP1_TolPAM.plot<-ggplot(TP1_TolPAM.sum, aes(x=Site, y=PAM.prop, colour=Site.Orig
         legend.box.background = element_rect(color = "black"))+
   labs(x="Site and Origin", y="Photochemical Efficiency Retention", colour="Origin")+
   ylim(0.6, 1)+
-  annotate("text", x=1, y=1, label="**", size=sig.sz, fontface="bold"); TP1_TolPAM.plot
+  annotate("text", x=1, y=.96, label="*", size=sig.sz, fontface="bold"); TP1_TolPAM.plot
 ```
 
 
 #### Save Results
 ```{r}
 ##Combine Results
-Tol_T1.res<-rbind(Tol_PAM_TP1.res, Tol_Sym_TP1.res, Tol_Chl_TP1.res)
+Tol_TP1.res<-rbind(Tol_PAM_TP1.res, Tol_Sym_TP1.res, Tol_Chl_TP1.res) 
+Tol.pair.res_TP1<-rbind(Tol_PAM.pair_TP1.res, Tol_Sym.pair_TP1.res, Tol_Chl.pair_TP1.res)
 
 ##Add Timepoint
-Tol_T1.res$TimeP<-rep("TP1", nrow(Tol_T1.res))
+Tol_TP1.res$TimeP<-rep("TP1", nrow(Tol_TP1.res))
+Tol.pair.res_TP1$TimeP<-rep("TP1", nrow(Tol.pair.res_TP1))
 
 ```
 
@@ -1239,11 +1239,11 @@ hist(Therm_TP2$Sym.prop)
 shapiro.test(Therm_TP2$Sym.prop)
 #Not normal
 
-hist(log(Therm_TP2$Sym.prop+1))
-shapiro.test(log(Therm_TP2$Sym.prop+1))
+hist(Therm_TP2$Sym.prop^2)
+shapiro.test(Therm_TP2$Sym.prop^2)
 ##Still not normal
 
-##Model
+##Model with no transformation
 #Function of Site and Origin, with Genotype as a Random effect
 #Interaction between Site and Origin
 Tol_Sym.lme_TP2<-lmer(Sym.prop~Origin*Site+(1|Genotype), data=Therm_TP2)
@@ -1261,35 +1261,33 @@ eta_squared(Tol_Sym.lme_TP2)
 Tol_Sym_TP2.res<-data.frame(summary(Tol_Sym.lme_TP2)$coefficients[-1,])
 Tol_Sym_TP2.res$Predictor<-c("Origin", "Site", "Origin x Site")
 Tol_Sym_TP2.res$EtaSq<-c(eta_squared(Tol_Sym.lme_TP2)$Eta2)
+Tol_Sym_TP2.res$Response<-rep("Symbiont Retention", nrow(Tol_Sym_TP2.res))
 
 ```
 Not normal, but model residuals are OK.
 
 
-Effect size of Origin for each Site
 ```{r}
-##KL
-Tol_Sym.lme_TP2_KL<-lmer(Sym.prop~Origin+(1|Genotype), data=Therm_TP2[which(Therm_TP2$Site=="KL"),])
-summary(Tol_Sym.lme_TP2_KL)
-eta_squared(Tol_Sym.lme_TP2_KL)
+##Pairwise Comparisons of Interest
+#Native vs Transplant within a Site
+Tol_Sym.pair_TP2<-emmeans(Tol_Sym.lme_TP2, pairwise~Origin | Site)
+Tol_Sym.pair_TP2
 
+#Calculate standardized effect sizes for pairwise comparisons
+Tol_Sym.pair.es_TP2<-data.frame(eff_size(Tol_Sym.pair_TP2, sigma=sigma(Tol_Sym.lme_TP2), edf=df.residual(Tol_Sym.lme_TP2)))
+Tol_Sym.pair.es_TP2
+Tol_Sym.pair.es_TP2<-Tol_Sym.pair.es_TP2 %>% dplyr::rename(contrast.se = contrast, SE.es = SE, df.es = df)
 
-##SS
-Tol_Sym.lme_TP2_SS<-lmer(Sym.prop~Origin+(1|Genotype), data=Therm_TP2[which(Therm_TP2$Site=="SS"),])
-summary(Tol_Sym.lme_TP2_SS)
-eta_squared(Tol_Sym.lme_TP2_SS)
+##Save Results
+Tol_Sym.pair_TP2.res<-merge(data.frame(Tol_Sym.pair_TP2$contrasts), Tol_Sym.pair.es_TP2[,-c(1)])
+Tol_Sym.pair_TP2.res$Response<-rep("Symbiont Retention", nrow(Tol_Sym.pair_TP2.res))
 
-
-##Save results
-Tol_Sym_TP2.site.res<-data.frame(rbind(summary(Tol_Sym.lme_TP2_KL)$coefficients[-1,],
-                                     summary(Tol_Sym.lme_TP2_SS)$coefficients[-1,]))
-Tol_Sym_TP2.site.res$Predictor<-c("KL Origin", "SS Origin")
-Tol_Sym_TP2.site.res$EtaSq<-c(eta_squared(Tol_Sym.lme_TP2_KL)$Eta2, eta_squared(Tol_Sym.lme_TP2_SS)$Eta2)
-
-##Combine results 
-Tol_Sym_TP2.res<-rbind(Tol_Sym_TP2.res, Tol_Sym_TP2.site.res)
-Tol_Sym_TP2.res$Response<-rep("Symbiont Retention", nrow(Tol_Sym_TP2.res))
-
+##Add Significance levels
+Tol_Sym.pair_TP2.res$Sig<-ifelse(Tol_Sym.pair_TP2.res$p.value<0.001, "***",
+                              ifelse(Tol_Sym.pair_TP2.res$p.value<0.01, "**",
+                                     ifelse(Tol_Sym.pair_TP2.res$p.value<0.05, "*",
+                                            ifelse(Tol_Sym.pair_TP2.res$p.value<0.1, "-", NA))))
+Tol_Sym.pair_TP2.res
 ```
 
 
@@ -1308,7 +1306,8 @@ TP2_TolSym.plot<-ggplot(TP2_TolSym.sum, aes(x=Site, y=Sym.prop, colour=Site.Orig
         legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
         legend.box.background = element_rect(color = "black"))+
   labs(x="Site and Origin", y="Symbiont Retention", colour="Origin")+
-  ylim(0, 1); TP2_TolSym.plot
+  ylim(0, 1)+
+ geom_bracket(xmin=1, xmax=2, y.position=.04, label.size=levels.sz, label="*", inherit.aes = FALSE); TP2_TolSym.plot
 ```
 
 
@@ -1337,34 +1336,32 @@ eta_squared(Tol_Chl.lme_TP2)
 Tol_Chl_TP2.res<-data.frame(summary(Tol_Chl.lme_TP2)$coefficients[-1,])
 Tol_Chl_TP2.res$Predictor<-c("Origin", "Site", "Origin x Site")
 Tol_Chl_TP2.res$EtaSq<-c(eta_squared(Tol_Chl.lme_TP2)$Eta2)
+Tol_Chl_TP2.res$Response<-rep("Chlorophyll Retention", nrow(Tol_Chl_TP2.res))
 
 ```
 
 
-Effect size of Origin for each Site
 ```{r}
-##KL
-Tol_Chl.lme_TP2_KL<-lmer(Chl.prop~Origin+(1|Genotype), data=Therm_TP2[which(Therm_TP2$Site=="KL"),])
-summary(Tol_Chl.lme_TP2_KL)
-eta_squared(Tol_Chl.lme_TP2_KL)
+##Pairwise Comparisons of Interest
+#Native vs Transplant within a Site
+Tol_Chl.pair_TP2<-emmeans(Tol_Chl.lme_TP2, pairwise~Origin | Site)
+Tol_Chl.pair_TP2
 
+#Calculate standardized effect sizes for pairwise comparisons
+Tol_Chl.pair.es_TP2<-data.frame(eff_size(Tol_Chl.pair_TP2, sigma=sigma(Tol_Chl.lme_TP2), edf=df.residual(Tol_Chl.lme_TP2)))
+Tol_Chl.pair.es_TP2
+Tol_Chl.pair.es_TP2<-Tol_Chl.pair.es_TP2 %>% dplyr::rename(contrast.se = contrast, SE.es = SE, df.es = df)
 
-##SS
-Tol_Chl.lme_TP2_SS<-lmer(Chl.prop~Origin+(1|Genotype), data=Therm_TP2[which(Therm_TP2$Site=="SS"),])
-summary(Tol_Chl.lme_TP2_SS)
-eta_squared(Tol_Chl.lme_TP2_SS)
+##Save Results
+Tol_Chl.pair_TP2.res<-merge(data.frame(Tol_Chl.pair_TP2$contrasts), Tol_Chl.pair.es_TP2[,-c(1)])
+Tol_Chl.pair_TP2.res$Response<-rep("Chlorophyll Retention", nrow(Tol_Chl.pair_TP2.res))
 
-
-##Save results
-Tol_Chl_TP2.site.res<-data.frame(rbind(summary(Tol_Chl.lme_TP2_KL)$coefficients[-1,],
-                                     summary(Tol_Chl.lme_TP2_SS)$coefficients[-1,]))
-Tol_Chl_TP2.site.res$Predictor<-c("KL Origin", "SS Origin")
-Tol_Chl_TP2.site.res$EtaSq<-c(eta_squared(Tol_Chl.lme_TP2_KL)$Eta2, eta_squared(Tol_Chl.lme_TP2_SS)$Eta2)
-
-##Combine results 
-Tol_Chl_TP2.res<-rbind(Tol_Chl_TP2.res, Tol_Chl_TP2.site.res)
-Tol_Chl_TP2.res$Response<-rep("Chlorophyll Retention", nrow(Tol_Chl_TP2.res))
-
+##Add Significance levels
+Tol_Chl.pair_TP2.res$Sig<-ifelse(Tol_Chl.pair_TP2.res$p.value<0.001, "***",
+                              ifelse(Tol_Chl.pair_TP2.res$p.value<0.01, "**",
+                                     ifelse(Tol_Chl.pair_TP2.res$p.value<0.05, "*",
+                                            ifelse(Tol_Chl.pair_TP2.res$p.value<0.1, "-", NA))))
+Tol_Chl.pair_TP2.res
 ```
 
 
@@ -1383,7 +1380,8 @@ TP2_TolChl.plot<-ggplot(TP2_TolChl.sum, aes(x=Site, y=Chl.prop, colour=Site.Orig
         legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
         legend.box.background = element_rect(color = "black"))+
   labs(x="Site and Origin", y="Chlorophyll Retention", colour="Origin")+
-  ylim(0, 0.35); TP2_TolChl.plot
+  ylim(0, 0.35)+
+  geom_bracket(xmin=1, xmax=2, y.position=.02, label.size=levels.sz, label="-", inherit.aes = FALSE); TP2_TolChl.plot
 ```
 
 
@@ -1394,8 +1392,8 @@ hist(Therm_TP2$PAM.prop)
 shapiro.test(Therm_TP2$PAM.prop)
 #Not normal
 
-hist(log(Therm_TP2$PAM.prop+1))
-shapiro.test(log(Therm_TP2$PAM.prop+1))
+hist(Therm_TP2$PAM.prop^2)
+shapiro.test(Therm_TP2$PAM.prop^2)
 ##Still not normal
 
 ##Model
@@ -1416,35 +1414,33 @@ eta_squared(Tol_PAM.lme_TP2)
 Tol_PAM_TP2.res<-data.frame(summary(Tol_PAM.lme_TP2)$coefficients[-1,])
 Tol_PAM_TP2.res$Predictor<-c("Origin", "Site", "Origin x Site")
 Tol_PAM_TP2.res$EtaSq<-c(eta_squared(Tol_PAM.lme_TP2)$Eta2)
+Tol_PAM_TP2.res$Response<-rep("FvFm Retention", nrow(Tol_PAM_TP2.res))
 
 ```
 Not normal, but model residuals are OK.
 
 
-Effect size of Origin for each Site
 ```{r}
-##KL
-Tol_PAM.lme_TP2_KL<-lmer(PAM.prop~Origin+(1|Genotype), data=Therm_TP2[which(Therm_TP2$Site=="KL"),])
-summary(Tol_PAM.lme_TP2_KL)
-eta_squared(Tol_PAM.lme_TP2_KL)
+##Pairwise Comparisons of Interest
+#Native vs Transplant within a Site
+Tol_PAM.pair_TP2<-emmeans(Tol_PAM.lme_TP2, pairwise~Origin | Site)
+Tol_PAM.pair_TP2
 
+#Calculate standardized effect sizes for pairwise comparisons
+Tol_PAM.pair.es_TP2<-data.frame(eff_size(Tol_PAM.pair_TP2, sigma=sigma(Tol_PAM.lme_TP2), edf=df.residual(Tol_PAM.lme_TP2)))
+Tol_PAM.pair.es_TP2
+Tol_PAM.pair.es_TP2<-Tol_PAM.pair.es_TP2 %>% dplyr::rename(contrast.se = contrast, SE.es = SE, df.es = df)
 
-##SS
-Tol_PAM.lme_TP2_SS<-lmer(PAM.prop~Origin+(1|Genotype), data=Therm_TP2[which(Therm_TP2$Site=="SS"),])
-summary(Tol_PAM.lme_TP2_SS)
-eta_squared(Tol_PAM.lme_TP2_SS)
+##Save Results
+Tol_PAM.pair_TP2.res<-merge(data.frame(Tol_PAM.pair_TP2$contrasts), Tol_PAM.pair.es_TP2[,-c(1)])
+Tol_PAM.pair_TP2.res$Response<-rep("FvFm Retention", nrow(Tol_PAM.pair_TP2.res))
 
-
-##Save results
-Tol_PAM_TP2.site.res<-data.frame(rbind(summary(Tol_PAM.lme_TP2_KL)$coefficients[-1,],
-                                     summary(Tol_PAM.lme_TP2_SS)$coefficients[-1,]))
-Tol_PAM_TP2.site.res$Predictor<-c("KL Origin", "SS Origin")
-Tol_PAM_TP2.site.res$EtaSq<-c(eta_squared(Tol_PAM.lme_TP2_KL)$Eta2, eta_squared(Tol_PAM.lme_TP2_SS)$Eta2)
-
-##Combine results 
-Tol_PAM_TP2.res<-rbind(Tol_PAM_TP2.res, Tol_PAM_TP2.site.res)
-Tol_PAM_TP2.res$Response<-rep("FvFm Retention", nrow(Tol_PAM_TP2.res))
-
+##Add Significance levels
+Tol_PAM.pair_TP2.res$Sig<-ifelse(Tol_PAM.pair_TP2.res$p.value<0.001, "***",
+                              ifelse(Tol_PAM.pair_TP2.res$p.value<0.01, "**",
+                                     ifelse(Tol_PAM.pair_TP2.res$p.value<0.05, "*",
+                                            ifelse(Tol_PAM.pair_TP2.res$p.value<0.1, "-", NA))))
+Tol_PAM.pair_TP2.res
 ```
 
 
@@ -1464,17 +1460,20 @@ TP2_TolPAM.plot<-ggplot(TP2_TolPAM.sum, aes(x=Site, y=PAM.prop, colour=Site.Orig
         legend.box.background = element_rect(color = "black"))+
   labs(x="Site and Origin", y="Photochemical Efficiency Retention", colour="Origin")+
   ylim(0.6, 1)+
-  annotate("text", x=1, y=1, label="*", size=sig.sz, fontface="bold"); TP2_TolPAM.plot
+  annotate("text", x=1, y=0.96, label="**", size=sig.sz, fontface="bold")+
+ geom_bracket(xmin=1, xmax=2, y.position=.612, label.size=levels.sz, label="*", inherit.aes = FALSE); TP2_TolPAM.plot
 ```
 
 
 #### Save Results
 ```{r}
 ##Combine Results
-Tol_T2.res<-rbind(Tol_PAM_TP2.res, Tol_Sym_TP2.res, Tol_Chl_TP2.res)
+Tol_TP2.res<-rbind(Tol_PAM_TP2.res, Tol_Sym_TP2.res, Tol_Chl_TP2.res)
+Tol.pair.res_TP2<-rbind(Tol_PAM.pair_TP2.res, Tol_Sym.pair_TP2.res, Tol_Chl.pair_TP2.res)
 
 ##Add Timepoint
-Tol_T2.res$TimeP<-rep("TP2", nrow(Tol_T2.res))
+Tol_TP2.res$TimeP<-rep("TP2", nrow(Tol_TP2.res))
+Tol.pair.res_TP2$TimeP<-rep("TP2", nrow(Tol.pair.res_TP2))
 
 ```
 
@@ -1493,14 +1492,14 @@ hist(Therm_TP3$Sym.prop)
 shapiro.test(Therm_TP3$Sym.prop)
 #Not normal
 
-hist(log(Therm_TP3$Sym.prop+1))
-shapiro.test(log(Therm_TP3$Sym.prop+1))
+hist(Therm_TP3$Sym.prop^2)
+shapiro.test(Therm_TP3$Sym.prop^2)
 ##Still not normal but less skewed
 
-##Model with log +1 transformation
+##Model with no transformation
 #Function of Site and Origin, with Genotype as a Random effect
 #Interaction between Site and Origin
-Tol_Sym.lme_TP3<-lmer(log(Sym.prop+1)~Origin*Site+(1|Genotype), data=Therm_TP3)
+Tol_Sym.lme_TP3<-lmer(Sym.prop~Origin*Site+(1|Genotype), data=Therm_TP3)
 
 ##Check residuals
 Tol_Sym.lme_res_TP3 <- simulateResiduals(fittedModel = Tol_Sym.lme_TP3, plot = F)
@@ -1515,35 +1514,33 @@ eta_squared(Tol_Sym.lme_TP3)
 Tol_Sym_TP3.res<-data.frame(summary(Tol_Sym.lme_TP3)$coefficients[-1,])
 Tol_Sym_TP3.res$Predictor<-c("Origin", "Site", "Origin x Site")
 Tol_Sym_TP3.res$EtaSq<-c(eta_squared(Tol_Sym.lme_TP3)$Eta2)
+Tol_Sym_TP3.res$Response<-rep("Symbiont Retention", nrow(Tol_Sym_TP3.res))
 
 ```
 Not normal, but model residuals are OK.
 
 
-Effect size of Origin for each Site
 ```{r}
-##KL
-Tol_Sym.lme_TP3_KL<-lmer(log(Sym.prop+1)~Origin+(1|Genotype), data=Therm_TP3[which(Therm_TP3$Site=="KL"),])
-summary(Tol_Sym.lme_TP3_KL)
-eta_squared(Tol_Sym.lme_TP3_KL)
+##Pairwise Comparisons of Interest
+#Native vs Transplant within a Site
+Tol_Sym.pair_TP3<-emmeans(Tol_Sym.lme_TP3, pairwise~Origin | Site)
+Tol_Sym.pair_TP3
 
+#Calculate standardized effect sizes for pairwise comparisons
+Tol_Sym.pair.es_TP3<-data.frame(eff_size(Tol_Sym.pair_TP3, sigma=sigma(Tol_Sym.lme_TP3), edf=df.residual(Tol_Sym.lme_TP3)))
+Tol_Sym.pair.es_TP3
+Tol_Sym.pair.es_TP3<-Tol_Sym.pair.es_TP3 %>% dplyr::rename(contrast.se = contrast, SE.es = SE, df.es = df)
 
-##SS
-Tol_Sym.lme_TP3_SS<-lmer(log(Sym.prop+1)~Origin+(1|Genotype), data=Therm_TP3[which(Therm_TP3$Site=="SS"),])
-summary(Tol_Sym.lme_TP3_SS)
-eta_squared(Tol_Sym.lme_TP3_SS)
+##Save Results
+Tol_Sym.pair_TP3.res<-merge(data.frame(Tol_Sym.pair_TP3$contrasts), Tol_Sym.pair.es_TP3[,-c(1)])
+Tol_Sym.pair_TP3.res$Response<-rep("Symbiont Retention", nrow(Tol_Sym.pair_TP3.res))
 
-
-##Save results
-Tol_Sym_TP3.site.res<-data.frame(rbind(summary(Tol_Sym.lme_TP3_KL)$coefficients[-1,],
-                                     summary(Tol_Sym.lme_TP3_SS)$coefficients[-1,]))
-Tol_Sym_TP3.site.res$Predictor<-c("KL Origin", "SS Origin")
-Tol_Sym_TP3.site.res$EtaSq<-c(eta_squared(Tol_Sym.lme_TP3_KL)$Eta2, eta_squared(Tol_Sym.lme_TP3_SS)$Eta2)
-
-##Combine results 
-Tol_Sym_TP3.res<-rbind(Tol_Sym_TP3.res, Tol_Sym_TP3.site.res)
-Tol_Sym_TP3.res$Response<-rep("Symbiont Retention", nrow(Tol_Sym_TP3.res))
-
+##Add Significance levels
+Tol_Sym.pair_TP3.res$Sig<-ifelse(Tol_Sym.pair_TP3.res$p.value<0.001, "***",
+                              ifelse(Tol_Sym.pair_TP3.res$p.value<0.01, "**",
+                                     ifelse(Tol_Sym.pair_TP3.res$p.value<0.05, "*",
+                                            ifelse(Tol_Sym.pair_TP3.res$p.value<0.1, "-", NA))))
+Tol_Sym.pair_TP3.res
 ```
 
 
@@ -1562,7 +1559,8 @@ TP3_TolSym.plot<-ggplot(TP3_TolSym.sum, aes(x=Site, y=Sym.prop, colour=Site.Orig
         legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
         legend.box.background = element_rect(color = "black"))+
   labs(x="Site and Origin", y="Symbiont Retention", colour="Origin")+
-  ylim(0, 1); TP3_TolSym.plot
+  ylim(0, 1)+
+ geom_bracket(xmin=1, xmax=2, y.position=.04, label.size=levels.sz, label="*", inherit.aes = FALSE); TP3_TolSym.plot
 ```
 
 
@@ -1595,35 +1593,33 @@ eta_squared(Tol_Chl.lme_TP3)
 Tol_Chl_TP3.res<-data.frame(summary(Tol_Chl.lme_TP3)$coefficients[-1,])
 Tol_Chl_TP3.res$Predictor<-c("Origin", "Site", "Origin x Site")
 Tol_Chl_TP3.res$EtaSq<-c(eta_squared(Tol_Chl.lme_TP3)$Eta2)
+Tol_Chl_TP3.res$Response<-rep("Chlorophyll Retention", nrow(Tol_Chl_TP3.res))
 
 ```
 Not normal, but model residuals are OK.
 
 
-Effect size of Origin for each Site
 ```{r}
-##KL
-Tol_Chl.lme_TP3_KL<-lmer(log(Chl.prop+1)~Origin+(1|Genotype), data=Therm_TP3[which(Therm_TP3$Site=="KL"),])
-summary(Tol_Chl.lme_TP3_KL)
-eta_squared(Tol_Chl.lme_TP3_KL)
+##Pairwise Comparisons of Interest
+#Native vs Transplant within a Site
+Tol_Chl.pair_TP3<-emmeans(Tol_Chl.lme_TP3, pairwise~Origin | Site)
+Tol_Chl.pair_TP3
 
+#Calculate standardized effect sizes for pairwise comparisons
+Tol_Chl.pair.es_TP3<-data.frame(eff_size(Tol_Chl.pair_TP3, sigma=sigma(Tol_Chl.lme_TP3), edf=df.residual(Tol_Chl.lme_TP3)))
+Tol_Chl.pair.es_TP3
+Tol_Chl.pair.es_TP3<-Tol_Chl.pair.es_TP3 %>% dplyr::rename(contrast.se = contrast, SE.es = SE, df.es = df)
 
-##SS
-Tol_Chl.lme_TP3_SS<-lmer(log(Chl.prop+1)~Origin+(1|Genotype), data=Therm_TP3[which(Therm_TP3$Site=="SS"),])
-summary(Tol_Chl.lme_TP3_SS)
-eta_squared(Tol_Chl.lme_TP3_SS)
+##Save Results
+Tol_Chl.pair_TP3.res<-merge(data.frame(Tol_Chl.pair_TP3$contrasts), Tol_Chl.pair.es_TP3[,-c(1)])
+Tol_Chl.pair_TP3.res$Response<-rep("Chlorophyll Retention", nrow(Tol_Chl.pair_TP3.res))
 
-
-##Save results
-Tol_Chl_TP3.site.res<-data.frame(rbind(summary(Tol_Chl.lme_TP3_KL)$coefficients[-1,],
-                                     summary(Tol_Chl.lme_TP3_SS)$coefficients[-1,]))
-Tol_Chl_TP3.site.res$Predictor<-c("KL Origin", "SS Origin")
-Tol_Chl_TP3.site.res$EtaSq<-c(eta_squared(Tol_Chl.lme_TP3_KL)$Eta2, eta_squared(Tol_Chl.lme_TP3_SS)$Eta2)
-
-##Combine results 
-Tol_Chl_TP3.res<-rbind(Tol_Chl_TP3.res, Tol_Chl_TP3.site.res)
-Tol_Chl_TP3.res$Response<-rep("Chlorophyll Retention", nrow(Tol_Chl_TP3.res))
-
+##Add Significance levels
+Tol_Chl.pair_TP3.res$Sig<-ifelse(Tol_Chl.pair_TP3.res$p.value<0.001, "***",
+                              ifelse(Tol_Chl.pair_TP3.res$p.value<0.01, "**",
+                                     ifelse(Tol_Chl.pair_TP3.res$p.value<0.05, "*",
+                                            ifelse(Tol_Chl.pair_TP3.res$p.value<0.1, "-", NA))))
+Tol_Chl.pair_TP3.res
 ```
 
 
@@ -1671,34 +1667,31 @@ eta_squared(Tol_PAM.lme_TP3)
 Tol_PAM_TP3.res<-data.frame(summary(Tol_PAM.lme_TP3)$coefficients[-1,])
 Tol_PAM_TP3.res$Predictor<-c("Origin", "Site", "Origin x Site")
 Tol_PAM_TP3.res$EtaSq<-c(eta_squared(Tol_PAM.lme_TP3)$Eta2)
+Tol_PAM_TP3.res$Response<-rep("FvFm Retention", nrow(Tol_PAM_TP3.res))
 
 ```
 
-
-Effect size of Origin for each Site
 ```{r}
-##KL
-Tol_PAM.lme_TP3_KL<-lmer(PAM.prop~Origin+(1|Genotype), data=Therm_TP3[which(Therm_TP3$Site=="KL"),])
-summary(Tol_PAM.lme_TP3_KL)
-eta_squared(Tol_PAM.lme_TP3_KL)
+##Pairwise Comparisons of Interest
+#Native vs Transplant within a Site
+Tol_PAM.pair_TP3<-emmeans(Tol_PAM.lme_TP3, pairwise~Origin | Site)
+Tol_PAM.pair_TP3
 
+#Calculate standardized effect sizes for pairwise comparisons
+Tol_PAM.pair.es_TP3<-data.frame(eff_size(Tol_PAM.pair_TP3, sigma=sigma(Tol_PAM.lme_TP3), edf=df.residual(Tol_PAM.lme_TP3)))
+Tol_PAM.pair.es_TP3
+Tol_PAM.pair.es_TP3<-Tol_PAM.pair.es_TP3 %>% dplyr::rename(contrast.se = contrast, SE.es = SE, df.es = df)
 
-##SS
-Tol_PAM.lme_TP3_SS<-lmer(PAM.prop~Origin+(1|Genotype), data=Therm_TP3[which(Therm_TP3$Site=="SS"),])
-summary(Tol_PAM.lme_TP3_SS)
-eta_squared(Tol_PAM.lme_TP3_SS)
+##Save Results
+Tol_PAM.pair_TP3.res<-merge(data.frame(Tol_PAM.pair_TP3$contrasts), Tol_PAM.pair.es_TP3[,-c(1)])
+Tol_PAM.pair_TP3.res$Response<-rep("FvFm Retention", nrow(Tol_PAM.pair_TP3.res))
 
-
-##Save results
-Tol_PAM_TP3.site.res<-data.frame(rbind(summary(Tol_PAM.lme_TP3_KL)$coefficients[-1,],
-                                     summary(Tol_PAM.lme_TP3_SS)$coefficients[-1,]))
-Tol_PAM_TP3.site.res$Predictor<-c("KL Origin", "SS Origin")
-Tol_PAM_TP3.site.res$EtaSq<-c(eta_squared(Tol_PAM.lme_TP3_KL)$Eta2, eta_squared(Tol_PAM.lme_TP3_SS)$Eta2)
-
-##Combine results 
-Tol_PAM_TP3.res<-rbind(Tol_PAM_TP3.res, Tol_PAM_TP3.site.res)
-Tol_PAM_TP3.res$Response<-rep("FvFm Retention", nrow(Tol_PAM_TP3.res))
-
+##Add Significance levels
+Tol_PAM.pair_TP3.res$Sig<-ifelse(Tol_PAM.pair_TP3.res$p.value<0.001, "***",
+                              ifelse(Tol_PAM.pair_TP3.res$p.value<0.01, "**",
+                                     ifelse(Tol_PAM.pair_TP3.res$p.value<0.05, "*",
+                                            ifelse(Tol_PAM.pair_TP3.res$p.value<0.1, "-", NA))))
+Tol_PAM.pair_TP3.res
 ```
 
 
@@ -1724,10 +1717,12 @@ TP3_TolPAM.plot<-ggplot(TP3_TolPAM.sum, aes(x=Site, y=PAM.prop, colour=Site.Orig
 #### Save Results
 ```{r}
 ##Combine Results
-Tol_T3.res<-rbind(Tol_PAM_TP3.res, Tol_Sym_TP3.res, Tol_Chl_TP3.res)
+Tol_TP3.res<-rbind(Tol_PAM_TP3.res, Tol_Sym_TP3.res, Tol_Chl_TP3.res)
+Tol.pair.res_TP3<-rbind(Tol_PAM.pair_TP3.res, Tol_Sym.pair_TP3.res, Tol_Chl.pair_TP3.res)
 
 ##Add Timepoint
-Tol_T3.res$TimeP<-rep("TP3", nrow(Tol_T3.res))
+Tol_TP3.res$TimeP<-rep("TP3", nrow(Tol_TP3.res))
+Tol.pair.res_TP3$TimeP<-rep("TP3", nrow(Tol.pair.res_TP3))
 
 ```
 
@@ -1768,34 +1763,31 @@ eta_squared(Tol_Sym.lme_TP4)
 Tol_Sym_TP4.res<-data.frame(summary(Tol_Sym.lme_TP4)$coefficients[-1,])
 Tol_Sym_TP4.res$Predictor<-c("Origin", "Site", "Origin x Site")
 Tol_Sym_TP4.res$EtaSq<-c(eta_squared(Tol_Sym.lme_TP4)$Eta2)
+Tol_Sym_TP4.res$Response<-rep("Symbiont Retention", nrow(Tol_Sym_TP4.res))
 
 ```
 
-
-Effect size of Origin for each Site
 ```{r}
-##KL
-Tol_Sym.lme_TP4_KL<-lmer(log(Sym.prop+1)~Origin+(1|Genotype), data=Therm_TP4[which(Therm_TP4$Site=="KL"),])
-summary(Tol_Sym.lme_TP4_KL)
-eta_squared(Tol_Sym.lme_TP4_KL)
+##Pairwise Comparisons of Interest
+#Native vs Transplant within a Site
+Tol_Sym.pair_TP4<-emmeans(Tol_Sym.lme_TP4, pairwise~Origin | Site)
+Tol_Sym.pair_TP4
 
+#Calculate standardized effect sizes for pairwise comparisons
+Tol_Sym.pair.es_TP4<-data.frame(eff_size(Tol_Sym.pair_TP4, sigma=sigma(Tol_Sym.lme_TP4), edf=df.residual(Tol_Sym.lme_TP4)))
+Tol_Sym.pair.es_TP4
+Tol_Sym.pair.es_TP4<-Tol_Sym.pair.es_TP4 %>% dplyr::rename(contrast.se = contrast, SE.es = SE, df.es = df)
 
-##SS
-Tol_Sym.lme_TP4_SS<-lmer(log(Sym.prop+1)~Origin+(1|Genotype), data=Therm_TP4[which(Therm_TP4$Site=="SS"),])
-summary(Tol_Sym.lme_TP4_SS)
-eta_squared(Tol_Sym.lme_TP4_SS)
+##Save Results
+Tol_Sym.pair_TP4.res<-merge(data.frame(Tol_Sym.pair_TP4$contrasts), Tol_Sym.pair.es_TP4[,-c(1)])
+Tol_Sym.pair_TP4.res$Response<-rep("Symbiont Retention", nrow(Tol_Sym.pair_TP4.res))
 
-
-##Save results
-Tol_Sym_TP4.site.res<-data.frame(rbind(summary(Tol_Sym.lme_TP4_KL)$coefficients[-1,],
-                                     summary(Tol_Sym.lme_TP4_SS)$coefficients[-1,]))
-Tol_Sym_TP4.site.res$Predictor<-c("KL Origin", "SS Origin")
-Tol_Sym_TP4.site.res$EtaSq<-c(eta_squared(Tol_Sym.lme_TP4_KL)$Eta2, eta_squared(Tol_Sym.lme_TP4_SS)$Eta2)
-
-##Combine results 
-Tol_Sym_TP4.res<-rbind(Tol_Sym_TP4.res, Tol_Sym_TP4.site.res)
-Tol_Sym_TP4.res$Response<-rep("Symbiont Retention", nrow(Tol_Sym_TP4.res))
-
+##Add Significance levels
+Tol_Sym.pair_TP4.res$Sig<-ifelse(Tol_Sym.pair_TP4.res$p.value<0.001, "***",
+                              ifelse(Tol_Sym.pair_TP4.res$p.value<0.01, "**",
+                                     ifelse(Tol_Sym.pair_TP4.res$p.value<0.05, "*",
+                                            ifelse(Tol_Sym.pair_TP4.res$p.value<0.1, "-", NA))))
+Tol_Sym.pair_TP4.res
 ```
 
 
@@ -1847,34 +1839,31 @@ eta_squared(Tol_Chl.lme_TP4)
 Tol_Chl_TP4.res<-data.frame(summary(Tol_Chl.lme_TP4)$coefficients[-1,])
 Tol_Chl_TP4.res$Predictor<-c("Origin", "Site", "Origin x Site")
 Tol_Chl_TP4.res$EtaSq<-c(eta_squared(Tol_Chl.lme_TP4)$Eta2)
+Tol_Chl_TP4.res$Response<-rep("Chlorophyll Retention", nrow(Tol_Chl_TP4.res))
 
 ```
 
-
-Effect size of Origin for each Site
 ```{r}
-##KL
-Tol_Chl.lme_TP4_KL<-lmer(log(Chl.prop+1)~Origin+(1|Genotype), data=Therm_TP4[which(Therm_TP4$Site=="KL"),])
-summary(Tol_Chl.lme_TP4_KL)
-eta_squared(Tol_Chl.lme_TP4_KL)
+##Pairwise Comparisons of Interest
+#Native vs Transplant within a Site
+Tol_Chl.pair_TP4<-emmeans(Tol_Chl.lme_TP4, pairwise~Origin | Site)
+Tol_Chl.pair_TP4
 
+#Calculate standardized effect sizes for pairwise comparisons
+Tol_Chl.pair.es_TP4<-data.frame(eff_size(Tol_Chl.pair_TP4, sigma=sigma(Tol_Chl.lme_TP4), edf=df.residual(Tol_Chl.lme_TP4)))
+Tol_Chl.pair.es_TP4
+Tol_Chl.pair.es_TP4<-Tol_Chl.pair.es_TP4 %>% dplyr::rename(contrast.se = contrast, SE.es = SE, df.es = df)
 
-##SS
-Tol_Chl.lme_TP4_SS<-lmer(log(Chl.prop+1)~Origin+(1|Genotype), data=Therm_TP4[which(Therm_TP4$Site=="SS"),])
-summary(Tol_Chl.lme_TP4_SS)
-eta_squared(Tol_Chl.lme_TP4_SS)
+##Save Results
+Tol_Chl.pair_TP4.res<-merge(data.frame(Tol_Chl.pair_TP4$contrasts), Tol_Chl.pair.es_TP4[,-c(1)])
+Tol_Chl.pair_TP4.res$Response<-rep("Chlorophyll Retention", nrow(Tol_Chl.pair_TP4.res))
 
-
-##Save results
-Tol_Chl_TP4.site.res<-data.frame(rbind(summary(Tol_Chl.lme_TP4_KL)$coefficients[-1,],
-                                     summary(Tol_Chl.lme_TP4_SS)$coefficients[-1,]))
-Tol_Chl_TP4.site.res$Predictor<-c("KL Origin", "SS Origin")
-Tol_Chl_TP4.site.res$EtaSq<-c(eta_squared(Tol_Chl.lme_TP4_KL)$Eta2, eta_squared(Tol_Chl.lme_TP4_SS)$Eta2)
-
-##Combine results 
-Tol_Chl_TP4.res<-rbind(Tol_Chl_TP4.res, Tol_Chl_TP4.site.res)
-Tol_Chl_TP4.res$Response<-rep("Chlorophyll Retention", nrow(Tol_Chl_TP4.res))
-
+##Add Significance levels
+Tol_Chl.pair_TP4.res$Sig<-ifelse(Tol_Chl.pair_TP4.res$p.value<0.001, "***",
+                              ifelse(Tol_Chl.pair_TP4.res$p.value<0.01, "**",
+                                     ifelse(Tol_Chl.pair_TP4.res$p.value<0.05, "*",
+                                            ifelse(Tol_Chl.pair_TP4.res$p.value<0.1, "-", NA))))
+Tol_Chl.pair_TP4.res
 ```
 
 
@@ -1904,14 +1893,14 @@ hist(Therm_TP4$PAM.prop)
 shapiro.test(Therm_TP4$PAM.prop)
 #Not normal
 
-hist(log(Therm_TP4$PAM.prop+1))
-shapiro.test(log(Therm_TP4$PAM.prop+1))
+hist(Therm_TP4$PAM.prop^2)
+shapiro.test(Therm_TP4$PAM.prop^2)
 ##Still not normal
 
-##Model
+##Model with squared transformation to improve residuals
 #Function of Site and Origin, with Genotype as a Random effect
 #Interaction between Site and Origin
-Tol_PAM.lme_TP4<-lmer(PAM.prop~Origin*Site+(1|Genotype), data=Therm_TP4)
+Tol_PAM.lme_TP4<-lmer(PAM.prop^2~Origin*Site+(1|Genotype), data=Therm_TP4)
 
 ##Check residuals
 Tol_PAM.lme_res_TP4 <- simulateResiduals(fittedModel = Tol_PAM.lme_TP4, plot = F)
@@ -1926,34 +1915,31 @@ eta_squared(Tol_PAM.lme_TP4)
 Tol_PAM_TP4.res<-data.frame(summary(Tol_PAM.lme_TP4)$coefficients[-1,])
 Tol_PAM_TP4.res$Predictor<-c("Origin", "Site", "Origin x Site")
 Tol_PAM_TP4.res$EtaSq<-c(eta_squared(Tol_PAM.lme_TP4)$Eta2)
+Tol_PAM_TP4.res$Response<-rep("FvFm Retention", nrow(Tol_PAM_TP4.res))
 
 ```
 
-
-Effect size of Origin for each Site
 ```{r}
-##KL
-Tol_PAM.lme_TP4_KL<-lmer(PAM.prop~Origin+(1|Genotype), data=Therm_TP4[which(Therm_TP4$Site=="KL"),])
-summary(Tol_PAM.lme_TP4_KL)
-eta_squared(Tol_PAM.lme_TP4_KL)
+##Pairwise Comparisons of Interest
+#Native vs Transplant within a Site
+Tol_PAM.pair_TP4<-emmeans(Tol_PAM.lme_TP4, pairwise~Origin | Site)
+Tol_PAM.pair_TP4
 
+#Calculate standardized effect sizes for pairwise comparisons
+Tol_PAM.pair.es_TP4<-data.frame(eff_size(Tol_PAM.pair_TP4, sigma=sigma(Tol_PAM.lme_TP4), edf=df.residual(Tol_PAM.lme_TP4)))
+Tol_PAM.pair.es_TP4
+Tol_PAM.pair.es_TP4<-Tol_PAM.pair.es_TP4 %>% dplyr::rename(contrast.se = contrast, SE.es = SE, df.es = df)
 
-##SS
-Tol_PAM.lme_TP4_SS<-lmer(PAM.prop~Origin+(1|Genotype), data=Therm_TP4[which(Therm_TP4$Site=="SS"),])
-summary(Tol_PAM.lme_TP4_SS)
-eta_squared(Tol_PAM.lme_TP4_SS)
+##Save Results
+Tol_PAM.pair_TP4.res<-merge(data.frame(Tol_PAM.pair_TP4$contrasts), Tol_PAM.pair.es_TP4[,-c(1)])
+Tol_PAM.pair_TP4.res$Response<-rep("FvFm Retention", nrow(Tol_PAM.pair_TP4.res))
 
-
-##Save results
-Tol_PAM_TP4.site.res<-data.frame(rbind(summary(Tol_PAM.lme_TP4_KL)$coefficients[-1,],
-                                     summary(Tol_PAM.lme_TP4_SS)$coefficients[-1,]))
-Tol_PAM_TP4.site.res$Predictor<-c("KL Origin", "SS Origin")
-Tol_PAM_TP4.site.res$EtaSq<-c(eta_squared(Tol_PAM.lme_TP4_KL)$Eta2, eta_squared(Tol_PAM.lme_TP4_SS)$Eta2)
-
-##Combine results 
-Tol_PAM_TP4.res<-rbind(Tol_PAM_TP4.res, Tol_PAM_TP4.site.res)
-Tol_PAM_TP4.res$Response<-rep("FvFm Retention", nrow(Tol_PAM_TP4.res))
-
+##Add Significance levels
+Tol_PAM.pair_TP4.res$Sig<-ifelse(Tol_PAM.pair_TP4.res$p.value<0.001, "***",
+                              ifelse(Tol_PAM.pair_TP4.res$p.value<0.01, "**",
+                                     ifelse(Tol_PAM.pair_TP4.res$p.value<0.05, "*",
+                                            ifelse(Tol_PAM.pair_TP4.res$p.value<0.1, "-", NA))))
+Tol_PAM.pair_TP4.res
 ```
 
 
@@ -1979,86 +1965,149 @@ TP4_TolPAM.plot<-ggplot(TP4_TolPAM.sum, aes(x=Site, y=PAM.prop, colour=Site.Orig
 #### Save Results
 ```{r}
 ##Combine Results
-Tol_T4.res<-rbind(Tol_PAM_TP4.res, Tol_Sym_TP4.res, Tol_Chl_TP4.res)
+Tol_TP4.res<-rbind(Tol_PAM_TP4.res, Tol_Sym_TP4.res, Tol_Chl_TP4.res)
+Tol.pair.res_TP4<-rbind(Tol_PAM.pair_TP4.res, Tol_Sym.pair_TP4.res, Tol_Chl.pair_TP4.res)
 
 ##Add Timepoint
-Tol_T4.res$TimeP<-rep("TP4", nrow(Tol_T4.res))
+Tol_TP4.res$TimeP<-rep("TP4", nrow(Tol_TP4.res))
+Tol.pair.res_TP4$TimeP<-rep("TP4", nrow(Tol.pair.res_TP4))
 
 ```
 
 
-### Effect Size over Time
+### Percent Difference in Fv/Fm
+Focus on Fv/Fm at KL TP 1 and 2 where difference were significant
+
 ```{r}
-##Dataframe of effect size results
-Tol.ES<-rbind(Tol_T1.res, Tol_T2.res, Tol_T3.res, Tol_T4.res)
-Tol.ES<-Tol.ES %>% dplyr::rename(p = Pr...t..)
-Tol.ES<-Tol.ES[,c("TimeP", "Predictor", "Response", "EtaSq", "p")]
+##Summary statistics by Genotype, Origin, Site, and Timepoint
+Tol.PAM.sum<-summarySE(Therm_H, measurevar="PAM.prop", groupvars=c("Genotype", "Origin", "Site", "TimeP"), na.rm=TRUE)
 
-##Site specific results
-Tol.ES<-Tol.ES[which(Tol.ES$Predictor=="KL Origin" | Tol.ES$Predictor=="SS Origin"),]
-Tol.ES<-Tol.ES %>% separate_wider_delim(cols="Predictor", delim=" ", names=c("Site", "Predictor"), cols_remove = TRUE)
+##Remove Initial Timepoint
+Tol.PAM.sum<-Tol.PAM.sum[-c(which(Tol.PAM.sum$TimeP=="IN")),]
 
-##Add Metric names
-Tol.ES$Metric<-ifelse(Tol.ES$Response== "FvFm Retention", "FvFm", ifelse(
-  Tol.ES$Response== "Symbiont Retention", "Symbionts", ifelse(
-    Tol.ES$Response=="Chlorophyll Retention", "Chlorophyll", NA)))
+##Calculate Percent Difference between Native and Transplant by Genotype
+Tol.PAM.dif<-Tol.PAM.sum[which(Tol.PAM.sum$Origin=="Native"), c(1,3,4,6)]
+Tol.PAM.dif<-Tol.PAM.dif %>% dplyr::rename(PAM_N = PAM.prop)
+Tol.PAM.dif$PAM_T<-Tol.PAM.sum$PAM.prop[which(Tol.PAM.sum$Origin=="Transplant")]
+
+##KL
+Tol.PAM.dif_KL<-subset(Tol.PAM.dif, Site=="KL")
+Tol.PAM.dif_KL$Perc.Inc<-((Tol.PAM.dif_KL$PAM_T-Tol.PAM.dif_KL$PAM_N)/Tol.PAM.dif_KL$PAM_N)*100
+Tol.PAM.dif_KL
+
+##Mean and Standard Error by Timepoint
+Tol.PAM.dif_KL.sum<-summarySE(Tol.PAM.dif_KL, measurevar="Perc.Inc", groupvars=c("TimeP"), na.rm=TRUE)
+Tol.PAM.dif_KL.sum
+```
+
+
+# Performance Effect Sizes
+
+### Current vs Original Site
+```{r}
+##Combine Results
+Growth.TP.res<-rbind(TLE_TP1.2.res, TLE_TP3.4.res)
+Growth.TP.res<-Growth.TP.res %>% dplyr::rename(TimeP = Timepoint)
+Tol_TP.res<-rbind(Tol_TP1.res, Tol_TP2.res, Tol_TP3.res, Tol_TP4.res)
+Perf.res<-rbind(Growth.TP.res, Tol_TP.res)
+Perf.res<-Perf.res %>% dplyr::rename(p = Pr...t..)
+
+##Responses for Figure
+Perf.res.plot<-Perf.res[-c(which(Perf.res$Response=="Chlorophyll Retention")),]
 
 ##Add Significance levels
-Tol.ES$Sig<-ifelse(Tol.ES$p<0.001, "***", ifelse(Tol.ES$p<0.01, "**", 
-            ifelse(Tol.ES$p<0.05, "*", ifelse(Tol.ES$p<0.1, "-", NA))))
+Perf.res.plot$Sig<-ifelse(Perf.res.plot$p<0.001, "***", ifelse(Perf.res.plot$p<0.01, "**", 
+            ifelse(Perf.res.plot$p<0.05, "*", ifelse(Perf.res.plot$p<0.1, "-", NA))))
+
+##Set Order
+Perf.res.plot$Response<-factor(Perf.res.plot$Response, levels=c("Growth", "FvFm Retention", "Symbiont Retention"), ordered=TRUE)
+
+##Match Growth Timepoints
+Perf.res.plot$TimeP[which(Perf.res.plot$TimeP=="TP1_2")]<-"TP2"
+Perf.res.plot$TimeP[which(Perf.res.plot$TimeP=="TP3_4")]<-"TP4"
 
 ```
 
 
-#### Symbionts
-```{r Plot Effect Size Symbiont Retention}
-Tol_Sym.ES.plot<-ggplot(Tol.ES[which(Tol.ES$Metric=="Symbionts"),], aes(x=TimeP, y=EtaSq, fill=Site))+
-  geom_bar(stat="identity", position=position_dodge())+
-    scale_fill_manual(values=Site.colors.o)+
-theme_classic()+
-  ggtitle("Symbiont Retention")+
-  theme(plot.title = element_text(colour="black", size=panel.lab.sz, hjust=0.5), axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
-        legend.box.background = element_rect(color = "black"))+
-   labs(x="Time Point", y=expression(paste("Effect Size (p", eta^2, ")")), colour="Site")+
-  ylim(0, 0.4)+
-  geom_text(aes(label=Sig), vjust=-0.02, color="black", position=position_dodge(0.9), size=levels.sz, fontface="bold"); Tol_Sym.ES.plot
+#### Plot Effect Size of Origin and Site
+```{r Plot Origin and Site Effect Sizes}
+Perf.Site.Orig.ES.plot<-ggplot(Perf.res.plot, aes(fill=Predictor, y=EtaSq, x=TimeP)) + 
+    geom_bar(position="stack", stat="identity")+
+  facet_wrap(vars(Response))+
+  theme_bw()+
+  scale_fill_manual(values=c("indianred2", "mediumpurple3", "steelblue2"))+
+  theme(strip.text=element_text(size=axis.title.sz),
+        strip.background = element_rect(fill="white"),
+        axis.title.x = element_text(size = axis.title.sz), 
+        axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
+        axis.text.y=element_text(size=axis.txt.sz, colour="black"),
+        legend.text=element_text(size=leg.txt.sz), 
+        legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"), 
+        legend.position=c(.08, .8), 
+        panel.grid.major.x=element_blank())+
+   labs(x="Time Point", y=expression(paste("Predictor Effect Size (p", eta^2, ")")), colour="Predictor")+
+   geom_text(aes(label=Sig), position=position_stack(vjust=0.5), size=sig.sz); Perf.Site.Orig.ES.plot
+```
+
+
+### Native vs Transplant
+```{r}
+##Combine Pairwise Results
+Growth.pair.res<-rbind(TLE.pair_TP1.2.res, TLE.pair_TP3.4.res)
+Tol.pair.res<-rbind(Tol.pair.res_TP1, Tol.pair.res_TP2, Tol.pair.res_TP3, Tol.pair.res_TP4)
+Perf.pair.res<-rbind(Growth.pair.res[,c(1:13, 15, 14)], Tol.pair.res)
+
+##Responses for Figure
+Perf.pair.res.plot<-Perf.pair.res[-c(which(Perf.pair.res$Response=="Chlorophyll Retention")),]
+
+##Add Significance
+Perf.pair.res.plot$Significant<-ifelse(Perf.pair.res.plot$p.value<0.05, "sig", "non")
+
+##Set Order
+Perf.pair.res.plot$Response<-factor(Perf.pair.res.plot$Response, levels=c("Growth", "FvFm Retention", "Symbiont Retention"), ordered=TRUE)
+
+##Match Growth Timepoints
+Perf.pair.res.plot$TimeP[which(Perf.pair.res.plot$TimeP=="TP1_2")]<-"TP2"
+Perf.pair.res.plot$TimeP[which(Perf.pair.res.plot$TimeP=="TP3_4")]<-"TP4"
+
+##Set Factors
+Perf.pair.res.plot$Site<-factor(Perf.pair.res.plot$Site, levels=c("KL", "SS"), ordered=TRUE)
 
 ```
 
 
-#### Chlorophyll
-```{r Plot Effect Size Chlorophyll Retention}
-Tol_Chl.ES.plot<-ggplot(Tol.ES[which(Tol.ES$Metric=="Chlorophyll"),], aes(x=TimeP, y=EtaSq, fill=Site))+
-  geom_bar(stat="identity", position=position_dodge())+
-    scale_fill_manual(values=Site.colors.o)+
-theme_classic()+
-  ggtitle("Chlorophyll Retention")+
-  theme(plot.title = element_text(colour="black", size=panel.lab.sz, hjust=0.5), axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
-        legend.box.background = element_rect(color = "black"))+
-   labs(x="Time Point", y=expression(paste("Effect Size (p", eta^2, ")")), colour="Site")+
-  ylim(0, 0.4)+
-  geom_text(aes(label=Sig), vjust=-0.02, color="black", position=position_dodge(0.9), size=levels.sz, fontface="bold"); Tol_Chl.ES.plot
-
+#### Plot Effect Size of Origin
+```{r Plot Origin Effect Sizes}
+##Plot Effect Size across Timepoints
+Perf.Orig.ES.plot<-ggplot(Perf.pair.res.plot, aes(x=TimeP, y=effect.size)) + 
+  geom_rect(fill="grey90", alpha=0.4, xmin=-Inf, xmax=Inf, ymin=-.4, ymax=0.4)+
+  geom_rect(fill="grey80", alpha=0.4, xmin=-Inf, xmax=Inf, ymin=-.25, ymax=0.25)+
+  geom_rect(fill="grey70", alpha=0.4, xmin=-Inf, xmax=Inf, ymin=-.1, ymax=0.1)+
+  geom_hline(yintercept=0, linetype="dashed", color="grey50", linewidth=0.5)+
+  geom_errorbar(aes(ymin=effect.size-SE.es, ymax=effect.size+SE.es, colour=Site), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
+  geom_point(aes(shape=Significant, colour=Site), size=point.sz, position=position_dodge(width=0.5))+
+  facet_wrap(vars(Response))+
+  scale_colour_manual(values=Site.colors.o)+
+  scale_shape_manual(values=c(1, 16))+
+  theme_bw()+
+  theme(axis.title.x = element_text(size = axis.title.sz), 
+        axis.title.y = element_text(size = axis.title.sz), 
+        axis.text.x=element_text(size=axis.txt.sz, colour="black"),
+        axis.text.y=element_text(size=axis.txt.sz, colour="black"), 
+        legend.text=element_text(size=leg.txt.sz), 
+        legend.title=element_text(size=leg.title.sz), 
+        legend.box.background = element_rect(color = "black"), 
+        legend.position=c(.1, .1),
+        legend.direction = "horizontal",
+        strip.text=element_text(size=axis.title.sz),
+        strip.background = element_rect(fill="white"), 
+        panel.grid.major.y=element_blank())+
+  labs(x="Time Point", y="Origin Effect Size (Cohen's d)", colour="Site")+
+  guides(shape="none"); Perf.Orig.ES.plot
 ```
-
-
-#### FvFm
-```{r Plot Effect Size FvFm Retention}
-Tol_PAM.ES.plot<-ggplot(Tol.ES[which(Tol.ES$Metric=="FvFm"),], aes(x=TimeP, y=EtaSq, fill=Site))+
-  geom_bar(stat="identity", position=position_dodge())+
-    scale_fill_manual(values=Site.colors.o)+
-theme_classic()+
-  ggtitle("Photochemical Efficiency Retention")+
-  theme(plot.title = element_text(colour="black", size=panel.lab.sz, hjust=0.5), axis.title.x = element_text(size = axis.title.sz), axis.title.y = element_text(size = axis.title.sz), 
-        axis.text.x=element_text(size=axis.txt.sz, colour="black"), axis.text.y=element_text(size=axis.txt.sz, colour="black"), legend.text=element_text(size=leg.txt.sz), legend.title=element_text(size=leg.title.sz), 
-        legend.box.background = element_rect(color = "black"))+
-   labs(x="Time Point", y=expression(paste("Effect Size (p", eta^2, ")")), colour="Site")+
-  ylim(0, 0.4)+
-  geom_text(aes(label=Sig), vjust=-0.02, color="black", position=position_dodge(0.9), size=levels.sz, fontface="bold"); Tol_PAM.ES.plot
-
-```
+Need to fix dodge for points and error bars
 
 
 # Trade Offs
@@ -2071,12 +2120,12 @@ Calculating the average of Growth (TP1 to TP2) and Thermal Tolerance (Retention 
 #### Growth
 ```{r}
 ##Average
-names(Growth_T1.2)
-T1.2_Growth_Set<-aggregate(Growth_T1.2$TLE_cm.day, list(Growth_T1.2$Site, Growth_T1.2$Genotype, Growth_T1.2$Orig), mean)
-names(T1.2_Growth_Set)<-c("Site", "Genotype", "Orig", "TLE_cm.day")
+names(Growth_TP1.2)
+TP1.2_Growth_Set<-aggregate(Growth_TP1.2$TLE_cm.day, list(Growth_TP1.2$Site, Growth_TP1.2$Genotype, Growth_TP1.2$Orig), mean)
+names(TP1.2_Growth_Set)<-c("Site", "Genotype", "Orig", "TLE_cm.day")
 
 ##Add Standard Error
-T1.2_Growth_Set$TLE_se<-aggregate(Growth_T1.2$TLE_cm.day, list(Growth_T1.2$Site, Growth_T1.2$Genotype, Growth_T1.2$Orig), std.error)[,4]
+TP1.2_Growth_Set$TLE_se<-aggregate(Growth_TP1.2$TLE_cm.day, list(Growth_TP1.2$Site, Growth_TP1.2$Genotype, Growth_TP1.2$Orig), std.error)[,4]
 ```
 
 
@@ -2098,21 +2147,21 @@ T1_Therm_Set$PAM_se<-aggregate(Therm_TP1$PAM.prop, list(Therm_TP1$Site, Therm_TP
 
 #### Merge Growth and Tolerance 
 ```{r}
-T1.2_Perf_Set<-merge(T1.2_Growth_Set, T1_Therm_Set, all=TRUE)
-T1.2_Perf_Set$Set<-paste(T1.2_Perf_Set$Site, T1.2_Perf_Set$Genotype, T1.2_Perf_Set$Orig, sep=".")
+TP1.2_Perf_Set<-merge(TP1.2_Growth_Set, T1_Therm_Set, all=TRUE)
+TP1.2_Perf_Set$Set<-paste(TP1.2_Perf_Set$Site, TP1.2_Perf_Set$Genotype, TP1.2_Perf_Set$Orig, sep=".")
 
 ##Set factor variables
-T1.2_Perf_Set$Site<-factor(T1.2_Perf_Set$Site, levels=c("KL", "SS"))
-T1.2_Perf_Set$Genotype<-factor(T1.2_Perf_Set$Genotype, levels=c("AC8", "AC10", "AC12"))
-T1.2_Perf_Set$Orig<-factor(T1.2_Perf_Set$Orig, levels=c("N", "T"))
+TP1.2_Perf_Set$Site<-factor(TP1.2_Perf_Set$Site, levels=c("KL", "SS"))
+TP1.2_Perf_Set$Genotype<-factor(TP1.2_Perf_Set$Genotype, levels=c("AC8", "AC10", "AC12"))
+TP1.2_Perf_Set$Orig<-factor(TP1.2_Perf_Set$Orig, levels=c("N", "T"))
 
 ##Add a Sample Set Variable
-T1.2_Perf_Set$Set<-paste(T1.2_Perf_Set$Site, T1.2_Perf_Set$Genotype, T1.2_Perf_Set$Orig, sep=".")
-T1.2_Perf_Set$Set<-factor(T1.2_Perf_Set$Set)
+TP1.2_Perf_Set$Set<-paste(TP1.2_Perf_Set$Site, TP1.2_Perf_Set$Genotype, TP1.2_Perf_Set$Orig, sep=".")
+TP1.2_Perf_Set$Set<-factor(TP1.2_Perf_Set$Set)
 
 ##Add Site.Orig variable
-T1.2_Perf_Set$Site.Orig<-paste(T1.2_Perf_Set$Site, T1.2_Perf_Set$Orig, sep=".")
-T1.2_Perf_Set$Site.Orig<-factor(T1.2_Perf_Set$Site.Orig, levels=c("KL.N", "KL.T", "SS.N", "SS.T"))
+TP1.2_Perf_Set$Site.Orig<-paste(TP1.2_Perf_Set$Site, TP1.2_Perf_Set$Orig, sep=".")
+TP1.2_Perf_Set$Site.Orig<-factor(TP1.2_Perf_Set$Site.Orig, levels=c("KL.N", "KL.T", "SS.N", "SS.T"))
 
 ```
 
@@ -2122,12 +2171,12 @@ T1.2_Perf_Set$Site.Orig<-factor(T1.2_Perf_Set$Site.Orig, levels=c("KL.N", "KL.T"
 #### Symbiont Retention
 
 ```{r}
-cor.test(T1.2_Perf_Set$TLE_cm.day, T1.2_Perf_Set$Sym.prop, method="spearman")
+cor.test(TP1.2_Perf_Set$TLE_cm.day, TP1.2_Perf_Set$Sym.prop, method="spearman")
 ```
 
 
 ```{r Plot Growth vs Symbiont Retention T12}
-T1.2_TLE_Sym.plot<-ggplot(T1.2_Perf_Set, aes(x=TLE_cm.day, y=Sym.prop)) + 
+TP1.2_TLE_Sym.plot<-ggplot(TP1.2_Perf_Set, aes(x=TLE_cm.day, y=Sym.prop)) + 
    geom_smooth(method="lm", color="#AA185AFF", fill="#F8D7BFFF", se=TRUE)+
    geom_point(aes(colour=Site.Orig, shape=Genotype),size=point.sz)+
     scale_colour_manual(values=Orig.colors.o)+
@@ -2140,19 +2189,19 @@ T1.2_TLE_Sym.plot<-ggplot(T1.2_Perf_Set, aes(x=TLE_cm.day, y=Sym.prop)) +
   labs(x=expression(paste('Growth Rate (cm day'^-1*")")), 
        y="Symbiont Retention", 
        colour="Site Origin")+
-   annotate("text", x = 0.07, y = -.15, label=expression(bolditalic(paste(r[S], " = -0.615, p = 0.037"))), size=sig.sz, hjust = 0); T1.2_TLE_Sym.plot
+   annotate("text", x = 0.07, y = -.15, label=expression(bolditalic(paste(r[S], " = -0.615, p = 0.037"))), size=sig.sz, hjust = 0); TP1.2_TLE_Sym.plot
 ```
 
 
 #### Chlorophyll Retention
 
 ```{r}
-cor.test(T1.2_Perf_Set$TLE_cm.day, T1.2_Perf_Set$Chl.prop, method="spearman")
+cor.test(TP1.2_Perf_Set$TLE_cm.day, TP1.2_Perf_Set$Chl.prop, method="spearman")
 ```
 
 
 ```{r Plot Growth vs Chlorophyll Retention T12}
-T1.2_TLE_Chl.plot<-ggplot(T1.2_Perf_Set, aes(x=TLE_cm.day, y=Chl.prop)) + 
+TP1.2_TLE_Chl.plot<-ggplot(TP1.2_Perf_Set, aes(x=TLE_cm.day, y=Chl.prop)) + 
    geom_smooth(method="lm", color="#AA185AFF", fill="#F8D7BFFF", se=TRUE)+
    geom_point(aes(colour=Site.Orig, shape=Genotype),size=point.sz)+
     scale_colour_manual(values=Orig.colors.o)+
@@ -2165,19 +2214,19 @@ T1.2_TLE_Chl.plot<-ggplot(T1.2_Perf_Set, aes(x=TLE_cm.day, y=Chl.prop)) +
   labs(x=expression(paste('Growth Rate (cm day'^-1*")")), 
        y="Chlorophyll Retention", 
        colour="Site Origin")+
-   annotate("text", x = 0.07, y = -.05, label=expression(bolditalic(paste(r[S], " = -0.587, p = 0.049"))), size=sig.sz, hjust = 0); T1.2_TLE_Chl.plot
+   annotate("text", x = 0.07, y = -.05, label=expression(bolditalic(paste(r[S], " = -0.587, p = 0.049"))), size=sig.sz, hjust = 0); TP1.2_TLE_Chl.plot
 ```
 
 
 #### FvFm Retention
 
 ```{r}
-cor.test(T1.2_Perf_Set$TLE_cm.day, T1.2_Perf_Set$PAM.prop, method="spearman")
+cor.test(TP1.2_Perf_Set$TLE_cm.day, TP1.2_Perf_Set$PAM.prop, method="spearman")
 ```
 
 
 ```{r Plot Growth vs FvFm Retention T12}
-T1.2_TLE_PAM.plot<-ggplot(T1.2_Perf_Set, aes(x=TLE_cm.day, y=PAM.prop)) + 
+TP1.2_TLE_PAM.plot<-ggplot(TP1.2_Perf_Set, aes(x=TLE_cm.day, y=PAM.prop)) + 
    geom_smooth(method="lm", color="#AA185AFF", fill="#F8D7BFFF", se=TRUE)+
    geom_point(aes(colour=Site.Orig, shape=Genotype),size=point.sz)+
     scale_colour_manual(values=Orig.colors.o)+
@@ -2190,7 +2239,7 @@ T1.2_TLE_PAM.plot<-ggplot(T1.2_Perf_Set, aes(x=TLE_cm.day, y=PAM.prop)) +
   labs(x=expression(paste('Growth Rate (cm day'^-1*")")), 
        y="Photo. Effic. Retention", 
        colour="Site Origin")+
-   annotate("text", x = 0.07, y = 0.7, label=expression(bolditalic(paste(r[S], " = -0.678, p = 0.019"))), size=sig.sz, hjust = 0); T1.2_TLE_PAM.plot
+   annotate("text", x = 0.07, y = 0.7, label=expression(bolditalic(paste(r[S], " = -0.678, p = 0.019"))), size=sig.sz, hjust = 0); TP1.2_TLE_PAM.plot
 ```
 
 
@@ -2202,12 +2251,12 @@ Calculating the average of Growth (TP3 to TP4) and Thermal Tolerance (Retention 
 #### Growth
 ```{r}
 ##Average
-names(Growth_T3.4)
-T3.4_Growth_Set<-aggregate(Growth_T3.4$TLE_cm.day, list(Growth_T3.4$Site, Growth_T3.4$Genotype, Growth_T3.4$Orig), mean)
-names(T3.4_Growth_Set)<-c("Site", "Genotype", "Orig", "TLE_cm.day")
+names(Growth_TP3.4)
+TP3.4_Growth_Set<-aggregate(Growth_TP3.4$TLE_cm.day, list(Growth_TP3.4$Site, Growth_TP3.4$Genotype, Growth_TP3.4$Orig), mean)
+names(TP3.4_Growth_Set)<-c("Site", "Genotype", "Orig", "TLE_cm.day")
 
 ##Add Standard Error
-T3.4_Growth_Set$TLE_se<-aggregate(Growth_T3.4$TLE_cm.day, list(Growth_T3.4$Site, Growth_T3.4$Genotype, Growth_T3.4$Orig), std.error)[,4]
+TP3.4_Growth_Set$TLE_se<-aggregate(Growth_TP3.4$TLE_cm.day, list(Growth_TP3.4$Site, Growth_TP3.4$Genotype, Growth_TP3.4$Orig), std.error)[,4]
 ```
 
 
@@ -2229,21 +2278,21 @@ T4_Therm_Set$PAM_se<-aggregate(Therm_TP4$PAM.prop, list(Therm_TP4$Site, Therm_TP
 
 #### Merge Growth and Tolerance 
 ```{r}
-T3.4_Perf_Set<-merge(T3.4_Growth_Set, T4_Therm_Set, all=TRUE)
-T3.4_Perf_Set$Set<-paste(T3.4_Perf_Set$Site, T3.4_Perf_Set$Genotype, T3.4_Perf_Set$Orig, sep=".")
+TP3.4_Perf_Set<-merge(TP3.4_Growth_Set, T4_Therm_Set, all=TRUE)
+TP3.4_Perf_Set$Set<-paste(TP3.4_Perf_Set$Site, TP3.4_Perf_Set$Genotype, TP3.4_Perf_Set$Orig, sep=".")
 
 ##Set factor variables
-T3.4_Perf_Set$Site<-factor(T3.4_Perf_Set$Site, levels=c("KL", "SS"))
-T3.4_Perf_Set$Genotype<-factor(T3.4_Perf_Set$Genotype, levels=c("AC8", "AC10", "AC12"))
-T3.4_Perf_Set$Orig<-factor(T3.4_Perf_Set$Orig, levels=c("N", "T"))
+TP3.4_Perf_Set$Site<-factor(TP3.4_Perf_Set$Site, levels=c("KL", "SS"))
+TP3.4_Perf_Set$Genotype<-factor(TP3.4_Perf_Set$Genotype, levels=c("AC8", "AC10", "AC12"))
+TP3.4_Perf_Set$Orig<-factor(TP3.4_Perf_Set$Orig, levels=c("N", "T"))
 
 ##Add a Sample Set Variable
-T3.4_Perf_Set$Set<-paste(T3.4_Perf_Set$Site, T3.4_Perf_Set$Genotype, T3.4_Perf_Set$Orig, sep=".")
-T3.4_Perf_Set$Set<-factor(T3.4_Perf_Set$Set)
+TP3.4_Perf_Set$Set<-paste(TP3.4_Perf_Set$Site, TP3.4_Perf_Set$Genotype, TP3.4_Perf_Set$Orig, sep=".")
+TP3.4_Perf_Set$Set<-factor(TP3.4_Perf_Set$Set)
 
 ##Add Site.Orig variable
-T3.4_Perf_Set$Site.Orig<-paste(T3.4_Perf_Set$Site, T3.4_Perf_Set$Orig, sep=".")
-T3.4_Perf_Set$Site.Orig<-factor(T3.4_Perf_Set$Site.Orig, levels=c("KL.N", "KL.T", "SS.N", "SS.T"))
+TP3.4_Perf_Set$Site.Orig<-paste(TP3.4_Perf_Set$Site, TP3.4_Perf_Set$Orig, sep=".")
+TP3.4_Perf_Set$Site.Orig<-factor(TP3.4_Perf_Set$Site.Orig, levels=c("KL.N", "KL.T", "SS.N", "SS.T"))
 
 ```
 
@@ -2253,12 +2302,12 @@ T3.4_Perf_Set$Site.Orig<-factor(T3.4_Perf_Set$Site.Orig, levels=c("KL.N", "KL.T"
 #### Symbiont Retention
 
 ```{r}
-cor.test(T3.4_Perf_Set$TLE_cm.day, T3.4_Perf_Set$Sym.prop, method="spearman")
+cor.test(TP3.4_Perf_Set$TLE_cm.day, TP3.4_Perf_Set$Sym.prop, method="spearman")
 ```
 
 
 ```{r Plot Growth vs Symbiont Retention T34}
-T3.4_TLE_Sym.plot<-ggplot(T3.4_Perf_Set, aes(x=TLE_cm.day, y=Sym.prop)) + 
+TP3.4_TLE_Sym.plot<-ggplot(TP3.4_Perf_Set, aes(x=TLE_cm.day, y=Sym.prop)) + 
    geom_smooth(method="lm", color="#AA185AFF", fill="#F8D7BFFF", se=TRUE)+
    geom_point(aes(colour=Site.Orig, shape=Genotype),size=point.sz)+
     scale_colour_manual(values=Orig.colors.o)+
@@ -2271,19 +2320,19 @@ T3.4_TLE_Sym.plot<-ggplot(T3.4_Perf_Set, aes(x=TLE_cm.day, y=Sym.prop)) +
   labs(x=expression(paste('Growth Rate (cm day'^-1*")")), 
        y="Symbiont Retention", 
        colour="Site Origin")+
-   annotate("text", x = 0.07, y = 0.1, label=expression(italic(paste(r[S], " = -0.552, p = 0.067"))), size=sig.sz, hjust = 0); T3.4_TLE_Sym.plot
+   annotate("text", x = 0.07, y = 0.1, label=expression(italic(paste(r[S], " = -0.552, p = 0.067"))), size=sig.sz, hjust = 0); TP3.4_TLE_Sym.plot
 ```
 
 
 #### Chlorophyll Retention
 
 ```{r}
-cor.test(T3.4_Perf_Set$TLE_cm.day, T3.4_Perf_Set$Chl.prop, method="spearman")
+cor.test(TP3.4_Perf_Set$TLE_cm.day, TP3.4_Perf_Set$Chl.prop, method="spearman")
 ```
 
 
 ```{r Plot Growth vs Chlorophyll Retention T34}
-T3.4_TLE_Chl.plot<-ggplot(T3.4_Perf_Set, aes(x=TLE_cm.day, y=Chl.prop)) + 
+TP3.4_TLE_Chl.plot<-ggplot(TP3.4_Perf_Set, aes(x=TLE_cm.day, y=Chl.prop)) + 
    geom_smooth(method="lm", color="#AA185AFF", fill="#F8D7BFFF", se=TRUE)+
    geom_point(aes(colour=Site.Orig, shape=Genotype),size=point.sz)+
     scale_colour_manual(values=Orig.colors.o)+
@@ -2296,19 +2345,19 @@ T3.4_TLE_Chl.plot<-ggplot(T3.4_Perf_Set, aes(x=TLE_cm.day, y=Chl.prop)) +
   labs(x=expression(paste('Growth Rate (cm day'^-1*")")), 
        y="Chlorophyll Retention", 
        colour="Site Origin")+
-   annotate("text", x = 0.07, y = 0.065, label=expression(italic(paste(r[S], " = 0.327, p = 0.327"))), size=sig.sz, hjust = 0); T3.4_TLE_Chl.plot
+   annotate("text", x = 0.07, y = 0.065, label=expression(italic(paste(r[S], " = 0.327, p = 0.327"))), size=sig.sz, hjust = 0); TP3.4_TLE_Chl.plot
 ```
 
 
 #### FvFm Retention
 
 ```{r}
-cor.test(T3.4_Perf_Set$TLE_cm.day, T3.4_Perf_Set$PAM.prop, method="spearman")
+cor.test(TP3.4_Perf_Set$TLE_cm.day, TP3.4_Perf_Set$PAM.prop, method="spearman")
 ```
 
 
 ```{r Plot Growth vs FvFm Retention T34}
-T3.4_TLE_PAM.plot<-ggplot(T3.4_Perf_Set, aes(x=TLE_cm.day, y=PAM.prop)) + 
+TP3.4_TLE_PAM.plot<-ggplot(TP3.4_Perf_Set, aes(x=TLE_cm.day, y=PAM.prop)) + 
    geom_smooth(method="lm", color="#AA185AFF", fill="#F8D7BFFF", se=TRUE)+
    geom_point(aes(colour=Site.Orig, shape=Genotype),size=point.sz)+
     scale_colour_manual(values=Orig.colors.o)+
@@ -2321,13 +2370,72 @@ T3.4_TLE_PAM.plot<-ggplot(T3.4_Perf_Set, aes(x=TLE_cm.day, y=PAM.prop)) +
   labs(x=expression(paste('Growth Rate (cm day'^-1*")")), 
        y="Photo. Effic. Retention", 
        colour="Site Origin")+
-   annotate("text", x = 0.07, y = 0.5, label=expression(bolditalic(paste(r[S], " = -0.748, p = 0.007"))), size=sig.sz, hjust = 0); T3.4_TLE_PAM.plot
+   annotate("text", x = 0.07, y = 0.5, label=expression(bolditalic(paste(r[S], " = -0.748, p = 0.007"))), size=sig.sz, hjust = 0); TP3.4_TLE_PAM.plot
 ```
 
 
 # Figures
 
-### Figure 4 Growth
+### Figure 4 Performance Effect Sizes
+
+#### Adjust for Panel
+```{r}
+Perf.Site.Orig.ES.plot<-Perf.Site.Orig.ES.plot+ labs(x="")
+```
+
+
+#### Figure 4
+```{r}
+##Create Panel
+Perf.ES_fig<-plot_grid(Perf.Site.Orig.ES.plot, Perf.Orig.ES.plot, 
+                    rel_widths=1, rel_heights = 1,
+                    nrow=2, ncol=1, byrow=T, labels = c("A", "B"), 
+                    label_size=panel.lab.sz)
+
+##Save Figure
+ggsave(filename="Figures/03_Performance/Fig4_PerformanceEffectSizes.png", plot=Perf.ES_fig, dpi=300, width=12, height=9, units="in")
+
+```
+
+
+### Figure 5 Growth vs Tolerance
+
+#### Adjust Figures for Panel
+```{r}
+##Timepoint 1 to 2
+TP1.2_TLE_PAM.plot<-TP1.2_TLE_PAM.plot + ggtitle("Photo. Effic.")+ labs(x=NULL, y = "Tolerance (Retention)")+
+  theme(plot.title = element_text(colour="black", size=panel.lab.sz, hjust=0.5), legend.position="none")
+
+TP1.2_TLE_Sym.plot<- TP1.2_TLE_Sym.plot + ggtitle("Symbionts")+ labs(x=NULL, y = NULL)+
+  theme(plot.title = element_text(colour="black", size=panel.lab.sz, hjust=0.5)) + ylim(-.15, .8)
+
+
+##Timepoint 3 to 4
+TP3.4_TLE_PAM.plot<-TP3.4_TLE_PAM.plot + labs(y = "Tolerance (Retention)") +
+  theme(legend.position="none")
+
+TP3.4_TLE_Sym.plot<-TP3.4_TLE_Sym.plot + labs(y = NULL)
+
+```
+
+
+#### Figure 5
+```{r}
+##Create Panel
+TradeOff_fig<-plot_grid(TP1.2_TLE_PAM.plot, TP1.2_TLE_Sym.plot,
+                      TP3.4_TLE_PAM.plot, TP3.4_TLE_Sym.plot,
+                    rel_widths=c(.75, 1), rel_heights = c(1, .98),
+                    nrow=2, ncol=2, byrow=T, 
+                    labels = c("A", "B", "C", "D"), 
+                    label_size=panel.lab.sz)
+
+##Save Figure
+ggsave(filename="Figures/03_Performance/Fig5_TradeOff.png", plot=TradeOff_fig, dpi=300, width=8, height=8, units="in")
+
+```
+
+
+### Figure S5 Growth
 
 #### Adjust Figures for Panel
 ```{r}
@@ -2349,7 +2457,7 @@ TP3.4_Growth.plot<-TP3.4_Growth.plot+ ggtitle("TP3 to TP4")+
 ```
 
 
-#### Figure 4
+#### Figure S5
 ```{r}
 ##Create Panel
 Growth_fig<-plot_grid(TP1.2_Growth.plot, TP3.4_Growth.plot, 
@@ -2358,122 +2466,7 @@ Growth_fig<-plot_grid(TP1.2_Growth.plot, TP3.4_Growth.plot,
                     label_size=panel.lab.sz)
 
 ##Save Figure
-ggsave(filename="Figures/03_Performance/Fig4_Growth.png", plot=Growth_fig, dpi=300, width=10, height=4.5, units="in")
-
-```
-
-
-
-### Figure 5 Thermal Tolerance
-
-#### Adjust Figures for Panel
-```{r}
-##FvFm Retention
-TP1_TolPAM.plot<-TP1_TolPAM.plot + ggtitle("TP1")+ 
-  labs(x="", y="Photo. Effic. Retention", colour=NULL)+
-  theme(plot.title = element_text(colour="black", size=panel.lab.sz, face="bold", hjust=0.5), 
-        legend.position=c(0.5, 0.15), legend.direction="horizontal")+
-  guides(color=guide_legend(nrow=2, byrow=FALSE))
-
-TP2_TolPAM.plot<-TP2_TolPAM.plot+ ggtitle("TP2")+ labs(x="", y="") +
-  theme(plot.title = element_text(colour="black", size=panel.lab.sz, face="bold", hjust=0.5), 
-        legend.position="none")
-
-TP3_TolPAM.plot<-TP3_TolPAM.plot+ ggtitle("TP3")+ labs(x="", y="") +
-  theme(plot.title = element_text(colour="black", size=panel.lab.sz, face="bold", hjust=0.5), 
-        legend.position="none")
-
-TP4_TolPAM.plot<-TP4_TolPAM.plot+ ggtitle("TP4")+ labs(x="", y="") +
-  theme(plot.title = element_text(colour="black", size=panel.lab.sz, face="bold", hjust=0.5), 
-        legend.position="none")
-
-Tol_PAM.ES.plot<-Tol_PAM.ES.plot + ggtitle("Photo. Effic.") + labs(x="") +
-  theme(legend.position=c(.8, .8))
-
-
-##Symbiont Retention
-TP1_TolSym.plot<- TP1_TolSym.plot + labs(x="") + theme(legend.position="none")
-
-TP2_TolSym.plot<- TP2_TolSym.plot + labs(x="", y= "") + theme(legend.position="none")
-
-TP3_TolSym.plot<- TP3_TolSym.plot + labs(x="", y= "") + theme(legend.position="none")
-
-TP4_TolSym.plot<- TP4_TolSym.plot + labs(x="", y= "") + theme(legend.position="none")
-
-Tol_Sym.ES.plot<-Tol_Sym.ES.plot +  ggtitle("Symbionts") + labs(x="") + theme(legend.position="none")
-
-
-##Chlorophyll Retention
-TP1_TolChl.plot<-TP1_TolChl.plot + theme(legend.position="none")
-
-TP2_TolChl.plot<-TP2_TolChl.plot + labs(y="") + theme(legend.position="none")
-
-TP3_TolChl.plot<-TP3_TolChl.plot + labs(y="") + theme(legend.position="none")
-
-TP4_TolChl.plot<-TP4_TolChl.plot + labs(y="") + theme(legend.position="none")
-
-Tol_Chl.ES.plot<-Tol_Chl.ES.plot + ggtitle("Chlorophyll")+ theme(legend.position="none")
-
-```
-
-
-#### Figure 5
-```{r}
-##Create Panel
-Tolerance_fig<-plot_grid(TP1_TolPAM.plot, TP2_TolPAM.plot, 
-                      TP3_TolPAM.plot, TP4_TolPAM.plot, Tol_PAM.ES.plot, 
-                      TP1_TolSym.plot, TP2_TolSym.plot, 
-                      TP3_TolSym.plot, TP4_TolSym.plot, Tol_Sym.ES.plot, 
-                      TP1_TolChl.plot, TP2_TolChl.plot, 
-                      TP3_TolChl.plot, TP4_TolChl.plot, Tol_Chl.ES.plot, 
-                    rel_widths=c(0.8, 0.8, 0.8, 0.8, 1), rel_heights = 1,
-                    nrow=3, ncol=5, byrow=T, labels = NULL)
-
-##Save Figure
-ggsave(filename="Figures/03_Performance/Fig5_Tolerance.png", plot=Tolerance_fig, dpi=300, width=16, height=12, units="in")
-
-```
-
-
-### Figure 6 Growth vs Tolerance
-
-#### Adjust Figures for Panel
-```{r}
-##Timepoint 1 to 2
-T1.2_TLE_PAM.plot<-T1.2_TLE_PAM.plot + ggtitle("Photo. Effic.")+ labs(x="", y = "Tolerance")+
-  theme(plot.title = element_text(colour="black", size=panel.lab.sz, hjust=0.5), legend.position="none")
-
-T1.2_TLE_Sym.plot<- T1.2_TLE_Sym.plot + ggtitle("Symbionts")+ labs(x="", y = "")+
-  theme(plot.title = element_text(colour="black", size=panel.lab.sz, hjust=0.5), legend.position="none") + ylim(-.15, .8)
-
-T1.2_TLE_Chl.plot<- T1.2_TLE_Chl.plot + ggtitle("Chlorophyll")+ labs(x="", y = "")+
-  theme(plot.title = element_text(colour="black", size=panel.lab.sz, hjust=0.5), legend.position="right")
-
-##Timepoint 3 to 4
-T3.4_TLE_PAM.plot<-T3.4_TLE_PAM.plot + labs(x="Growth", y = "Tolerance") +
-  theme(legend.position="none")
-
-T3.4_TLE_Sym.plot<-T3.4_TLE_Sym.plot + labs(x="Growth", y = "") +
-  theme(legend.position="none")
-
-T3.4_TLE_Chl.plot<-T3.4_TLE_Chl.plot + labs(x="Growth", y = "") +
-  theme(legend.position="right") 
-
-```
-
-
-#### Figure 6
-```{r}
-##Create Panel
-TradeOff_fig<-plot_grid(T1.2_TLE_PAM.plot, T1.2_TLE_Sym.plot, T1.2_TLE_Chl.plot,
-                      T3.4_TLE_PAM.plot, T3.4_TLE_Sym.plot, T3.4_TLE_Chl.plot,
-                    rel_widths=c(.7, .7, 1, .7, .7, 1), rel_heights = c(1, .9),
-                    nrow=2, ncol=3, byrow=T, 
-                    labels = c("A", "B", "C", "D", "E", "F"), 
-                    label_size=panel.lab.sz)
-
-##Save Figure
-ggsave(filename="Figures/03_Performance/Fig6_TradeOff.png", plot=TradeOff_fig, dpi=300, width=12, height=8, units="in")
+ggsave(filename="Figures/03_Performance/FigS5_Growth.png", plot=Growth_fig, dpi=300, width=10, height=4.5, units="in")
 
 ```
 
@@ -2522,60 +2515,147 @@ ggsave(filename="Figures/03_Performance/FigS6_InitialHeatAssay.png", plot=IN_Hea
 ```
 
 
-# Tables
+### Figure S7 Thermal Tolerance
 
-### Table S5 Performance LM
+#### Adjust Figures for Panel
 ```{r}
-##Combine Results Tables
-TableS5A_Growth<-data.frame(rbind(TLE_T1.2.res, TLE_T3.4.res))
-TableS5B_Tolerance<-data.frame(rbind(Tol_T1.res, Tol_T2.res, Tol_T3.res, Tol_T4.res))
-names(TableS5B_Tolerance)[9]<-"Timepoint"
+##FvFm Retention
+TP1_TolPAM.plot<-TP1_TolPAM.plot + ggtitle("TP1")+ 
+  labs(x=NULL, y="Photo. Effic. Retention", colour=NULL)+
+  theme(plot.title = element_text(colour="black", size=panel.lab.sz, face="bold", hjust=0.5), 
+        legend.position=c(0.5, 0.15), legend.direction="horizontal")+
+  guides(color=guide_legend(nrow=2, byrow=FALSE))
 
-TableS5_Perf.LM<-rbind(TableS5A_Growth, TableS5B_Tolerance)
-  
-##Organize
-names(TableS5_Perf.LM)
-TableS5_Perf.LM<-TableS5_Perf.LM %>% dplyr::rename(SE = Std..Error, DF = df, t = t.value, p = Pr...t.., EffectSize = EtaSq)
-TableS5_Perf.LM<-TableS5_Perf.LM[,c("Timepoint", "Response", "Predictor", "Estimate", "SE", "DF", "t", "p", "EffectSize")]
+TP2_TolPAM.plot<-TP2_TolPAM.plot+ ggtitle("TP2")+ labs(x=NULL, y=NULL) +
+  theme(plot.title = element_text(colour="black", size=panel.lab.sz, face="bold", hjust=0.5), 
+        legend.position="none")
 
-#Round to 3 digits
-TableS5_Perf.LM$Estimate<-round(TableS5_Perf.LM$Estimate, 3)
-TableS5_Perf.LM$SE<-round(TableS5_Perf.LM$SE, 3)
-TableS5_Perf.LM$t<-round(TableS5_Perf.LM$t, 3)
-TableS5_Perf.LM$p<-round(TableS5_Perf.LM$p, 3)
-TableS5_Perf.LM$EffectSize<-round(TableS5_Perf.LM$EffectSize, 3)
+TP3_TolPAM.plot<-TP3_TolPAM.plot+ ggtitle("TP3")+ labs(x=NULL, y=NULL) +
+  theme(plot.title = element_text(colour="black", size=panel.lab.sz, face="bold", hjust=0.5), 
+        legend.position="none")
 
-#Integer
-TableS5_Perf.LM$DF<-round(TableS5_Perf.LM$DF, 0)
+TP4_TolPAM.plot<-TP4_TolPAM.plot+ ggtitle("TP4")+ labs(x=NULL, y=NULL) +
+  theme(plot.title = element_text(colour="black", size=panel.lab.sz, face="bold", hjust=0.5), 
+        legend.position="none")
 
-##Write Out Table
-write.csv(TableS5_Perf.LM, "Tables/TableS5_Performance_LM_Results.csv", row.names=FALSE)
+
+##Symbiont Retention
+TP1_TolSym.plot<- TP1_TolSym.plot + labs(x=NULL) + theme(legend.position="none")
+
+TP2_TolSym.plot<- TP2_TolSym.plot + labs(x=NULL, y=NULL) + theme(legend.position="none")
+
+TP3_TolSym.plot<- TP3_TolSym.plot + labs(x=NULL, y=NULL) + theme(legend.position="none")
+
+TP4_TolSym.plot<- TP4_TolSym.plot + labs(x=NULL, y=NULL) + theme(legend.position="none")
+
+
+##Chlorophyll Retention
+TP1_TolChl.plot<-TP1_TolChl.plot + theme(legend.position="none")
+
+TP2_TolChl.plot<-TP2_TolChl.plot + labs(y=NULL) + theme(legend.position="none")
+
+TP3_TolChl.plot<-TP3_TolChl.plot + labs(y=NULL) + theme(legend.position="none")
+
+TP4_TolChl.plot<-TP4_TolChl.plot + labs(y=NULL) + theme(legend.position="none")
 
 ```
 
 
-### Table S6 Initial Heat Assay LM
+#### Figure S7
 ```{r}
-##Combine Results Tables
-TableS6_IN_Tolerance<-data.frame(rbind(PAM_IN.res, Sym_IN.res, Chl_IN.res))
+##Create Panel
+Tolerance_fig<-plot_grid(TP1_TolPAM.plot, TP2_TolPAM.plot, 
+                      TP3_TolPAM.plot, TP4_TolPAM.plot, 
+                      TP1_TolSym.plot, TP2_TolSym.plot, 
+                      TP3_TolSym.plot, TP4_TolSym.plot, 
+                      TP1_TolChl.plot, TP2_TolChl.plot, 
+                      TP3_TolChl.plot, TP4_TolChl.plot, 
+                    rel_widths=1, rel_heights = 1,
+                    nrow=3, ncol=4, byrow=T, labels = NULL)
 
+##Save Figure
+ggsave(filename="Figures/03_Performance/FigS7_Tolerance.png", plot=Tolerance_fig, dpi=300, width=14, height=12, units="in")
+
+```
+
+
+# Tables
+
+### Table S6 Performance LM
+```{r}
+##Save Results Table
+TableS6_Perf.LM<-Perf.res
+  
 ##Organize
-names(TableS6_IN_Tolerance)
-TableS6_IN_Tolerance<-TableS6_IN_Tolerance %>% dplyr::rename(Estimate = estimate, DF = df, t = t.ratio, p = p.value, EffectSize = EtaSq)
-TableS6_IN_Tolerance<-TableS6_IN_Tolerance[,c("Response", "Predictor", "Estimate", "SE", "DF", "t", "p", "EffectSize")]
+names(TableS6_Perf.LM)
+TableS6_Perf.LM<-TableS6_Perf.LM %>% dplyr::rename(SE = Std..Error, DF = df, t = t.value, Timepoint = TimeP)
+TableS6_Perf.LM<-TableS6_Perf.LM[,c("Timepoint", "Response", "Predictor", "Estimate", "SE", "DF", "t", "p", "EtaSq")]
 
 #Round to 3 digits
-TableS6_IN_Tolerance$Estimate<-round(TableS6_IN_Tolerance$Estimate, 3)
-TableS6_IN_Tolerance$SE<-round(TableS6_IN_Tolerance$SE, 3)
-TableS6_IN_Tolerance$t<-round(TableS6_IN_Tolerance$t, 3)
-TableS6_IN_Tolerance$p<-round(TableS6_IN_Tolerance$p, 3)
-TableS6_IN_Tolerance$EffectSize<-round(TableS6_IN_Tolerance$EffectSize, 3)
+TableS6_Perf.LM$Estimate<-round(TableS6_Perf.LM$Estimate, 3)
+TableS6_Perf.LM$SE<-round(TableS6_Perf.LM$SE, 3)
+TableS6_Perf.LM$t<-round(TableS6_Perf.LM$t, 3)
+TableS6_Perf.LM$p<-round(TableS6_Perf.LM$p, 3)
+TableS6_Perf.LM$EtaSq<-round(TableS6_Perf.LM$EtaSq, 3)
 
 #Integer
-TableS6_IN_Tolerance$DF<-round(TableS6_IN_Tolerance$DF, 0)
+TableS6_Perf.LM$DF<-round(TableS6_Perf.LM$DF, 0)
 
 ##Write Out Table
-write.csv(TableS6_IN_Tolerance, "Tables/TableS6_Initial_Tolerance_LM_Results.csv", row.names=FALSE)
+write.csv(TableS6_Perf.LM, "Tables/TableS6_Performance_LM_Results.csv", row.names=FALSE)
+
+```
+
+
+### Table S7 Performance Pairwise
+```{r}
+##Save Results Table
+TableS7_Perf.pair<-Perf.pair.res
+
+##Organize
+names(TableS7_Perf.pair)
+TableS7_Perf.pair<-TableS7_Perf.pair %>% dplyr::rename(Timepoint = TimeP, Contrast =contrast, Estimate = estimate, DF = df, t = t.ratio, p = p.value, EffectSize = effect.size, EffectSize.SE = SE.es)
+TableS7_Perf.pair<-TableS7_Perf.pair[,c("Timepoint", "Response", "Site", "Contrast", "Estimate", "SE", "DF", "t", "p", "EffectSize", "EffectSize.SE")]
+
+#Round to 3 digits
+TableS7_Perf.pair$Estimate<-round(TableS7_Perf.pair$Estimate, 3)
+TableS7_Perf.pair$SE<-round(TableS7_Perf.pair$SE, 3)
+TableS7_Perf.pair$t<-round(TableS7_Perf.pair$t, 3)
+TableS7_Perf.pair$p<-round(TableS7_Perf.pair$p, 3)
+TableS7_Perf.pair$EffectSize<-round(TableS7_Perf.pair$EffectSize, 3)
+TableS7_Perf.pair$EffectSize.SE<-round(TableS7_Perf.pair$EffectSize.SE, 3)
+
+#Integer
+TableS7_Perf.pair$DF<-round(TableS7_Perf.pair$DF, 0)
+
+##Write Out Table
+write.csv(TableS7_Perf.pair, "Tables/TableS7_Performance_Pairwise_Results.csv", row.names=FALSE)
+
+```
+
+
+### Table S8 Initial Heat Assay LM
+```{r}
+##Combine Results Tables
+TableS8_IN_Tolerance<-data.frame(rbind(PAM_IN.res, Sym_IN.res, Chl_IN.res))
+
+##Organize
+names(TableS8_IN_Tolerance)
+TableS8_IN_Tolerance<-TableS8_IN_Tolerance %>% dplyr::rename(Estimate = estimate, DF = df, t = t.ratio, p = p.value, EffectSize = EtaSq)
+TableS8_IN_Tolerance<-TableS8_IN_Tolerance[,c("Response", "Predictor", "Estimate", "SE", "DF", "t", "p", "EffectSize")]
+
+#Round to 3 digits
+TableS8_IN_Tolerance$Estimate<-round(TableS8_IN_Tolerance$Estimate, 3)
+TableS8_IN_Tolerance$SE<-round(TableS8_IN_Tolerance$SE, 3)
+TableS8_IN_Tolerance$t<-round(TableS8_IN_Tolerance$t, 3)
+TableS8_IN_Tolerance$p<-round(TableS8_IN_Tolerance$p, 3)
+TableS8_IN_Tolerance$EffectSize<-round(TableS8_IN_Tolerance$EffectSize, 3)
+
+#Integer
+TableS8_IN_Tolerance$DF<-round(TableS8_IN_Tolerance$DF, 0)
+
+##Write Out Table
+write.csv(TableS8_IN_Tolerance, "Tables/TableS8_Initial_Tolerance_LM_Results.csv", row.names=FALSE)
 
 ```
 
