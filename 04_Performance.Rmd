@@ -2075,18 +2075,19 @@ Perf.pair.res.plot$TimeP[which(Perf.pair.res.plot$TimeP=="TP3_4")]<-"TP4"
 ##Set Factors
 Perf.pair.res.plot$Site<-factor(Perf.pair.res.plot$Site, levels=c("KL", "SS"), ordered=TRUE)
 
+Perf.pair.res.plot$TimeP<-factor(Perf.pair.res.plot$TimeP, levels=c("TP1", "TP2", "TP3", "TP4"), ordered=TRUE)
 ```
 
 
 #### Plot Effect Size of Origin
 ```{r Plot Origin Effect Sizes}
 ##Plot Effect Size across Timepoints
-Perf.Orig.ES.plot<-ggplot(Perf.pair.res.plot, aes(x=TimeP, y=effect.size)) + 
-  geom_rect(fill="grey90", alpha=0.4, xmin=-Inf, xmax=Inf, ymin=-.4, ymax=0.4)+
-  geom_rect(fill="grey80", alpha=0.4, xmin=-Inf, xmax=Inf, ymin=-.25, ymax=0.25)+
-  geom_rect(fill="grey70", alpha=0.4, xmin=-Inf, xmax=Inf, ymin=-.1, ymax=0.1)+
+Perf.Orig.ES.plot<-ggplot(Perf.pair.res.plot, aes(x=TimeP, y=effect.size, group=Site)) +
+  geom_rect(fill="grey95", alpha=0.4, xmin=-Inf, xmax=Inf, ymin=-.8, ymax=0.8)+
+  geom_rect(fill="grey85", alpha=0.4, xmin=-Inf, xmax=Inf, ymin=-.5, ymax=0.5)+
+  geom_rect(fill="grey70", alpha=0.4, xmin=-Inf, xmax=Inf, ymin=-.2, ymax=0.2)+
   geom_hline(yintercept=0, linetype="dashed", color="grey50", linewidth=0.5)+
-  geom_errorbar(aes(ymin=effect.size-SE.es, ymax=effect.size+SE.es, colour=Site), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
+  geom_errorbar(aes(ymin=effect.size-SE.es, ymax=effect.size+SE.es, colour=Site, group=Site), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
   geom_point(aes(shape=Significant, colour=Site), size=point.sz, position=position_dodge(width=0.5))+
   facet_wrap(vars(Response))+
   scale_colour_manual(values=Site.colors.o)+
