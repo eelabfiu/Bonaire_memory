@@ -703,9 +703,9 @@ Phys.pair.res$Response<-factor(Phys.pair.res$Response, levels=c("Biomass", "Prot
 ```{r Plot Origin Effect Sizes}
 ##Plot Effect Size across Timepoints
 Phys.Orig.ES.plot<-ggplot(Phys.pair.res, aes(x=TimeP, y=effect.size)) + 
-  geom_rect(fill="grey90", alpha=0.4, xmin=-Inf, xmax=Inf, ymin=-.4, ymax=0.4)+
-  geom_rect(fill="grey80", alpha=0.4, xmin=-Inf, xmax=Inf, ymin=-.25, ymax=0.25)+
-  geom_rect(fill="grey70", alpha=0.4, xmin=-Inf, xmax=Inf, ymin=-.1, ymax=0.1)+
+  geom_rect(fill="grey95", alpha=0.4, xmin=-Inf, xmax=Inf, ymin=-.8, ymax=0.8)+
+  geom_rect(fill="grey85", alpha=0.4, xmin=-Inf, xmax=Inf, ymin=-.5, ymax=0.5)+
+  geom_rect(fill="grey70", alpha=0.4, xmin=-Inf, xmax=Inf, ymin=-.2, ymax=0.2)+
   geom_hline(yintercept=0, linetype="dashed", color="grey50", linewidth=0.5)+
   geom_errorbar(aes(ymin=effect.size-SE.es, ymax=effect.size+SE.es, colour=Site), width=cap.sz, linewidth=bar.sz, position=position_dodge(width=0.5)) +
   geom_point(aes(shape=Significant, colour=Site), size=point.sz, position=position_dodge(width=0.5))+
@@ -1813,7 +1813,7 @@ Phys.Site.Orig.ES.plot<-ggplot(Phys_TP.res, aes(fill=Predictor, y=EtaSq, x=TimeP
 
 #### Adjust for Panel
 ```{r}
-Phys.Orig.ES.plot<-Phys.Orig.ES.plot+ labs(x="")
+Phys.Site.Orig.ES.plot<-Phys.Site.Orig.ES.plot+ labs(x="")
 ```
 
 
