@@ -93,7 +93,7 @@ HC.colors.o<-c("#3BA0FDFF", "#BA1E02FF")
 
 
 ##Set Shapes for Seasons
-Seas.shapes.o<-c(19, 17, 16, 18)
+Seas.shapes.o<-c(19, 17, 15, 18)
 #Seasons: Fall, Winter, Spring, Summer
 
 
@@ -651,7 +651,7 @@ Env.pca.plot<-fviz_pca_biplot(Env.pca, repel=TRUE, geom = "none", col.var="black
   labs(x="PC 1 (31.85%)", y="PC 2 (24.03%)", colour="Site", shape="Season", size=NULL, title=NULL)+
   guides(size="none", colour = guide_legend(override.aes = list(size=point.sz)), 
          shape = guide_legend(override.aes = list(size=c(rep(point.sz, 3), point.sz+2))))+
-  annotate("text", x=0.25, y=-2.75,label = "Site PERMANOVA p=0.007", 
+  annotate("text", x=0.25, y=-2.75,label = "Site PERMANOVA p=0.008", 
            size=sig.sz-1, fontface="bold.italic", hjust=0)+
   annotate("text", x=0.25, y=-3.25,label = "Site PERMDISP p=0.722", 
            size=sig.sz-1, fontface="italic", hjust=0);Env.pca.plot
