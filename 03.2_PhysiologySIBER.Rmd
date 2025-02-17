@@ -35,6 +35,7 @@ if (!require("lme4")) install.packages("lme4")
 if (!require("lmerTest")) install.packages("lmerTest")
 if (!require("DHARMa")) install.packages("DHARMa")
 if (!require("emmeans")) install.packages("emmeans")
+if (!require("effectsize")) install.packages("effectsize")
 
 ##Load Packages
 library(ggplot2) #Required for ggplots
@@ -50,6 +51,7 @@ library(lme4) #Required for mixed effects models
 library(lmerTest) #Required for significance in mixed effects models
 library(DHARMa) #Required to check residuals of mixed effects models
 library(emmeans) #Required for pairwise comparisons 
+library(effectsize) #Required for eta_squared effect sizes
 
 ```
 
@@ -326,13 +328,19 @@ Overlap.res<-Overlap.res %>% dplyr::rename(SE = Std..Error, DF = df, t = t.value
 
 ### Plot Overlap over Time
 ```{r Plot Average Overlap over Time}
+
+##Update Proportion to Percent for Axis
+Niches$percOverlap<-round((Niches$pOverlap*100), 2)
+
 ##Summary statistics by Site and Origin
-pOverlap.orig.sum<-summarySE(Niches, measurevar="pOverlap", groupvars=c("Time"), na.rm=TRUE)
+pOverlap.orig.sum<-summarySE(Niches, measurevar="percOverlap", groupvars=c("Time"), na.rm=TRUE)
+
+pOverlap.orig.sum
 
 ##Plot Average Niche Overlap across Timepoints
-Overlap_Avg.plot<-ggplot(pOverlap.orig.sum, aes(x=Time, y=pOverlap, group=1)) + 
+Overlap_Avg.plot<-ggplot(pOverlap.orig.sum, aes(x=Time, y=percOverlap, group=1)) + 
   scale_colour_manual(values=Site.colors.o)+
-  geom_errorbar(aes(ymin=pOverlap-se, ymax=pOverlap+se), width=cap.sz, linewidth=bar.sz) +
+  geom_errorbar(aes(ymin=percOverlap-se, ymax=percOverlap+se), width=cap.sz, linewidth=bar.sz) +
   geom_path(linewidth=bar.sz)+
   geom_point(size=point.sz)+
   theme_classic()+
@@ -344,7 +352,7 @@ Overlap_Avg.plot<-ggplot(pOverlap.orig.sum, aes(x=Time, y=pOverlap, group=1)) +
         strip.text=element_text(size=axis.title.sz))+
   scale_x_continuous(breaks = seq(0, 12, by = 2))+
   labs(x="Months Post-Transplant", y="Physiological Niche Overlap")+
-  geom_text(aes(x=Time, y=pOverlap+se+0.03), label=c("TP1", "TP2", "TP3", "TP4"), size=sig.sz)+
+  geom_text(aes(x=Time, y=percOverlap+se+3), label=c("TP1", "TP2", "TP3", "TP4"), size=sig.sz)+
   annotate("text", x=10, y=0.1, label="Time p < 0.05", size=sig.sz); Overlap_Avg.plot
 
 ```
