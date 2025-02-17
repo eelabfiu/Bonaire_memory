@@ -351,7 +351,7 @@ Overlap_Avg.plot<-ggplot(pOverlap.orig.sum, aes(x=Time, y=percOverlap, group=1))
         legend.position="none",
         strip.text=element_text(size=axis.title.sz))+
   scale_x_continuous(breaks = seq(0, 12, by = 2))+
-  labs(x="Months Post-Transplant", y="Physiological Niche Overlap")+
+  labs(x="Months Post-Transplant", y="Physiological Niche Overlap (%)")+
   geom_text(aes(x=Time, y=percOverlap+se+3), label=c("TP1", "TP2", "TP3", "TP4"), size=sig.sz)+
   annotate("text", x=10, y=0.1, label="Time p < 0.05", size=sig.sz); Overlap_Avg.plot
 
