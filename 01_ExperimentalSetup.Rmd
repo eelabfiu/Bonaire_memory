@@ -975,9 +975,7 @@ HA_SampTimes<-data.frame(Hours=c(7, 9, 11, 18), Sample=c(rep("FvFm", 3), "Bleach
 
 ##Plot Temperature Profiles
 HA_Design.plot<-ggplot(data=HA_Design, aes(color=TempTreatment, x=Hours, y=Temp_C)) +
-  annotate("rect", xmin=6, xmax=7, ymin=-Inf, ymax=Inf, alpha=0.8, fill="grey80")+
-  annotate("rect", xmin=8, xmax=9, ymin=-Inf, ymax=Inf, alpha=0.8, fill="grey80")+
-  annotate("rect", xmin=10, xmax=11, ymin=-Inf, ymax=Inf, alpha=0.8, fill="grey80")+
+  annotate("rect", xmin=6, xmax=18, ymin=-Inf, ymax=Inf, alpha=0.8, fill="grey80")+
   geom_line(data=HA_Design, aes(color=TempTreatment, x=Hours, y=Temp_C), linewidth=bar.sz+1) +
   scale_color_manual(values = c(HC.colors.o))+
    theme_bw()+
